@@ -1,10 +1,10 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { fetchProduct } from '@/lib/api/server';
 import { formatPrice } from '@/lib/utils';
 import { getProductImages, getPrimaryProductImage, getImageUrl } from '@/lib/images';
+import { ProductActions } from '@/components/client/products/product-actions';
 import Image from 'next/image';
 
 async function getProduct(slug: string) {
@@ -145,32 +145,13 @@ export default async function ProductPage({
             </Card>
           )}
 
-          {product.variants.length > 0 && (
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Available Variants</h3>
-              <div className="space-y-2">
-                {product.variants.map((variant) => (
-                  <div
-                    key={variant.id}
-                    className="flex items-center justify-between rounded-lg border p-4"
-                  >
-                    <div>
-                      <p className="font-medium">{variant.name || 'Standard'}</p>
-                      <p className="text-sm text-muted-foreground">
-                        Stock: {variant.stock}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <p className="text-lg font-semibold">
-                        {formatPrice(variant.price)}
-                      </p>
-                      <Button>Add to Cart</Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          <ProductActions
+            productId={product.id}
+            productName={product.name}
+            productSlug={product.slug}
+            variants={product.variants}
+            primaryImage={primaryImage}
+          />
 
           {product.description && (
             <Card>
@@ -184,15 +165,6 @@ export default async function ProductPage({
               </CardContent>
             </Card>
           )}
-
-          <div className="flex gap-4">
-            <Button size="lg" className="flex-1">
-              Add to Cart
-            </Button>
-            <Button size="lg" variant="outline">
-              Buy Now
-            </Button>
-          </div>
         </div>
       </div>
     </div>

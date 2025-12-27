@@ -117,3 +117,44 @@ export async function setPrimaryImage(imageId: string, token: string): Promise<v
   });
 }
 
+/**
+ * Cart API functions
+ */
+export interface CartItemResponse {
+  id: string;
+  productId: string;
+  productName: string;
+  productSlug: string;
+  variantName: string;
+  price: number | string;
+  quantity: number;
+  stock: number;
+  image?: string;
+}
+
+export interface CartResponse {
+  items: CartItemResponse[];
+}
+
+export async function getCart(token: string): Promise<CartResponse> {
+  return fetchAPIAuth<CartResponse>('/cart', token, {
+    method: 'GET',
+  });
+}
+
+export async function updateCart(
+  items: Array<{ variantId: string; quantity: number }>,
+  token: string,
+): Promise<CartResponse> {
+  return fetchAPIAuth<CartResponse>('/cart', token, {
+    method: 'PUT',
+    body: JSON.stringify({ items }),
+  });
+}
+
+export async function clearCart(token: string): Promise<CartResponse> {
+  return fetchAPIAuth<CartResponse>('/cart', token, {
+    method: 'DELETE',
+  });
+}
+
