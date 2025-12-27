@@ -2,7 +2,7 @@ import { Metadata } from 'next';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { fetchAPI } from '@/lib/api';
+import { fetchFeaturedProducts } from '@/lib/api/server';
 import { formatPrice } from '@/lib/utils';
 import { getPrimaryProductImage, getImageUrl } from '@/lib/images';
 import Image from 'next/image';
@@ -14,19 +14,8 @@ export const metadata: Metadata = {
 
 async function getFeaturedProducts() {
   try {
-    const data = await fetchAPI<{
-      data: Array<{
-        id: string;
-        name: string;
-        slug: string;
-        description: string;
-        images: string[]; // Legacy field
-        productImages?: Array<{ filepath: string; url?: string; isPrimary?: boolean }>;
-        brand: { name: string; slug: string };
-        variants: Array<{ price: number | string }>;
-      }>;
-    }>('/products?featured=true&limit=6');
-    return data.data;
+    const products = await fetchFeaturedProducts(6);
+    return products;
   } catch (error) {
     console.error('Failed to fetch featured products:', error);
     return [];

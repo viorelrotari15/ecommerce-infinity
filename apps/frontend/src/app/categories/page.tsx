@@ -1,7 +1,7 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { fetchAPI } from '@/lib/api';
+import { fetchCategories } from '@/lib/api/server';
 
 export const metadata: Metadata = {
   title: 'Categories',
@@ -10,13 +10,7 @@ export const metadata: Metadata = {
 
 async function getCategories() {
   try {
-    const categories = await fetchAPI<Array<{
-      id: string;
-      name: string;
-      slug: string;
-      description: string | null;
-      children: Array<{ id: string; name: string; slug: string }>;
-    }>>('/categories');
+    const categories = await fetchCategories();
     return categories;
   } catch (error) {
     console.error('Failed to fetch categories:', error);
