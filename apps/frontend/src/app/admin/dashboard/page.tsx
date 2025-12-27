@@ -5,10 +5,10 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { fetchAPI, fetchAPIAuth } from '@/lib/api';
+import { useProducts, useDeleteProduct } from '@/lib/hooks/use-products';
 import { getImageUrl, getPrimaryProductImage } from '@/lib/images';
 import { formatPrice } from '@/lib/utils';
-import { isAdmin, getAuthToken } from '@/lib/auth';
+import { isAdmin } from '@/lib/auth';
 import { Plus, Edit, Trash2, Eye } from 'lucide-react';
 import Image from 'next/image';
 
@@ -31,11 +31,7 @@ interface Product {
 
 export default function AdminDashboard() {
   const router = useRouter();
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
 
   useEffect(() => {
     // Check if user is admin
@@ -43,39 +39,11 @@ export default function AdminDashboard() {
       router.push('/auth/login');
       return;
     }
+  }, [router]);
 
-    loadProducts();
-  }, [page, router]);
-
-  const loadProducts = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const token = getAuthToken();
-      
-      if (!token) {
-        router.push('/auth/login');
-        return;
-      }
-
-      const response = await fetchAPI<{
-        data: Product[];
-        meta: {
-          total: number;
-          page: number;
-          limit: number;
-          totalPages: number;
-        };
-      }>(`/products?page=${page}&limit=20`);
-
-      setProducts(response.data);
-      setTotalPages(response.meta.totalPages);
-    } catch (err: any) {
-      setError(err.message || 'Failed to load products');
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Use React Query instead of useState/useEffect
+  const { data, isLoading, error } = useProducts({ page, limit: 20 });
+  const deleteProduct = useDeleteProduct();
 
   const handleDelete = async (productId: string) => {
     if (!confirm('Are you sure you want to delete this product?')) {
@@ -83,24 +51,13 @@ export default function AdminDashboard() {
     }
 
     try {
-      const token = getAuthToken();
-      if (!token) {
-        router.push('/auth/login');
-        return;
-      }
-
-      await fetchAPIAuth(`/products/${productId}`, token, {
-        method: 'DELETE',
-      });
-
-      // Reload products
-      loadProducts();
+      await deleteProduct.mutateAsync(productId);
     } catch (err: any) {
       alert(err.message || 'Failed to delete product');
     }
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="container py-8">
         <div className="flex items-center justify-center min-h-[60vh]">
@@ -117,16 +74,16 @@ export default function AdminDashboard() {
           <Card className="w-full max-w-md">
             <CardHeader>
               <CardTitle>Error</CardTitle>
-              <CardDescription>{error}</CardDescription>
+              <CardDescription>{error.message || 'Failed to load products'}</CardDescription>
             </CardHeader>
-            <CardContent>
-              <Button onClick={loadProducts}>Try Again</Button>
-            </CardContent>
           </Card>
         </div>
       </div>
     );
   }
+
+  const products = data?.data || [];
+  const meta = data?.meta || { totalPages: 1 };
 
   return (
     <div className="container py-8">
@@ -223,6 +180,7 @@ export default function AdminDashboard() {
                         variant="outline"
                         size="sm"
                         onClick={() => handleDelete(product.id)}
+                        disabled={deleteProduct.isPending}
                         className="text-destructive hover:text-destructive"
                       >
                         <Trash2 className="h-4 w-4" />
@@ -234,7 +192,7 @@ export default function AdminDashboard() {
             })}
           </div>
 
-          {totalPages > 1 && (
+          {meta.totalPages > 1 && (
             <div className="mt-8 flex justify-center gap-2">
               <Button
                 variant="outline"
@@ -244,12 +202,12 @@ export default function AdminDashboard() {
                 Previous
               </Button>
               <span className="flex items-center px-4 text-sm text-muted-foreground">
-                Page {page} of {totalPages}
+                Page {page} of {meta.totalPages}
               </span>
               <Button
                 variant="outline"
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={page === totalPages}
+                disabled={page === meta.totalPages}
               >
                 Next
               </Button>

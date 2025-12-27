@@ -10,9 +10,15 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { fetchAPI, fetchAPIAuth, uploadImage, deleteImage } from '@/lib/api';
+import { fetchAPI, fetchAPIAuth } from '@/lib/api';
 import { getProductImageUrl } from '@/lib/images';
 import { isAdmin, getAuthToken } from '@/lib/auth';
+import { useUploadProductImage, useDeleteProductImage } from '@/lib/hooks/use-product-images';
+import { useCategories } from '@/lib/hooks/use-categories';
+import { useBrands } from '@/lib/hooks/use-brands';
+import { useProductTypes } from '@/lib/hooks/use-product-types';
+import { useQueryClient } from '@tanstack/react-query';
+import { productQueryKeys } from '@/lib/api/queries';
 import { X, Plus, Upload, Image as ImageIcon } from 'lucide-react';
 import Image from 'next/image';
 
@@ -87,16 +93,22 @@ export default function EditProductPage() {
   const router = useRouter();
   const params = useParams();
   const productId = params.id as string;
+  const queryClient = useQueryClient();
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingProduct, setIsLoadingProduct] = useState(true);
-  const [isUploading, setIsUploading] = useState(false);
-  const [brands, setBrands] = useState<Brand[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [productTypes, setProductTypes] = useState<ProductType[]>([]);
   const [attributes, setAttributes] = useState<Attribute[]>([]);
   const [uploadedImages, setUploadedImages] = useState<ProductImage[]>([]);
   const [token, setToken] = useState<string | null>(null);
+
+  // Use React Query hooks for brands, categories, and product types
+  const { data: brands = [] } = useBrands();
+  const { data: categories = [] } = useCategories();
+  const { data: productTypes = [] } = useProductTypes();
+
+  // Use React Query hooks for image operations
+  const uploadImageMutation = useUploadProductImage(productId);
+  const deleteImageMutation = useDeleteProductImage();
 
   const {
     register,
@@ -143,22 +155,6 @@ export default function EditProductPage() {
       return;
     }
     setToken(storedToken);
-
-    // Fetch brands, categories, and product types
-    Promise.all([
-      fetchAPI<Brand[]>('/brands'),
-      fetchAPI<Category[]>('/categories'),
-      fetchAPI<ProductType[]>('/product-types'),
-    ])
-      .then(([brandsData, categoriesData, productTypesData]) => {
-        setBrands(brandsData);
-        setCategories(categoriesData);
-        setProductTypes(productTypesData);
-      })
-      .catch((err) => {
-        console.error('Failed to fetch data:', err);
-        setError('Failed to load form data');
-      });
 
     // Load product data
     fetchAPIAuth<{
@@ -258,21 +254,47 @@ export default function EditProductPage() {
     const files = e.target.files;
     if (!files || files.length === 0 || !token) return;
 
-    setIsUploading(true);
     try {
       const uploadPromises = Array.from(files).map((file, index) =>
-        uploadImage(productId, file, token, {
-          isPrimary: index === 0 && uploadedImages.length === 0,
-          order: uploadedImages.length + index,
+        uploadImageMutation.mutateAsync({
+          file,
+          options: {
+            isPrimary: index === 0 && uploadedImages.length === 0,
+            order: uploadedImages.length + index,
+          },
         }),
       );
 
       const results = await Promise.all(uploadPromises);
+      // Optimistically update local state
       setUploadedImages([...uploadedImages, ...results]);
+      
+      // Refetch product data once after all uploads to get the complete updated list
+      // This ensures the images are immediately visible and in sync with the server
+      const productResponse = await fetchAPIAuth<{
+        productImages: Array<{
+          id: string;
+          filepath: string;
+          url: string;
+          isPrimary: boolean;
+          order: number;
+        }>;
+      }>(`/products/id/${productId}`, token);
+      
+      setUploadedImages(
+        productResponse.productImages.map((img) => ({
+          id: img.id,
+          filepath: img.filepath,
+          url: img.url,
+          isPrimary: img.isPrimary,
+          order: img.order,
+        })),
+      );
+      
+      // Invalidate React Query cache to ensure other components see the update
+      queryClient.invalidateQueries({ queryKey: productQueryKeys.all });
     } catch (err: any) {
       setError(err.message || 'Failed to upload images');
-    } finally {
-      setIsUploading(false);
     }
   };
 
@@ -280,8 +302,33 @@ export default function EditProductPage() {
     if (!token) return;
 
     try {
-      await deleteImage(imageId, token);
+      await deleteImageMutation.mutateAsync(imageId);
+      // Optimistically update local state
       setUploadedImages(uploadedImages.filter((img) => img.id !== imageId));
+      
+      // Refetch product data to get updated images list
+      const productResponse = await fetchAPIAuth<{
+        productImages: Array<{
+          id: string;
+          filepath: string;
+          url: string;
+          isPrimary: boolean;
+          order: number;
+        }>;
+      }>(`/products/id/${productId}`, token);
+      
+      setUploadedImages(
+        productResponse.productImages.map((img) => ({
+          id: img.id,
+          filepath: img.filepath,
+          url: img.url,
+          isPrimary: img.isPrimary,
+          order: img.order,
+        })),
+      );
+      
+      // Invalidate React Query cache to ensure other components see the update
+      queryClient.invalidateQueries({ queryKey: productQueryKeys.all });
     } catch (err: any) {
       setError(err.message || 'Failed to delete image');
     }
@@ -675,9 +722,9 @@ export default function EditProductPage() {
                     multiple
                     className="hidden"
                     onChange={handleImageUpload}
-                    disabled={isUploading}
+                    disabled={uploadImageMutation.isPending}
                   />
-                  {isUploading ? (
+                  {uploadImageMutation.isPending ? (
                     <div className="text-muted-foreground">Uploading...</div>
                   ) : (
                     <Upload className="h-8 w-8 text-muted-foreground" />

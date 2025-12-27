@@ -13,6 +13,9 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { fetchAPI, fetchAPIAuth, uploadImage } from '@/lib/api';
 import { getProductImageUrl } from '@/lib/images';
+import { useBrands } from '@/lib/hooks/use-brands';
+import { useCategories } from '@/lib/hooks/use-categories';
+import { useProductTypes } from '@/lib/hooks/use-product-types';
 import { X, Plus, Upload, Image as ImageIcon } from 'lucide-react';
 import Image from 'next/image';
 
@@ -88,12 +91,14 @@ export default function NewProductPage() {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const [brands, setBrands] = useState<Brand[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [productTypes, setProductTypes] = useState<ProductType[]>([]);
   const [attributes, setAttributes] = useState<Attribute[]>([]);
   const [uploadedImages, setUploadedImages] = useState<ProductImage[]>([]);
   const [token, setToken] = useState<string | null>(null);
+
+  // Use React Query hooks for brands, categories, and product types
+  const { data: brands = [] } = useBrands();
+  const { data: categories = [] } = useCategories();
+  const { data: productTypes = [] } = useProductTypes();
 
   const {
     register,
@@ -144,22 +149,7 @@ export default function NewProductPage() {
         return;
       }
     }
-
-    // Fetch brands, categories, and product types
-    Promise.all([
-      fetchAPI<Brand[]>('/brands'),
-      fetchAPI<Category[]>('/categories'),
-      fetchAPI<ProductType[]>('/product-types'),
-    ])
-      .then(([brandsData, categoriesData, productTypesData]) => {
-        setBrands(brandsData);
-        setCategories(categoriesData);
-        setProductTypes(productTypesData);
-      })
-      .catch((err) => {
-        console.error('Failed to fetch data:', err);
-        setError('Failed to load form data');
-      });
+    // Brands, categories, and product types are now fetched via React Query hooks
   }, [router]);
 
   useEffect(() => {

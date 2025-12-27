@@ -2,38 +2,14 @@ import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { fetchAPI } from '@/lib/api';
+import { fetchProduct } from '@/lib/api/server';
 import { formatPrice } from '@/lib/utils';
 import { getProductImages, getPrimaryProductImage, getImageUrl } from '@/lib/images';
 import Image from 'next/image';
 
 async function getProduct(slug: string) {
   try {
-    const product = await fetchAPI<{
-      id: string;
-      name: string;
-      slug: string;
-      description: string;
-      shortDescription: string;
-      images: string[]; // Legacy field
-      productImages?: Array<{ filepath: string; url?: string; isPrimary?: boolean }>;
-      brand: { name: string; slug: string };
-      productType: { name: string };
-      categories: Array<{ category: { name: string; slug: string } }>;
-      variants: Array<{
-        id: string;
-        name: string;
-        price: number | string;
-        stock: number;
-        isActive: boolean;
-      }>;
-      attributes: Array<{
-        attribute: { name: string; slug: string };
-        value: string;
-      }>;
-      metaTitle: string | null;
-      metaDescription: string | null;
-    }>(`/products/${slug}`);
+    const product = await fetchProduct(slug);
     return product;
   } catch (error) {
     console.error('Failed to fetch product:', error);

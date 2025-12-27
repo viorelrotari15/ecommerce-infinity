@@ -1,19 +1,17 @@
 import { MetadataRoute } from 'next';
-import { fetchAPI } from '@/lib/api';
+import { fetchProducts } from '@/lib/api/server';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
   try {
-    // Fetch products
-    const productsData = await fetchAPI<{
-      data: Array<{ slug: string; updatedAt: string }>;
-    }>('/products?limit=1000');
+    // Fetch products using server API
+    const productsData = await fetchProducts({ limit: 1000 });
 
     const productUrls: MetadataRoute.Sitemap = productsData.data.map((product) => ({
       url: `${baseUrl}/products/${product.slug}`,
-      lastModified: new Date(product.updatedAt),
-      changeFrequency: 'weekly',
+      lastModified: new Date(), // Products don't have updatedAt in the response, using current date
+      changeFrequency: 'weekly' as const,
       priority: 0.8,
     }));
 
