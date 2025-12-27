@@ -13,7 +13,7 @@ export function Header() {
           <nav className="hidden md:flex gap-6">
             <Link
               href="/products"
-              className="text-sm font-medium transition-colors  hover:underline"
+              className="text-sm font-medium transition-colors hover:underline"
             >
               Products
             </Link>
