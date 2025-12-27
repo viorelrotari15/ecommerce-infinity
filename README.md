@@ -9,6 +9,20 @@ A production-ready, scalable e-commerce monorepo platform built with Next.js, Ne
 - Docker and Docker Compose installed
 - Node.js 20+ (for local development without Docker)
 
+### Cross-Platform Support
+
+This project is configured to work on **Windows, macOS, and Linux**. The following configurations ensure cross-platform compatibility:
+
+- **Line Endings**: `.gitattributes` and `.editorconfig` ensure consistent LF line endings
+- **Shell Scripts**: Dockerfiles automatically convert line endings using `dos2unix`
+- **Volume Paths**: Docker Compose handles path conversions automatically
+- **Makefile**: Works on all platforms (requires `make` on Windows via WSL, Git Bash, or Chocolatey)
+
+**Windows Users:**
+- Ensure Docker Desktop is running before starting containers
+- Git will automatically handle line endings thanks to `.gitattributes`
+- If you encounter shell script errors, rebuild containers: `docker compose build --no-cache`
+
 ### One-Command Startup
 
 ```bash

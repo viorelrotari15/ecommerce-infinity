@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   postgres:
     image: postgres:16-alpine
@@ -60,6 +58,8 @@ services:
       API_URL: http://backend:3001
       NEXT_PUBLIC_API_URL: http://localhost:3001
       NEXT_PUBLIC_APP_URL: http://localhost:3000
+      WATCHPACK_POLLING: "true"
+      CHOKIDAR_USEPOLLING: "true"
     ports:
       - "3000:3000"
     volumes:

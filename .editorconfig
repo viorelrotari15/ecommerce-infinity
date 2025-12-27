@@ -1,0 +1,36 @@
+# EditorConfig is awesome: https://EditorConfig.org
+
+# top-most EditorConfig file
+root = true
+
+# Unix-style newlines with a newline ending every file
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+# Shell scripts must use LF
+[*.{sh,bash}]
+end_of_line = lf
+
+# Docker files
+[Dockerfile*]
+end_of_line = lf
+
+[docker-compose*.yml]
+end_of_line = lf
+
+# Makefile
+[Makefile]
+end_of_line = lf
+
+# Package files
+[package*.json]
+end_of_line = lf
+
+# Markdown files (allow trailing whitespace for line breaks)
+[*.md]
+trim_trailing_whitespace = false
+
+
