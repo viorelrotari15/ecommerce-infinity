@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { ShoppingCart, LogOut, LayoutDashboard, User } from 'lucide-react';
 import { getCurrentUser, isAdmin, isAuthenticated, logout } from '@/lib/auth';
 import { useQueryClient } from '@tanstack/react-query';
+import { useCartStore } from '@/lib/store/cart-store';
 
 export function Header() {
   const router = useRouter();
@@ -14,6 +15,7 @@ export function Header() {
   const [user, setUser] = useState<ReturnType<typeof getCurrentUser>>(null);
   const [isUserAdmin, setIsUserAdmin] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const cartItemCount = useCartStore((state) => state.getTotalItems());
 
   useEffect(() => {
     const currentUser = getCurrentUser();
@@ -80,8 +82,13 @@ export function Header() {
         </div>
         <div className="flex items-center gap-4">
           <Link href="/cart">
-            <Button variant="ghost" size="icon">
+            <Button variant="ghost" size="icon" className="relative">
               <ShoppingCart className="h-5 w-5" />
+              {cartItemCount > 0 && (
+                <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
+                  {cartItemCount > 99 ? '99+' : cartItemCount}
+                </span>
+              )}
             </Button>
           </Link>
           {isLoggedIn ? (
