@@ -21,7 +21,9 @@ export class UsersController {
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Get user by ID' })
+  @Roles('ADMIN')
+  @UseGuards(RolesGuard)
+  @ApiOperation({ summary: 'Get user by ID (Admin only)' })
   findOne(@Param('id') id: string) {
     return this.usersService.findOne(id);
   }
