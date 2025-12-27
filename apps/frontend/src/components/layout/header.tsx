@@ -4,11 +4,13 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { ShoppingCart, LogOut, LayoutDashboard } from 'lucide-react';
+import { ShoppingCart, LogOut, LayoutDashboard, User } from 'lucide-react';
 import { getCurrentUser, isAdmin, isAuthenticated, logout } from '@/lib/auth';
+import { useQueryClient } from '@tanstack/react-query';
 
 export function Header() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [user, setUser] = useState<ReturnType<typeof getCurrentUser>>(null);
   const [isUserAdmin, setIsUserAdmin] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -25,6 +27,9 @@ export function Header() {
     setUser(null);
     setIsUserAdmin(false);
     setIsLoggedIn(false);
+    // Invalidate all queries to refetch data
+    queryClient.invalidateQueries();
+    queryClient.clear();
     router.push('/');
     router.refresh();
   };
@@ -88,6 +93,11 @@ export function Header() {
                   </Button>
                 </Link>
               )}
+              <Link href="/user/profile">
+                <Button variant="ghost" size="icon" title="Profile">
+                  <User className="h-5 w-5" />
+                </Button>
+              </Link>
               <div className="flex items-center gap-2">
                 <span className="text-sm text-muted-foreground">
                   {user?.firstName || user?.email}

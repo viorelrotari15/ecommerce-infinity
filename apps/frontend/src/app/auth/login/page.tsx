@@ -10,6 +10,7 @@ import { FormField } from '@/components/forms/form-field';
 import { fetchAPI } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 
 const loginSchema = yup.object({
   email: yup.string().email('Invalid email address').required('Email is required'),
@@ -20,6 +21,7 @@ type LoginFormData = yup.InferType<typeof loginSchema>;
 
 export default function LoginPage() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -54,8 +56,15 @@ export default function LoginPage() {
       localStorage.setItem('token', response.access_token);
       localStorage.setItem('user', JSON.stringify(response.user));
 
-      // Redirect to home or dashboard
-      router.push('/');
+      // Invalidate all queries to refetch data
+      queryClient.invalidateQueries();
+
+      // Redirect based on role
+      if (response.user.role === 'ADMIN' || response.user.role === 'admin') {
+        router.push('/admin/dashboard');
+      } else {
+        router.push('/');
+      }
       router.refresh();
     } catch (err: any) {
       setError(err.message || 'Login failed. Please check your credentials.');
