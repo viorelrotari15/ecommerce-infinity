@@ -1,8 +1,34 @@
+'use client';
+
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { ShoppingCart } from 'lucide-react';
+import { ShoppingCart, LogOut, LayoutDashboard } from 'lucide-react';
+import { getCurrentUser, isAdmin, isAuthenticated, logout } from '@/lib/auth';
 
 export function Header() {
+  const router = useRouter();
+  const [user, setUser] = useState<ReturnType<typeof getCurrentUser>>(null);
+  const [isUserAdmin, setIsUserAdmin] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    const currentUser = getCurrentUser();
+    setUser(currentUser);
+    setIsUserAdmin(isAdmin());
+    setIsLoggedIn(isAuthenticated());
+  }, []);
+
+  const handleLogout = () => {
+    logout();
+    setUser(null);
+    setIsUserAdmin(false);
+    setIsLoggedIn(false);
+    router.push('/');
+    router.refresh();
+  };
+
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center justify-between">
@@ -29,6 +55,22 @@ export function Header() {
             >
               Brands
             </Link>
+            {isUserAdmin && (
+              <>
+                <Link
+                  href="/admin/dashboard"
+                  className="text-sm font-medium transition-colors hover:text-primary"
+                >
+                  Dashboard
+                </Link>
+                <Link
+                  href="/admin/products/new"
+                  className="text-sm font-medium transition-colors hover:text-primary"
+                >
+                  New Product
+                </Link>
+              </>
+            )}
           </nav>
         </div>
         <div className="flex items-center gap-4">
@@ -37,9 +79,30 @@ export function Header() {
               <ShoppingCart className="h-5 w-5" />
             </Button>
           </Link>
+          {isLoggedIn ? (
+            <>
+              {isUserAdmin && (
+                <Link href="/admin/dashboard">
+                  <Button variant="ghost" size="icon" title="Dashboard">
+                    <LayoutDashboard className="h-5 w-5" />
+                  </Button>
+                </Link>
+              )}
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">
+                  {user?.firstName || user?.email}
+                </span>
+                <Button variant="outline" onClick={handleLogout} size="sm">
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Logout
+                </Button>
+              </div>
+            </>
+          ) : (
           <Link href="/auth/login">
             <Button variant="outline">Login</Button>
           </Link>
+          )}
         </div>
       </div>
     </header>

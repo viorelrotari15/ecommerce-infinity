@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { fetchAPI } from '@/lib/api';
 import { formatPrice } from '@/lib/utils';
+import { getProductImages, getPrimaryProductImage, getImageUrl } from '@/lib/images';
 import Image from 'next/image';
 
 async function getProduct(slug: string) {
@@ -14,7 +15,8 @@ async function getProduct(slug: string) {
       slug: string;
       description: string;
       shortDescription: string;
-      images: string[];
+      images: string[]; // Legacy field
+      productImages?: Array<{ filepath: string; url?: string; isPrimary?: boolean }>;
       brand: { name: string; slug: string };
       productType: { name: string };
       categories: Array<{ category: { name: string; slug: string } }>;
@@ -58,7 +60,11 @@ export async function generateMetadata({
     openGraph: {
       title: product.name,
       description: product.shortDescription || product.description,
-      images: product.images.length > 0 ? [product.images[0]] : [],
+      images: product.productImages
+        ? [getPrimaryProductImage(product.productImages)]
+        : product.images.length > 0
+          ? [getImageUrl(product.images[0])]
+          : [],
     },
   };
 }
@@ -77,19 +83,35 @@ export default async function ProductPage({
   const defaultVariant = product.variants[0];
   const minPrice = defaultVariant ? formatPrice(defaultVariant.price) : 'N/A';
 
+  // Get images - prefer productImages over legacy images array
+  // Check if productImages exists and has items
+  const hasProductImages = product.productImages && Array.isArray(product.productImages) && product.productImages.length > 0;
+  const productImages = hasProductImages
+    ? getProductImages(product.productImages)
+    : product.images && product.images.length > 0
+    ? product.images.map((img) => ({ filepath: img, url: getImageUrl(img) }))
+    : [];
+  
+  const primaryImage = hasProductImages
+    ? getPrimaryProductImage(product.productImages)
+    : product.images && product.images.length > 0
+    ? getImageUrl(product.images[0])
+    : '/placeholder-image.jpg';
+
   return (
     <div className="container py-8">
       <div className="grid gap-8 lg:grid-cols-2">
         {/* Product Images */}
         <div className="space-y-4">
           <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-muted">
-            {product.images[0] ? (
+            {primaryImage && primaryImage !== '/placeholder-image.jpg' ? (
               <Image
-                src={product.images[0]}
+                src={primaryImage}
                 alt={product.name}
                 fill
                 className="object-cover"
                 priority
+                unoptimized
               />
             ) : (
               <div className="flex h-full items-center justify-center">
@@ -97,18 +119,19 @@ export default async function ProductPage({
               </div>
             )}
           </div>
-          {product.images.length > 1 && (
+          {productImages.length > 1 && (
             <div className="grid grid-cols-4 gap-4">
-              {product.images.slice(1, 5).map((image, idx) => (
+              {productImages.slice(1, 5).map((image, idx) => (
                 <div
                   key={idx}
                   className="relative aspect-square overflow-hidden rounded-lg bg-muted"
                 >
                   <Image
-                    src={image}
+                    src={image.url}
                     alt={`${product.name} ${idx + 2}`}
                     fill
                     className="object-cover"
+                    unoptimized
                   />
                 </div>
               ))}
