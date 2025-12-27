@@ -120,7 +120,8 @@ model Product {
   brand         Brand             @relation(fields: [brandId], references: [id])
   productTypeId String
   productType   ProductType       @relation(fields: [productTypeId], references: [id])
-  images        String[]          @default([])
+  images        String[]          @default([]) // Legacy field, kept for backward compatibility
+  productImages ProductImage[]    // New relation to ProductImage model
   isActive      Boolean           @default(true)
   isFeatured    Boolean           @default(false)
   metaTitle     String?
@@ -132,6 +133,24 @@ model Product {
   attributes    ProductAttribute[]
 
   @@map("products")
+}
+
+model ProductImage {
+  id        String   @id @default(uuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  bucket    String
+  filepath  String   // Full path: products/{category}/{brand}/{productId}/{filename}.jpg
+  filename  String
+  size      Int      // File size in bytes
+  mimeType  String   // e.g., image/jpeg, image/png
+  isPrimary Boolean  @default(false) // First image is primary
+  order     Int      @default(0) // Display order
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([productId])
+  @@map("product_images")
 }
 
 model ProductCategory {

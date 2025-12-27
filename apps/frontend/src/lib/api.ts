@@ -52,3 +52,73 @@ export async function fetchAPIAuth<T>(
   });
 }
 
+/**
+ * Upload image file to the API
+ */
+export async function uploadImage(
+  productId: string,
+  file: File,
+  token: string,
+  options?: { isPrimary?: boolean; order?: number },
+): Promise<{
+  id: string;
+  productId: string;
+  bucket: string;
+  filepath: string;
+  filename: string;
+  size: number;
+  mimeType: string;
+  isPrimary: boolean;
+  order: number;
+  url: string;
+}> {
+  const formData = new FormData();
+  formData.append('file', file);
+  if (options?.isPrimary !== undefined) {
+    formData.append('isPrimary', options.isPrimary.toString());
+  }
+  if (options?.order !== undefined) {
+    formData.append('order', options.order.toString());
+  }
+
+  const url = `${API_URL}/api/images/products/${productId}`;
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    body: formData,
+  });
+
+  if (!response.ok) {
+    let errorMessage = response.statusText;
+    try {
+      const errorData = await response.json();
+      errorMessage = errorData.message || errorData.error || response.statusText;
+    } catch {
+      // If response is not JSON, use status text
+    }
+    throw new Error(errorMessage);
+  }
+
+  return response.json();
+}
+
+/**
+ * Delete image
+ */
+export async function deleteImage(imageId: string, token: string): Promise<void> {
+  return fetchAPIAuth(`/images/${imageId}`, token, {
+    method: 'DELETE',
+  });
+}
+
+/**
+ * Set primary image
+ */
+export async function setPrimaryImage(imageId: string, token: string): Promise<void> {
+  return fetchAPIAuth(`/images/${imageId}/primary`, token, {
+    method: 'PATCH',
+  });
+}
+

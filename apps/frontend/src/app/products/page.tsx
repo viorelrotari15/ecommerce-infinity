@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { fetchAPI } from '@/lib/api';
 import { formatPrice } from '@/lib/utils';
+import { getPrimaryProductImage, getImageUrl } from '@/lib/images';
 import Image from 'next/image';
 
 export const metadata: Metadata = {
@@ -25,7 +26,8 @@ async function getProducts(searchParams: { [key: string]: string | string[] | un
         name: string;
         slug: string;
         description: string;
-        images: string[];
+        images: string[]; // Legacy field
+        productImages?: Array<{ filepath: string; url?: string; isPrimary?: boolean }>;
         brand: { name: string; slug: string };
         variants: Array<{ price: number | string }>;
       }>;
@@ -75,18 +77,25 @@ export default async function ProductsPage({
                   <Card className="h-full transition-shadow hover:shadow-lg">
                     <CardHeader>
                       <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-muted">
-                        {product.images[0] ? (
-                          <Image
-                            src={product.images[0]}
-                            alt={product.name}
-                            fill
-                            className="object-cover"
-                          />
-                        ) : (
-                          <div className="flex h-full items-center justify-center">
-                            <span className="text-muted-foreground">No Image</span>
-                          </div>
-                        )}
+                        {(() => {
+                          const imageUrl = product.productImages
+                            ? getPrimaryProductImage(product.productImages)
+                            : product.images?.[0]
+                            ? getImageUrl(product.images[0])
+                            : '/placeholder-image.jpg';
+                          return imageUrl && imageUrl !== '/placeholder-image.jpg' ? (
+                            <Image
+                              src={imageUrl}
+                              alt={product.name}
+                              fill
+                              className="object-cover"
+                            />
+                          ) : (
+                            <div className="flex h-full items-center justify-center">
+                              <span className="text-muted-foreground">No Image</span>
+                            </div>
+                          );
+                        })()}
                       </div>
                     </CardHeader>
                     <CardContent>
