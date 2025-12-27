@@ -11,6 +11,8 @@ import { fetchAPI } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { useCartStore } from '@/lib/store/cart-store';
+import { getCart, updateCart as updateCartAPI } from '@/lib/api/client';
 
 const loginSchema = yup.object({
   email: yup.string().email('Invalid email address').required('Email is required'),
@@ -22,6 +24,7 @@ type LoginFormData = yup.InferType<typeof loginSchema>;
 export default function LoginPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { mergeWithLocal } = useCartStore();
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -55,6 +58,26 @@ export default function LoginPage() {
       // Store token in localStorage
       localStorage.setItem('token', response.access_token);
       localStorage.setItem('user', JSON.stringify(response.user));
+
+      // Merge local cart with server cart
+      try {
+        const serverCart = await getCart(response.access_token);
+        mergeWithLocal(serverCart.items);
+        // Get merged items and sync back to server
+        const mergedItems = useCartStore.getState().items;
+        if (mergedItems.length > 0) {
+          await updateCartAPI(
+            mergedItems.map((item) => ({
+              variantId: item.id,
+              quantity: item.quantity,
+            })),
+            response.access_token,
+          );
+        }
+      } catch (cartError) {
+        console.error('Failed to merge cart:', cartError);
+        // Continue with login even if cart merge fails
+      }
 
       // Invalidate all queries to refetch data
       queryClient.invalidateQueries();

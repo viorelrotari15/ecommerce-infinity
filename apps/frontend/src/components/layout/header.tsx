@@ -17,6 +17,7 @@ export function Header() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [mounted, setMounted] = useState(false);
   const cartItemCount = useCartStore((state) => state.getTotalItems());
+  const { loadFromServer } = useCartStore();
 
   useEffect(() => {
     setMounted(true);
@@ -24,7 +25,12 @@ export function Header() {
     setUser(currentUser);
     setIsUserAdmin(isAdmin());
     setIsLoggedIn(isAuthenticated());
-  }, []);
+    
+    // Load cart from server if user is logged in
+    if (isAuthenticated()) {
+      loadFromServer().catch(console.error);
+    }
+  }, [loadFromServer]);
 
   const handleLogout = () => {
     logout();
