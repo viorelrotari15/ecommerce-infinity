@@ -39,19 +39,19 @@ export function Header() {
           <nav className="hidden md:flex gap-6">
             <Link
               href="/products"
-              className="text-sm font-medium transition-colors hover:text-primary"
+              className="text-sm font-medium transition-colors  hover:underline"
             >
               Products
             </Link>
             <Link
               href="/categories"
-              className="text-sm font-medium transition-colors hover:text-primary"
+              className="text-sm font-medium transition-colors  hover:underline"
             >
               Categories
             </Link>
             <Link
               href="/brands"
-              className="text-sm font-medium transition-colors hover:text-primary"
+              className="text-sm font-medium transition-colors  hover:underline"
             >
               Brands
             </Link>
@@ -59,13 +59,13 @@ export function Header() {
               <>
                 <Link
                   href="/admin/dashboard"
-                  className="text-sm font-medium transition-colors hover:text-primary"
+                  className="text-sm font-medium transition-colors  hover:underline"
                 >
                   Dashboard
                 </Link>
                 <Link
                   href="/admin/products/new"
-                  className="text-sm font-medium transition-colors hover:text-primary"
+                  className="text-sm font-medium transition-colors  hover:underline"
                 >
                   New Product
                 </Link>
