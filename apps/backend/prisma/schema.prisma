@@ -63,6 +63,7 @@ model Brand {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   products    Product[]
+  translations BrandTranslation[]
 
   @@map("brands")
 }
@@ -79,6 +80,7 @@ model Category {
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
   products    ProductCategory[]
+  translations CategoryTranslation[]
 
   @@map("categories")
 }
@@ -92,6 +94,7 @@ model ProductType {
   updatedAt   DateTime  @updatedAt
   products    Product[]
   attributes  Attribute[]
+  translations ProductTypeTranslation[]
 
   @@map("product_types")
 }
@@ -105,6 +108,7 @@ model Attribute {
   createdAt    DateTime          @default(now())
   updatedAt    DateTime          @updatedAt
   values       ProductAttribute[]
+  translations AttributeTranslation[]
 
   @@unique([slug, productTypeId])
   @@map("attributes")
@@ -132,6 +136,7 @@ model Product {
   categories    ProductCategory[]
   variants      ProductVariant[]
   attributes    ProductAttribute[]
+  translations  ProductTranslation[]
 
   @@map("products")
 }
@@ -267,5 +272,118 @@ model CartItem {
 
   @@unique([cartId, productVariantId])
   @@map("cart_items")
+}
+
+// ============================================
+// MULTILANGUAGE SYSTEM
+// ============================================
+
+model Language {
+  code        String   @id        // "en", "ro", "ru", "de", "tr"
+  name        String              // English, Romanian, etc.
+  isDefault   Boolean  @default(false)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("languages")
+}
+
+model UiTranslation {
+  id        String   @id @default(uuid())
+  key       String   // example: "header.menu.home"
+  language  String
+  value     String   @db.Text
+
+  @@unique([key, language])
+  @@index([language])
+  @@map("ui_translations")
+}
+
+// Product Translations
+model ProductTranslation {
+  id          String   @id @default(uuid())
+  productId   String
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  language    String
+  name        String
+  description String?  @db.Text
+  shortDescription String? @db.Text
+  metaTitle   String?
+  metaDescription String? @db.Text
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([productId, language])
+  @@index([productId])
+  @@index([language])
+  @@map("product_translations")
+}
+
+// Category Translations
+model CategoryTranslation {
+  id          String   @id @default(uuid())
+  categoryId  String
+  category    Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  language    String
+  name        String
+  description String?  @db.Text
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([categoryId, language])
+  @@index([categoryId])
+  @@index([language])
+  @@map("category_translations")
+}
+
+// Brand Translations
+model BrandTranslation {
+  id          String   @id @default(uuid())
+  brandId     String
+  brand       Brand    @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  language    String
+  name        String
+  description String?  @db.Text
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([brandId, language])
+  @@index([brandId])
+  @@index([language])
+  @@map("brand_translations")
+}
+
+// ProductType Translations
+model ProductTypeTranslation {
+  id          String      @id @default(uuid())
+  productTypeId String
+  productType ProductType @relation(fields: [productTypeId], references: [id], onDelete: Cascade)
+  language    String
+  name        String
+  description String?     @db.Text
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@unique([productTypeId, language])
+  @@index([productTypeId])
+  @@index([language])
+  @@map("product_type_translations")
+}
+
+// Attribute Translations
+model AttributeTranslation {
+  id          String    @id @default(uuid())
+  attributeId String
+  attribute   Attribute @relation(fields: [attributeId], references: [id], onDelete: Cascade)
+  language    String
+  name        String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([attributeId, language])
+  @@index([attributeId])
+  @@index([language])
+  @@map("attribute_translations")
 }
 

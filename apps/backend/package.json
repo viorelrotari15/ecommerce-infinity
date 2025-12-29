@@ -22,7 +22,8 @@
     "prisma:migrate": "prisma migrate deploy",
     "prisma:seed": "ts-node prisma/seed.ts",
     "prisma:seed:images": "ts-node -r tsconfig-paths/register prisma/seed-images.ts",
-    "create-admin": "ts-node -r tsconfig-paths/register scripts/create-admin.ts"
+    "create-admin": "ts-node -r tsconfig-paths/register scripts/create-admin.ts",
+    "add-languages": "ts-node -r tsconfig-paths/register scripts/add-default-languages.ts"
   },
   "dependencies": {
     "@nestjs/common": "^10.3.0",
@@ -38,8 +39,10 @@
     "bcrypt": "^5.1.1",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.0",
+    "i18next": "^25.7.3",
     "minio": "^8.0.6",
     "multer": "^2.0.2",
+    "nestjs-i18n": "^10.6.0",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
     "reflect-metadata": "^0.1.13",

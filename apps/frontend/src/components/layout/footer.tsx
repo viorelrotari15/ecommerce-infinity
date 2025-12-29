@@ -1,6 +1,11 @@
+'use client';
+
 import Link from 'next/link';
+import { useT, translationKeys } from '@/lib/utils/translations';
 
 export function Footer() {
+  const t = useT();
+
   return (
     <footer className="border-t bg-muted/50">
       <div className="container py-10 md:py-12">
@@ -48,7 +53,7 @@ export function Footer() {
                   href="/contact"
                   className="text-muted-foreground hover:text-foreground"
                 >
-                  Contact Us
+                  {t(translationKeys.footer.customerService.contact, 'Contact Us')}
                 </Link>
               </li>
               <li>
@@ -56,7 +61,7 @@ export function Footer() {
                   href="/shipping"
                   className="text-muted-foreground hover:text-foreground"
                 >
-                  Shipping Info
+                  {t(translationKeys.footer.customerService.shipping, 'Shipping Info')}
                 </Link>
               </li>
               <li>
@@ -64,7 +69,7 @@ export function Footer() {
                   href="/returns"
                   className="text-muted-foreground hover:text-foreground"
                 >
-                  Returns
+                  {t(translationKeys.footer.customerService.returns, 'Returns')}
                 </Link>
               </li>
             </ul>

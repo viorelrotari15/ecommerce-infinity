@@ -3,6 +3,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useState } from 'react';
 import { ReactQueryDevtoolsWrapper } from '@/components/devtools/react-query-devtools';
+import { LanguageProvider } from '@/lib/contexts/language-context';
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
@@ -23,9 +24,11 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      {children}
-      {/* React Query DevTools - only in development, gracefully handles missing package */}
-      <ReactQueryDevtoolsWrapper initialIsOpen={false} />
+      <LanguageProvider>
+        {children}
+        {/* React Query DevTools - only in development, gracefully handles missing package */}
+        <ReactQueryDevtoolsWrapper initialIsOpen={false} />
+      </LanguageProvider>
     </QueryClientProvider>
   );
 }

@@ -21,6 +21,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { productQueryKeys } from '@/lib/api/queries';
 import { X, Plus, Upload, Image as ImageIcon } from 'lucide-react';
 import Image from 'next/image';
+import { ProductTranslationsTabs } from '@/components/admin/product-translations-tabs';
 
 const productSchema = yup.object({
   name: yup.string().required('Product name is required'),
@@ -521,6 +522,16 @@ export default function EditProductPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Translations */}
+        <ProductTranslationsTabs
+          productId={productId}
+          defaultName={watch('name') || ''}
+          defaultDescription={watch('description') || ''}
+          defaultShortDescription={watch('shortDescription') || ''}
+          defaultMetaTitle={watch('metaTitle') || ''}
+          defaultMetaDescription={watch('metaDescription') || ''}
+        />
 
         {/* Variants */}
         <Card>

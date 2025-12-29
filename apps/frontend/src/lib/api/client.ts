@@ -5,6 +5,39 @@
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
+/**
+ * API Client for React Query hooks
+ */
+export const apiClient = {
+  get: async <T>(endpoint: string, options?: RequestInit): Promise<{ data: T }> => {
+    const data = await fetchAPI<T>(endpoint, options);
+    return { data };
+  },
+  post: async <T>(endpoint: string, body?: any, options?: RequestInit): Promise<{ data: T }> => {
+    const data = await fetchAPI<T>(endpoint, {
+      ...options,
+      method: 'POST',
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    return { data };
+  },
+  patch: async <T>(endpoint: string, body?: any, options?: RequestInit): Promise<{ data: T }> => {
+    const data = await fetchAPI<T>(endpoint, {
+      ...options,
+      method: 'PATCH',
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    return { data };
+  },
+  delete: async <T>(endpoint: string, options?: RequestInit): Promise<{ data: T }> => {
+    const data = await fetchAPI<T>(endpoint, {
+      ...options,
+      method: 'DELETE',
+    });
+    return { data };
+  },
+};
+
 export async function fetchAPI<T>(
   endpoint: string,
   options?: RequestInit,

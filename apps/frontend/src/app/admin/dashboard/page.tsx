@@ -9,7 +9,7 @@ import { useProducts, useDeleteProduct } from '@/lib/hooks/use-products';
 import { getImageUrl, getPrimaryProductImage } from '@/lib/images';
 import { formatPrice } from '@/lib/utils';
 import { isAdmin } from '@/lib/auth';
-import { Plus, Edit, Trash2, Eye, CheckCircle2 } from 'lucide-react';
+import { Plus, Edit, Trash2, Eye, CheckCircle2, Languages, FileText } from 'lucide-react';
 import Image from 'next/image';
 
 interface Product {
@@ -121,6 +121,28 @@ export default function AdminDashboard() {
             New Product
           </Button>
         </Link>
+      </div>
+
+      {/* Translation Management Quick Links */}
+      <div className="grid gap-4 md:grid-cols-2 mb-8">
+        <Card className="cursor-pointer hover:bg-accent transition-colors" onClick={() => router.push('/admin/languages')}>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Languages className="h-5 w-5" />
+              Languages
+            </CardTitle>
+            <CardDescription>Manage supported languages</CardDescription>
+          </CardHeader>
+        </Card>
+        <Card className="cursor-pointer hover:bg-accent transition-colors" onClick={() => router.push('/admin/translations')}>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              UI Translations
+            </CardTitle>
+            <CardDescription>Manage interface text translations</CardDescription>
+          </CardHeader>
+        </Card>
       </div>
 
       {products.length === 0 ? (
