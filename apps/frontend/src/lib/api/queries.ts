@@ -10,6 +10,7 @@ export interface ProductFilters {
   categoryId?: string;
   search?: string;
   featured?: boolean;
+  includeInactive?: boolean;
 }
 
 export const productQueryKeys = {

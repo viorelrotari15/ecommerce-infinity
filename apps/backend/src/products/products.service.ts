@@ -49,6 +49,7 @@ export class ProductsService {
     categoryId?: string;
     search?: string;
     featured?: boolean | string;
+    includeInactive?: boolean | string;
   }) {
     // Parse query parameters (they come as strings from HTTP)
     const page = query.page ? Number(query.page) : 1;
@@ -61,9 +62,15 @@ export class ProductsService {
       featured = query.featured === 'true' || query.featured === true;
     }
 
-    const where: any = {
-      isActive: true,
-    };
+    // Parse includeInactive as boolean if provided
+    const includeInactive = query.includeInactive === 'true' || query.includeInactive === true;
+
+    const where: any = {};
+    
+    // Only filter by isActive if includeInactive is not true
+    if (!includeInactive) {
+      where.isActive = true;
+    }
 
     if (query.brandId) {
       where.brandId = query.brandId;

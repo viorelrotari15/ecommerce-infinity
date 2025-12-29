@@ -18,6 +18,7 @@ export function fetchProductsQuery(filters: ProductFilters) {
       if (filters.categoryId) params.append('categoryId', filters.categoryId);
       if (filters.search) params.append('search', filters.search);
       if (filters.featured) params.append('featured', 'true');
+      if (filters.includeInactive) params.append('includeInactive', 'true');
       params.append('page', String(filters.page || 1));
       params.append('limit', String(filters.limit || 20));
 

@@ -39,8 +39,11 @@ export interface Product {
   slug: string;
   description: string;
   shortDescription: string;
+  sku?: string;
   images: string[];
   productImages?: Array<{ filepath: string; url?: string; isPrimary?: boolean }>;
+  isActive?: boolean;
+  isFeatured?: boolean;
   brand: { name: string; slug: string };
   productType: { name: string };
   categories: Array<{ category: { name: string; slug: string } }>;
