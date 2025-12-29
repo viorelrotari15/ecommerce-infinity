@@ -10,6 +10,7 @@ import { FormField } from '@/components/forms/form-field';
 import { fetchAPI } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 
 const registerSchema = yup.object({
   email: yup.string().email('Invalid email address').required('Email is required'),
@@ -26,6 +27,7 @@ type RegisterFormData = yup.InferType<typeof registerSchema>;
 
 export default function RegisterPage() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -61,7 +63,10 @@ export default function RegisterPage() {
       localStorage.setItem('token', response.access_token);
       localStorage.setItem('user', JSON.stringify(response.user));
 
-      // Redirect to home
+      // Invalidate all queries to refetch data
+      queryClient.invalidateQueries();
+
+      // Redirect to home (new users are always regular users)
       router.push('/');
       router.refresh();
     } catch (err: any) {

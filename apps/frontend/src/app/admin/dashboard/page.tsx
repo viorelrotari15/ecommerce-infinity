@@ -9,7 +9,7 @@ import { useProducts, useDeleteProduct } from '@/lib/hooks/use-products';
 import { getImageUrl, getPrimaryProductImage } from '@/lib/images';
 import { formatPrice } from '@/lib/utils';
 import { isAdmin } from '@/lib/auth';
-import { Plus, Edit, Trash2, Eye } from 'lucide-react';
+import { Plus, Edit, Trash2, Eye, CheckCircle2 } from 'lucide-react';
 import Image from 'next/image';
 
 interface Product {
@@ -17,16 +17,16 @@ interface Product {
   name: string;
   slug: string;
   description: string;
-  shortDescription: string;
-  sku: string;
+  shortDescription?: string;
+  sku?: string;
   images: string[];
   productImages?: Array<{ filepath: string; url?: string; isPrimary?: boolean }>;
-  isActive: boolean;
-  isFeatured: boolean;
+  isActive?: boolean;
+  isFeatured?: boolean;
   brand: { name: string; slug: string };
   variants: Array<{ price: number | string; stock: number }>;
-  createdAt: string;
-  updatedAt: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export default function AdminDashboard() {
@@ -42,7 +42,8 @@ export default function AdminDashboard() {
   }, [router]);
 
   // Use React Query instead of useState/useEffect
-  const { data, isLoading, error } = useProducts({ page, limit: 20 });
+  // Include inactive products for admin dashboard
+  const { data, isLoading, error } = useProducts({ page, limit: 20, includeInactive: true });
   const deleteProduct = useDeleteProduct();
 
   const handleDelete = async (productId: string) => {
@@ -54,6 +55,26 @@ export default function AdminDashboard() {
       await deleteProduct.mutateAsync(productId);
     } catch (err: any) {
       alert(err.message || 'Failed to delete product');
+    }
+  };
+
+  const handleReactivate = async (productId: string) => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      alert('Not authenticated');
+      return;
+    }
+
+    try {
+      const { fetchAPIAuth } = await import('@/lib/api/client');
+      await fetchAPIAuth(`/products/${productId}`, token, {
+        method: 'PATCH',
+        body: JSON.stringify({ isActive: true }),
+      });
+      // Refetch products
+      window.location.reload();
+    } catch (err: any) {
+      alert(err.message || 'Failed to reactivate product');
     }
   };
 
@@ -143,12 +164,12 @@ export default function AdminDashboard() {
                       </div>
                     )}
                     <div className="absolute top-2 right-2 flex gap-2">
-                      {product.isFeatured && (
+                      {(product as any).isFeatured && (
                         <span className="bg-primary text-primary-foreground text-xs px-2 py-1 rounded">
                           Featured
                         </span>
                       )}
-                      {!product.isActive && (
+                      {!(product as any).isActive && (
                         <span className="bg-destructive text-destructive-foreground text-xs px-2 py-1 rounded">
                           Inactive
                         </span>
@@ -158,33 +179,46 @@ export default function AdminDashboard() {
                   <CardHeader>
                     <CardTitle className="line-clamp-2">{product.name}</CardTitle>
                     <CardDescription>
-                      {product.brand.name} • SKU: {product.sku}
+                      {product.brand.name} • SKU: {(product as any).sku || 'N/A'}
                     </CardDescription>
                     <p className="text-lg font-semibold mt-2">{minPrice}</p>
                   </CardHeader>
                   <CardContent>
-                    <div className="flex gap-2">
-                      <Link href={`/products/${product.slug}`} className="flex-1">
-                        <Button variant="outline" size="sm" className="w-full">
-                          <Eye className="h-4 w-4 mr-2" />
-                          View
+                    <div className="flex flex-col gap-2">
+                      <div className="flex gap-2">
+                        <Link href={`/products/${product.slug}`} className="flex-1">
+                          <Button variant="outline" size="sm" className="w-full">
+                            <Eye className="h-4 w-4 mr-2" />
+                            View
+                          </Button>
+                        </Link>
+                        <Link href={`/admin/products/${product.id}/edit`} className="flex-1">
+                          <Button variant="outline" size="sm" className="w-full">
+                            <Edit className="h-4 w-4 mr-2" />
+                            Edit
+                          </Button>
+                        </Link>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDelete(product.id)}
+                          disabled={deleteProduct.isPending}
+                          className="text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4" />
                         </Button>
-                      </Link>
-                      <Link href={`/admin/products/${product.id}/edit`} className="flex-1">
-                        <Button variant="outline" size="sm" className="w-full">
-                          <Edit className="h-4 w-4 mr-2" />
-                          Edit
+                      </div>
+                      {!(product as any).isActive && (
+                        <Button
+                          variant="default"
+                          size="sm"
+                          onClick={() => handleReactivate(product.id)}
+                          className="w-full"
+                        >
+                          <CheckCircle2 className="h-4 w-4 mr-2" />
+                          Reactivate Product
                         </Button>
-                      </Link>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleDelete(product.id)}
-                        disabled={deleteProduct.isPending}
-                        className="text-destructive hover:text-destructive"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -206,7 +240,7 @@ export default function AdminDashboard() {
               </span>
               <Button
                 variant="outline"
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                onClick={() => setPage((p) => Math.min(meta.totalPages, p + 1))}
                 disabled={page === meta.totalPages}
               >
                 Next

@@ -48,6 +48,7 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   orders    Order[]
+  cart      Cart?
 
   @@map("users")
 }
@@ -191,6 +192,7 @@ model ProductVariant {
   createdAt DateTime    @default(now())
   updatedAt DateTime    @updatedAt
   orderItems OrderItem[]
+  cartItems  CartItem[]
 
   @@map("product_variants")
 }
@@ -240,5 +242,30 @@ model Payment {
   updatedAt     DateTime      @updatedAt
 
   @@map("payments")
+}
+
+model Cart {
+  id        String     @id @default(uuid())
+  userId    String     @unique
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items     CartItem[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@map("carts")
+}
+
+model CartItem {
+  id              String        @id @default(uuid())
+  cartId          String
+  cart            Cart          @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  productVariantId String
+  productVariant  ProductVariant @relation(fields: [productVariantId], references: [id], onDelete: Cascade)
+  quantity        Int
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@unique([cartId, productVariantId])
+  @@map("cart_items")
 }
 
