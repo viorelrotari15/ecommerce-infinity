@@ -81,23 +81,32 @@ export interface Brand {
  * Fetch products with caching
  * Revalidates every 60 seconds
  */
-export async function fetchProducts(params: FetchProductsParams = {}): Promise<ProductsResponse> {
+export async function fetchProducts(
+  params: FetchProductsParams = {},
+  language?: string,
+): Promise<ProductsResponse> {
   const searchParams = new URLSearchParams();
   
   if (params.brandId) searchParams.append('brandId', params.brandId);
   if (params.categoryId) searchParams.append('categoryId', params.categoryId);
   if (params.search) searchParams.append('search', params.search);
   if (params.featured) searchParams.append('featured', 'true');
+  if (language) searchParams.append('lang', language);
   
   searchParams.append('page', String(params.page || 1));
   searchParams.append('limit', String(params.limit || 20));
 
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+  if (language) {
+    headers['Accept-Language'] = language;
+  }
+
   const response = await fetch(`${API_URL}/api/products?${searchParams}`, {
     // Cache for 60 seconds, then revalidate
     next: { revalidate: 60 },
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers,
   });
 
   if (!response.ok) {
@@ -114,13 +123,18 @@ export async function fetchProducts(params: FetchProductsParams = {}): Promise<P
  * Fetch a single product by slug
  * Revalidates every 5 minutes
  */
-export async function fetchProduct(slug: string): Promise<Product | null> {
+export async function fetchProduct(slug: string, language?: string): Promise<Product | null> {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+  if (language) {
+    headers['Accept-Language'] = language;
+  }
+
   const response = await fetch(`${API_URL}/api/products/${slug}`, {
     // Cache for 5 minutes
     next: { revalidate: 300 },
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers,
   });
 
   if (!response.ok) {
@@ -137,12 +151,17 @@ export async function fetchProduct(slug: string): Promise<Product | null> {
  * Fetch categories
  * Cache for 1 hour (categories don't change often)
  */
-export async function fetchCategories(): Promise<Category[]> {
+export async function fetchCategories(language?: string): Promise<Category[]> {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+  if (language) {
+    headers['Accept-Language'] = language;
+  }
+
   const response = await fetch(`${API_URL}/api/categories`, {
     next: { revalidate: 3600 }, // 1 hour
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers,
   });
 
   if (!response.ok) {
@@ -157,12 +176,17 @@ export async function fetchCategories(): Promise<Category[]> {
  * Fetch brands
  * Cache for 1 hour
  */
-export async function fetchBrands(): Promise<Brand[]> {
+export async function fetchBrands(language?: string): Promise<Brand[]> {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+  if (language) {
+    headers['Accept-Language'] = language;
+  }
+
   const response = await fetch(`${API_URL}/api/brands`, {
     next: { revalidate: 3600 }, // 1 hour
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers,
   });
 
   if (!response.ok) {

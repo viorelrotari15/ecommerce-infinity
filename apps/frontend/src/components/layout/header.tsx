@@ -8,10 +8,13 @@ import { ShoppingCart, LogOut, LayoutDashboard, User } from 'lucide-react';
 import { getCurrentUser, isAdmin, isAuthenticated, logout } from '@/lib/auth';
 import { useQueryClient } from '@tanstack/react-query';
 import { useCartStore } from '@/lib/store/cart-store';
+import { LanguageSelector } from '@/components/layout/language-selector';
+import { useT, translationKeys } from '@/lib/utils/translations';
 
 export function Header() {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const t = useT();
   const [user, setUser] = useState<ReturnType<typeof getCurrentUser>>(null);
   const [isUserAdmin, setIsUserAdmin] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -56,19 +59,19 @@ export function Header() {
               href="/products"
               className="text-sm font-medium transition-colors  hover:underline"
             >
-              Products
+              {t(translationKeys.header.menu.products, 'Products')}
             </Link>
             <Link
               href="/categories"
               className="text-sm font-medium transition-colors  hover:underline"
             >
-              Categories
+              {t(translationKeys.header.menu.categories, 'Categories')}
             </Link>
             <Link
               href="/brands"
               className="text-sm font-medium transition-colors  hover:underline"
             >
-              Brands
+              {t(translationKeys.header.menu.brands, 'Brands')}
             </Link>
             {isUserAdmin && (
               <>
@@ -76,19 +79,20 @@ export function Header() {
                   href="/admin/dashboard"
                   className="text-sm font-medium transition-colors  hover:underline"
                 >
-                  Dashboard
+                  {t(translationKeys.header.menu.dashboard, 'Dashboard')}
                 </Link>
                 <Link
                   href="/admin/products/new"
                   className="text-sm font-medium transition-colors  hover:underline"
                 >
-                  New Product
+                  {t(translationKeys.header.menu.newProduct, 'New Product')}
                 </Link>
               </>
             )}
           </nav>
         </div>
         <div className="flex items-center gap-4">
+          <LanguageSelector />
           <Link href="/cart">
             <Button variant="ghost" size="icon" className="relative">
               <ShoppingCart className="h-5 w-5" />
@@ -119,13 +123,13 @@ export function Header() {
                 </span>
                 <Button variant="outline" onClick={handleLogout} size="sm">
                   <LogOut className="h-4 w-4 mr-2" />
-                  Logout
+                  {t(translationKeys.header.actions.logout, 'Logout')}
                 </Button>
               </div>
             </>
           ) : (
           <Link href="/auth/login">
-            <Button variant="outline">Login</Button>
+            <Button variant="outline">{t(translationKeys.header.actions.login, 'Login')}</Button>
           </Link>
           )}
         </div>

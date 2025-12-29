@@ -3,13 +3,43 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { StorageService } from '../storage/storage.service';
+import { LanguageHelperService } from '../languages/language-helper.service';
 
 @Injectable()
 export class ProductsService {
   constructor(
     private prisma: PrismaService,
     private storageService: StorageService,
+    private languageHelper: LanguageHelperService,
   ) {}
+
+  /**
+   * Apply translations to product with fallback
+   */
+  private async applyProductTranslations(product: any, language: string) {
+    const defaultLanguage = await this.languageHelper.resolveLanguage(undefined);
+    
+    // Get translation for requested language or fallback
+    const translation = await this.languageHelper.getTranslationWithFallback(
+      product.translations || [],
+      language,
+      defaultLanguage,
+      (t) => t,
+    );
+
+    // Apply translated fields if available
+    if (translation) {
+      product.name = translation.name || product.name;
+      product.description = translation.description || product.description;
+      product.shortDescription = translation.shortDescription || product.shortDescription;
+      product.metaTitle = translation.metaTitle || product.metaTitle;
+      product.metaDescription = translation.metaDescription || product.metaDescription;
+    }
+
+    // Remove translations array from response
+    delete product.translations;
+    return product;
+  }
 
   /**
    * Convert legacy images array paths to full URLs
@@ -50,6 +80,7 @@ export class ProductsService {
     search?: string;
     featured?: boolean | string;
     includeInactive?: boolean | string;
+    lang?: string;
   }) {
     // Parse query parameters (they come as strings from HTTP)
     const page = query.page ? Number(query.page) : 1;
@@ -95,17 +126,32 @@ export class ProductsService {
       where.isFeatured = featured;
     }
 
+    // Resolve language
+    const language = await this.languageHelper.resolveLanguage(query.lang);
+
     const [products, total] = await Promise.all([
       this.prisma.product.findMany({
         where,
         skip,
         take: limit,
         include: {
-          brand: true,
-          productType: true,
+          brand: {
+            include: {
+              translations: true,
+            },
+          },
+          productType: {
+            include: {
+              translations: true,
+            },
+          },
           categories: {
             include: {
-              category: true,
+              category: {
+                include: {
+                  translations: true,
+                },
+              },
             },
           },
           variants: {
@@ -114,28 +160,74 @@ export class ProductsService {
           },
           attributes: {
             include: {
-              attribute: true,
+              attribute: {
+                include: {
+                  translations: true,
+                },
+              },
             },
           },
           productImages: {
             orderBy: { order: 'asc' },
           },
+          translations: true,
         },
         orderBy: { createdAt: 'desc' },
       }),
       this.prisma.product.count({ where }),
     ]);
 
-    // Add URLs to product images and convert legacy images
+    // Add URLs to product images, convert legacy images, and apply translations
     const bucket = this.storageService.getBucketName();
-    const productsWithImageUrls = products.map((product) => ({
-      ...product,
-      images: this.convertLegacyImages(product.images),
-      productImages: product.productImages.map((image) => ({
-        ...image,
-        url: this.storageService.getPublicUrl(bucket, image.filepath),
-      })),
-    }));
+    const productsWithImageUrls = await Promise.all(
+      products.map(async (product) => {
+        const translated = await this.applyProductTranslations(product, language);
+        
+        // Apply translations to brand
+        if (product.brand?.translations) {
+          const brandTranslation = await this.languageHelper.getTranslationWithFallback(
+            product.brand.translations,
+            language,
+            await this.languageHelper['languagesService'].getDefaultLanguage(),
+            (t) => t,
+          );
+          if (brandTranslation) {
+            translated.brand.name = brandTranslation.name || translated.brand.name;
+            translated.brand.description = brandTranslation.description || translated.brand.description;
+          }
+          delete translated.brand.translations;
+        }
+
+        // Apply translations to categories
+        if (translated.categories) {
+          const defaultLang = await this.languageHelper.getDefaultLanguage();
+          for (const pc of translated.categories) {
+            if (pc.category?.translations) {
+              const catTranslation = await this.languageHelper.getTranslationWithFallback(
+                pc.category.translations,
+                language,
+                defaultLang,
+                (t) => t,
+              );
+              if (catTranslation) {
+                pc.category.name = catTranslation.name || pc.category.name;
+                pc.category.description = catTranslation.description || pc.category.description;
+              }
+              delete pc.category.translations;
+            }
+          }
+        }
+
+        return {
+          ...translated,
+          images: this.convertLegacyImages(product.images),
+          productImages: (product.productImages || []).map((image) => ({
+            ...image,
+            url: this.storageService.getPublicUrl(bucket, image.filepath),
+          })),
+        };
+      }),
+    );
 
     return {
       data: productsWithImageUrls,
@@ -148,15 +240,29 @@ export class ProductsService {
     };
   }
 
-  async findOne(slug: string) {
+  async findOne(slug: string, language?: string) {
+    const resolvedLanguage = await this.languageHelper.resolveLanguage(language);
+    
     const product = await this.prisma.product.findUnique({
       where: { slug },
       include: {
-        brand: true,
-        productType: true,
+        brand: {
+          include: {
+            translations: true,
+          },
+        },
+        productType: {
+          include: {
+            translations: true,
+          },
+        },
         categories: {
           include: {
-            category: true,
+            category: {
+              include: {
+                translations: true,
+              },
+            },
           },
         },
         variants: {
@@ -165,12 +271,17 @@ export class ProductsService {
         },
         attributes: {
           include: {
-            attribute: true,
+            attribute: {
+              include: {
+                translations: true,
+              },
+            },
           },
         },
         productImages: {
           orderBy: { order: 'asc' },
         },
+        translations: true,
       },
     });
 
@@ -178,12 +289,50 @@ export class ProductsService {
       throw new NotFoundException(`Product with slug ${slug} not found`);
     }
 
+    // Apply translations
+    const translated = await this.applyProductTranslations(product, resolvedLanguage);
+    
+    // Apply translations to related entities
+    const defaultLang = await this.languageHelper['languagesService'].getDefaultLanguage();
+    
+    if (translated.brand?.translations) {
+      const brandTranslation = await this.languageHelper.getTranslationWithFallback(
+        translated.brand.translations,
+        resolvedLanguage,
+        defaultLang,
+        (t) => t,
+      );
+      if (brandTranslation) {
+        translated.brand.name = brandTranslation.name || translated.brand.name;
+        translated.brand.description = brandTranslation.description || translated.brand.description;
+      }
+      delete translated.brand.translations;
+    }
+
+    if (translated.categories) {
+      for (const pc of translated.categories) {
+        if (pc.category?.translations) {
+          const catTranslation = await this.languageHelper.getTranslationWithFallback(
+            pc.category.translations,
+            resolvedLanguage,
+            defaultLang,
+            (t) => t,
+          );
+          if (catTranslation) {
+            pc.category.name = catTranslation.name || pc.category.name;
+            pc.category.description = catTranslation.description || pc.category.description;
+          }
+          delete pc.category.translations;
+        }
+      }
+    }
+
     // Add URLs to product images and convert legacy images
     const bucket = this.storageService.getBucketName();
     const productWithImageUrls = {
-      ...product,
+      ...translated,
       images: this.convertLegacyImages(product.images),
-      productImages: product.productImages.map((image) => ({
+      productImages: (product.productImages || []).map((image) => ({
         ...image,
         url: this.storageService.getPublicUrl(bucket, image.filepath),
       })),
@@ -192,15 +341,29 @@ export class ProductsService {
     return productWithImageUrls;
   }
 
-  async findById(id: string) {
+  async findById(id: string, language?: string) {
+    const resolvedLanguage = await this.languageHelper.resolveLanguage(language);
+    
     const product = await this.prisma.product.findUnique({
       where: { id },
       include: {
-        brand: true,
-        productType: true,
+        brand: {
+          include: {
+            translations: true,
+          },
+        },
+        productType: {
+          include: {
+            translations: true,
+          },
+        },
         categories: {
           include: {
-            category: true,
+            category: {
+              include: {
+                translations: true,
+              },
+            },
           },
         },
         variants: {
@@ -208,12 +371,17 @@ export class ProductsService {
         },
         attributes: {
           include: {
-            attribute: true,
+            attribute: {
+              include: {
+                translations: true,
+              },
+            },
           },
         },
         productImages: {
           orderBy: { order: 'asc' },
         },
+        translations: true,
       },
     });
 
@@ -221,12 +389,50 @@ export class ProductsService {
       throw new NotFoundException(`Product with ID ${id} not found`);
     }
 
+    // Apply translations
+    const translated = await this.applyProductTranslations(product, resolvedLanguage);
+    
+    // Apply translations to related entities
+    const defaultLang = await this.languageHelper['languagesService'].getDefaultLanguage();
+    
+    if (translated.brand?.translations) {
+      const brandTranslation = await this.languageHelper.getTranslationWithFallback(
+        translated.brand.translations,
+        resolvedLanguage,
+        defaultLang,
+        (t) => t,
+      );
+      if (brandTranslation) {
+        translated.brand.name = brandTranslation.name || translated.brand.name;
+        translated.brand.description = brandTranslation.description || translated.brand.description;
+      }
+      delete translated.brand.translations;
+    }
+
+    if (translated.categories) {
+      for (const pc of translated.categories) {
+        if (pc.category?.translations) {
+          const catTranslation = await this.languageHelper.getTranslationWithFallback(
+            pc.category.translations,
+            resolvedLanguage,
+            defaultLang,
+            (t) => t,
+          );
+          if (catTranslation) {
+            pc.category.name = catTranslation.name || pc.category.name;
+            pc.category.description = catTranslation.description || pc.category.description;
+          }
+          delete pc.category.translations;
+        }
+      }
+    }
+
     // Add URLs to product images and convert legacy images
     const bucket = this.storageService.getBucketName();
     const productWithImageUrls = {
-      ...product,
+      ...translated,
       images: this.convertLegacyImages(product.images),
-      productImages: product.productImages.map((image) => ({
+      productImages: (product.productImages || []).map((image) => ({
         ...image,
         url: this.storageService.getPublicUrl(bucket, image.filepath),
       })),
@@ -331,7 +537,7 @@ export class ProductsService {
     const productWithImageUrls = {
       ...product,
       images: this.convertLegacyImages(product.images),
-      productImages: product.productImages.map((image) => ({
+      productImages: (product.productImages || []).map((image) => ({
         ...image,
         url: this.storageService.getPublicUrl(bucket, image.filepath),
       })),
@@ -450,7 +656,7 @@ export class ProductsService {
     return {
       ...updatedProduct,
       images: this.convertLegacyImages(updatedProduct.images),
-      productImages: updatedProduct.productImages.map((image) => ({
+      productImages: (updatedProduct.productImages || []).map((image) => ({
         ...image,
         url: this.storageService.getPublicUrl(bucket, image.filepath),
       })),
@@ -480,5 +686,71 @@ export class ProductsService {
     });
 
     return { message: 'Product deleted successfully' };
+  }
+
+  /**
+   * Create or update product translation
+   */
+  async upsertTranslation(
+    productId: string,
+    language: string,
+    translationData: {
+      name: string;
+      description?: string;
+      shortDescription?: string;
+      metaTitle?: string;
+      metaDescription?: string;
+    },
+  ) {
+    // Verify product exists
+    await this.findById(productId);
+
+    // Verify language exists
+    const lang = await this.prisma.language.findUnique({
+      where: { code: language },
+    });
+
+    if (!lang || !lang.isActive) {
+      throw new BadRequestException(`Language ${language} is not active`);
+    }
+
+    return this.prisma.productTranslation.upsert({
+      where: {
+        productId_language: {
+          productId,
+          language,
+        },
+      },
+      update: translationData,
+      create: {
+        productId,
+        language,
+        ...translationData,
+      },
+    });
+  }
+
+  /**
+   * Get product translations
+   */
+  async getTranslations(productId: string) {
+    return this.prisma.productTranslation.findMany({
+      where: { productId },
+      orderBy: { language: 'asc' },
+    });
+  }
+
+  /**
+   * Delete product translation
+   */
+  async deleteTranslation(productId: string, language: string) {
+    return this.prisma.productTranslation.delete({
+      where: {
+        productId_language: {
+          productId,
+          language,
+        },
+      },
+    });
   }
 }

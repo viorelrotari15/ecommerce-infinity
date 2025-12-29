@@ -6,6 +6,86 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('🌱 Starting seed...');
 
+  // Seed Languages
+  console.log('🌍 Seeding languages...');
+  const languages = [
+    { code: 'en', name: 'English', isDefault: true, isActive: true },
+    { code: 'ro', name: 'Romanian', isDefault: false, isActive: true },
+    { code: 'ru', name: 'Russian', isDefault: false, isActive: true },
+    { code: 'de', name: 'German', isDefault: false, isActive: true },
+    { code: 'tr', name: 'Turkish', isDefault: false, isActive: true },
+  ];
+
+  for (const lang of languages) {
+    await prisma.language.upsert({
+      where: { code: lang.code },
+      update: {},
+      create: lang,
+    });
+  }
+  console.log(`✅ Seeded ${languages.length} languages`);
+
+  // Seed UI Translations (English)
+  console.log('📝 Seeding UI translations...');
+  const uiTranslations = [
+    { key: 'header.menu.home', language: 'en', value: 'Home' },
+    { key: 'header.menu.products', language: 'en', value: 'Products' },
+    { key: 'header.menu.categories', language: 'en', value: 'Categories' },
+    { key: 'header.menu.brands', language: 'en', value: 'Brands' },
+    { key: 'header.menu.cart', language: 'en', value: 'Cart' },
+    { key: 'header.menu.dashboard', language: 'en', value: 'Dashboard' },
+    { key: 'header.menu.newProduct', language: 'en', value: 'New Product' },
+    { key: 'header.actions.login', language: 'en', value: 'Login' },
+    { key: 'header.actions.logout', language: 'en', value: 'Logout' },
+    { key: 'header.actions.profile', language: 'en', value: 'Profile' },
+    { key: 'footer.shop.title', language: 'en', value: 'Shop' },
+    { key: 'footer.shop.allProducts', language: 'en', value: 'All Products' },
+    { key: 'footer.shop.categories', language: 'en', value: 'Categories' },
+    { key: 'footer.shop.brands', language: 'en', value: 'Brands' },
+    { key: 'footer.customerService.title', language: 'en', value: 'Customer Service' },
+    { key: 'footer.customerService.contact', language: 'en', value: 'Contact Us' },
+    { key: 'footer.customerService.shipping', language: 'en', value: 'Shipping Info' },
+    { key: 'footer.customerService.returns', language: 'en', value: 'Returns' },
+    { key: 'products.title', language: 'en', value: 'Products' },
+    { key: 'products.noProducts', language: 'en', value: 'No products found' },
+    { key: 'products.addToCart', language: 'en', value: 'Add to Cart' },
+    { key: 'products.outOfStock', language: 'en', value: 'Out of Stock' },
+    { key: 'products.inStock', language: 'en', value: 'In Stock' },
+    { key: 'products.price', language: 'en', value: 'Price' },
+    { key: 'products.viewDetails', language: 'en', value: 'View Details' },
+    { key: 'cart.title', language: 'en', value: 'Shopping Cart' },
+    { key: 'cart.empty', language: 'en', value: 'Your cart is empty' },
+    { key: 'cart.total', language: 'en', value: 'Total' },
+    { key: 'cart.checkout', language: 'en', value: 'Checkout' },
+    { key: 'cart.remove', language: 'en', value: 'Remove' },
+    { key: 'cart.quantity', language: 'en', value: 'Quantity' },
+    { key: 'common.loading', language: 'en', value: 'Loading...' },
+    { key: 'common.error', language: 'en', value: 'An error occurred' },
+    { key: 'common.save', language: 'en', value: 'Save' },
+    { key: 'common.cancel', language: 'en', value: 'Cancel' },
+    { key: 'common.delete', language: 'en', value: 'Delete' },
+    { key: 'common.edit', language: 'en', value: 'Edit' },
+    { key: 'common.create', language: 'en', value: 'Create' },
+    { key: 'common.update', language: 'en', value: 'Update' },
+    { key: 'common.search', language: 'en', value: 'Search' },
+    { key: 'common.filter', language: 'en', value: 'Filter' },
+    { key: 'common.clear', language: 'en', value: 'Clear' },
+  ];
+
+  for (const translation of uiTranslations) {
+    await prisma.uiTranslation.upsert({
+      where: {
+        key_language: {
+          key: translation.key,
+          language: translation.language,
+        },
+      },
+      update: { value: translation.value },
+      create: translation,
+    });
+  }
+  console.log(`✅ Seeded ${uiTranslations.length} UI translations`);
+
   // Create admin user
   const hashedPassword = await bcrypt.hash('admin123', 10);
   const admin = await prisma.user.upsert({
