@@ -6,22 +6,23 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useLanguages, useDefaultLanguage } from '@/lib/hooks/use-languages';
+import { useCurrencies, useDefaultCurrency } from '@/lib/hooks/use-currencies';
 import { apiClient } from '@/lib/api/client';
 import { getAuthToken } from '@/lib/auth';
 import { isAdmin } from '@/lib/auth';
-import { Plus, Edit, Trash2, CheckCircle2, XCircle, Star } from 'lucide-react';
+import { Plus, Edit, Trash2, CheckCircle2, XCircle, Star, DollarSign } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useModal } from '@/lib/contexts/modal-context';
 
-interface Language {
+interface Currency {
   code: string;
   name: string;
+  symbol: string;
   isDefault: boolean;
   isActive: boolean;
 }
 
-export default function LanguagesPage() {
+export default function CurrenciesPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { showAlert, showConfirm } = useModal();
@@ -29,12 +30,13 @@ export default function LanguagesPage() {
   const [formData, setFormData] = useState({
     code: '',
     name: '',
+    symbol: '',
     isDefault: false,
     isActive: true,
   });
 
-  const { data: languages = [], isLoading } = useLanguages(true);
-  const { data: defaultLanguage } = useDefaultLanguage();
+  const { data: currencies = [], isLoading } = useCurrencies(true);
+  const { data: instanceCurrency } = useDefaultCurrency();
   const token = getAuthToken();
 
   useEffect(() => {
@@ -44,7 +46,7 @@ export default function LanguagesPage() {
   }, [router]);
 
   const handleCreate = async () => {
-    if (!formData.code || !formData.name) {
+    if (!formData.code || !formData.name || !formData.symbol) {
       await showAlert('Please fill all required fields', {
         title: 'Validation Error',
         variant: 'destructive',
@@ -54,7 +56,7 @@ export default function LanguagesPage() {
 
     try {
       await apiClient.post(
-        '/languages',
+        '/currencies',
         formData,
         {
           headers: {
@@ -62,23 +64,23 @@ export default function LanguagesPage() {
           },
         }
       );
-      queryClient.invalidateQueries({ queryKey: ['languages'] });
-      setFormData({ code: '', name: '', isDefault: false, isActive: true });
-      await showAlert('Language created successfully!', {
+      queryClient.invalidateQueries({ queryKey: ['currencies'] });
+      setFormData({ code: '', name: '', symbol: '', isDefault: false, isActive: true });
+      await showAlert('Currency created successfully!', {
         title: 'Success',
       });
     } catch (error: any) {
-      await showAlert(error.message || 'Failed to create language', {
+      await showAlert(error.message || 'Failed to create currency', {
         title: 'Error',
         variant: 'destructive',
       });
     }
   };
 
-  const handleUpdate = async (code: string, updates: Partial<Language>) => {
+  const handleUpdate = async (code: string, updates: Partial<Currency>) => {
     try {
       await apiClient.patch(
-        `/languages/${code}`,
+        `/currencies/${code}`,
         updates,
         {
           headers: {
@@ -86,13 +88,14 @@ export default function LanguagesPage() {
           },
         }
       );
-      queryClient.invalidateQueries({ queryKey: ['languages'] });
+      queryClient.invalidateQueries({ queryKey: ['currencies'] });
+      queryClient.invalidateQueries({ queryKey: ['currencies', 'default'] });
       setEditingCode(null);
-      await showAlert('Language updated successfully!', {
+      await showAlert('Currency updated successfully!', {
         title: 'Success',
       });
     } catch (error: any) {
-      await showAlert(error.message || 'Failed to update language', {
+      await showAlert(error.message || 'Failed to update currency', {
         title: 'Error',
         variant: 'destructive',
       });
@@ -100,9 +103,23 @@ export default function LanguagesPage() {
   };
 
   const handleSetDefault = async (code: string) => {
+    const confirmed = await showConfirm(
+      `Set ${code} as the instance currency? This will change the currency for all products and orders.`,
+      {
+        title: 'Change Instance Currency',
+        description: 'This action will affect all products and orders in the system.',
+        variant: 'destructive',
+        confirmText: 'Change Currency',
+        cancelText: 'Cancel',
+      }
+    );
+    if (!confirmed) {
+      return;
+    }
+
     try {
       await apiClient.post(
-        `/languages/${code}/set-default`,
+        `/currencies/${code}/set-default`,
         {},
         {
           headers: {
@@ -110,12 +127,16 @@ export default function LanguagesPage() {
           },
         }
       );
-      queryClient.invalidateQueries({ queryKey: ['languages'] });
-      await showAlert('Default language updated!', {
+      queryClient.invalidateQueries({ queryKey: ['currencies'] });
+      queryClient.invalidateQueries({ queryKey: ['currencies', 'default'] });
+      await showAlert('Instance currency updated! The page will reload to reflect the change.', {
         title: 'Success',
       });
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
     } catch (error: any) {
-      await showAlert(error.message || 'Failed to set default language', {
+      await showAlert(error.message || 'Failed to set default currency', {
         title: 'Error',
         variant: 'destructive',
       });
@@ -124,9 +145,9 @@ export default function LanguagesPage() {
 
   const handleDelete = async (code: string) => {
     const confirmed = await showConfirm(
-      `Are you sure you want to delete language ${code}?`,
+      `Are you sure you want to delete currency ${code}?`,
       {
-        title: 'Delete Language',
+        title: 'Delete Currency',
         description: 'This action cannot be undone.',
         variant: 'destructive',
         confirmText: 'Delete',
@@ -139,19 +160,19 @@ export default function LanguagesPage() {
 
     try {
       await apiClient.delete(
-        `/languages/${code}`,
+        `/currencies/${code}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
           },
         }
       );
-      queryClient.invalidateQueries({ queryKey: ['languages'] });
-      await showAlert('Language deleted successfully!', {
+      queryClient.invalidateQueries({ queryKey: ['currencies'] });
+      await showAlert('Currency deleted successfully!', {
         title: 'Success',
       });
     } catch (error: any) {
-      await showAlert(error.message || 'Failed to delete language', {
+      await showAlert(error.message || 'Failed to delete currency', {
         title: 'Error',
         variant: 'destructive',
       });
@@ -159,43 +180,63 @@ export default function LanguagesPage() {
   };
 
   if (isLoading) {
-    return <div className="container py-10">Loading languages...</div>;
+    return <div className="container py-10">Loading currencies...</div>;
   }
 
   return (
     <div className="container py-10">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold">Languages Management</h1>
+        <h1 className="text-3xl font-bold">Currency Management</h1>
         <p className="text-muted-foreground mt-2">
-          Add, edit, and manage supported languages for your application
+          Manage the instance currency. Only one currency can be active per instance.
         </p>
+        {instanceCurrency && (
+          <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+            <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
+              Current Instance Currency: <span className="font-bold">{instanceCurrency}</span>
+            </p>
+            <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
+              All prices are displayed in this currency. Change it by setting a different currency as default below.
+            </p>
+          </div>
+        )}
       </div>
 
-      {/* Add New Language */}
+      {/* Add New Currency */}
       <Card className="mb-6">
         <CardHeader>
-          <CardTitle>Add New Language</CardTitle>
-          <CardDescription>Create a new language entry</CardDescription>
+          <CardTitle>Add New Currency</CardTitle>
+          <CardDescription>Create a new currency entry</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4 md:grid-cols-4">
+          <div className="grid gap-4 md:grid-cols-5">
             <div>
-              <Label htmlFor="code">Language Code *</Label>
+              <Label htmlFor="code">Currency Code *</Label>
               <Input
                 id="code"
-                placeholder="e.g., en, ro, ru"
+                placeholder="e.g., USD, EUR, MDL"
                 value={formData.code}
-                onChange={(e) => setFormData({ ...formData, code: e.target.value.toLowerCase() })}
-                maxLength={5}
+                onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
+                maxLength={3}
               />
             </div>
             <div>
-              <Label htmlFor="name">Language Name *</Label>
+              <Label htmlFor="name">Currency Name *</Label>
               <Input
                 id="name"
-                placeholder="e.g., English"
+                placeholder="e.g., US Dollar"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label htmlFor="symbol">Symbol *</Label>
+              <Input
+                id="symbol"
+                placeholder="e.g., $, €, lei"
+                value={formData.symbol}
+                onChange={(e) => setFormData({ ...formData, symbol: e.target.value })}
+                maxLength={10}
               />
             </div>
             <div className="flex items-end gap-4">
@@ -219,70 +260,79 @@ export default function LanguagesPage() {
             <div className="flex items-end">
               <Button onClick={handleCreate} className="w-full">
                 <Plus className="h-4 w-4 mr-2" />
-                Add Language
+                Add Currency
               </Button>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Languages List */}
+      {/* Currencies List */}
       <Card>
         <CardHeader>
-          <CardTitle>All Languages</CardTitle>
+          <CardTitle>All Currencies</CardTitle>
           <CardDescription>
-            {languages.length} language{languages.length !== 1 ? 's' : ''} configured
+            {currencies.length} currency{currencies.length !== 1 ? 'ies' : ''} configured
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {languages.map((lang) => (
+            {currencies.map((currency) => (
               <div
-                key={lang.code}
-                className="flex items-center justify-between p-4 border rounded-lg"
+                key={currency.code}
+                className={`flex items-center justify-between p-4 border rounded-lg ${
+                  currency.isDefault ? 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800' : ''
+                }`}
               >
                 <div className="flex items-center gap-4">
+                  <DollarSign className="h-5 w-5 text-muted-foreground" />
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="font-semibold">{lang.name}</span>
-                      <span className="text-sm text-muted-foreground">({lang.code})</span>
-                      {lang.isDefault && (
-                        <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
+                      <span className="font-semibold">{currency.name}</span>
+                      <span className="text-sm text-muted-foreground">({currency.code})</span>
+                      <span className="text-lg font-bold">{currency.symbol}</span>
+                      {currency.isDefault && (
+                        <>
+                          <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
+                          <span className="text-xs bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 px-2 py-1 rounded">
+                            Instance Currency
+                          </span>
+                        </>
                       )}
-                      {lang.isActive ? (
+                      {currency.isActive ? (
                         <CheckCircle2 className="h-4 w-4 text-green-500" />
                       ) : (
                         <XCircle className="h-4 w-4 text-red-500" />
                       )}
                     </div>
                     <div className="text-sm text-muted-foreground mt-1">
-                      {lang.isDefault && 'Default • '}
-                      {lang.isActive ? 'Active' : 'Inactive'}
+                      {currency.isDefault && 'Default • '}
+                      {currency.isActive ? 'Active' : 'Inactive'}
                     </div>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  {!lang.isDefault && (
+                  {!currency.isDefault && (
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => handleSetDefault(lang.code)}
+                      onClick={() => handleSetDefault(currency.code)}
                     >
-                      Set Default
+                      Set as Instance Currency
                     </Button>
                   )}
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => handleUpdate(lang.code, { isActive: !lang.isActive })}
+                    onClick={() => handleUpdate(currency.code, { isActive: !currency.isActive })}
                   >
-                    {lang.isActive ? 'Deactivate' : 'Activate'}
+                    {currency.isActive ? 'Deactivate' : 'Activate'}
                   </Button>
-                  {!lang.isDefault && (
+                  {!currency.isDefault && (
                     <Button
                       size="sm"
                       variant="destructive"
-                      onClick={() => handleDelete(lang.code)}
+                      onClick={() => handleDelete(currency.code)}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>

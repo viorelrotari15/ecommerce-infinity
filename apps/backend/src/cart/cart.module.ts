@@ -3,9 +3,10 @@ import { CartController } from './cart.controller';
 import { CartService } from './cart.service';
 import { PrismaModule } from '../prisma/prisma.module';
 import { StorageModule } from '../storage/storage.module';
+import { CurrenciesModule } from '../currencies/currencies.module';
 
 @Module({
-  imports: [PrismaModule, StorageModule],
+  imports: [PrismaModule, StorageModule, CurrenciesModule],
   controllers: [CartController],
   providers: [CartService],
   exports: [CartService],

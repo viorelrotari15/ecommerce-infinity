@@ -185,13 +185,27 @@ model ProductAttribute {
   @@map("product_attributes")
 }
 
+model Currency {
+  code        String   @id        // "USD", "EUR", "GBP", "RON", "MDL", etc.
+  name        String              // US Dollar, Euro, etc.
+  symbol      String              // $, €, £, etc.
+  isDefault   Boolean  @default(false)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  orders      Order[]
+  payments    Payment[]
+
+  @@map("currencies")
+}
+
 model ProductVariant {
   id        String      @id @default(uuid())
   productId String
   product   Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
   name      String?     // e.g., "50ml", "100ml", "Red", "Blue"
   sku       String      @unique
-  price     Decimal     @db.Decimal(10, 2)
+  price     Decimal     @db.Decimal(10, 2) // Price in instance currency
   stock     Int         @default(0)
   isActive  Boolean     @default(true)
   createdAt DateTime    @default(now())
@@ -207,6 +221,8 @@ model Order {
   userId        String
   user          User          @relation(fields: [userId], references: [id])
   status        OrderStatus   @default(PENDING)
+  currencyCode  String
+  currency      Currency      @relation(fields: [currencyCode], references: [code])
   total         Decimal       @db.Decimal(10, 2)
   subtotal      Decimal       @db.Decimal(10, 2)
   tax           Decimal       @db.Decimal(10, 2) @default(0)
@@ -238,6 +254,8 @@ model Payment {
   id            String        @id @default(uuid())
   orderId       String        @unique
   order         Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  currencyCode  String
+  currency      Currency      @relation(fields: [currencyCode], references: [code])
   amount        Decimal       @db.Decimal(10, 2)
   method        PaymentMethod
   status        PaymentStatus @default(PENDING)

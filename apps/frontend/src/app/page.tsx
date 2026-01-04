@@ -2,7 +2,7 @@ import { Metadata } from 'next';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { fetchFeaturedProducts } from '@/lib/api/server';
+import { fetchFeaturedProducts, fetchDefaultCurrency } from '@/lib/api/server';
 import { formatPrice } from '@/lib/utils';
 import { getPrimaryProductImage, getImageUrl } from '@/lib/images';
 import Image from 'next/image';
@@ -24,6 +24,7 @@ async function getFeaturedProducts() {
 
 export default async function HomePage() {
   const featuredProducts = await getFeaturedProducts();
+  const currencyInfo = await fetchDefaultCurrency();
 
   return (
     <div className="flex flex-col">
@@ -61,8 +62,10 @@ export default async function HomePage() {
           </div>
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {featuredProducts.map((product) => {
-              const minPrice = product.variants[0]?.price
-                ? formatPrice(product.variants[0].price)
+              const variant = product.variants[0];
+              const currency = variant?.currency || currencyInfo.code;
+              const minPrice = variant?.price
+                ? formatPrice(variant.price, currency, currencyInfo.symbol)
                 : 'N/A';
               return (
                 <Link key={product.id} href={`/products/${product.slug}`}>

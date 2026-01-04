@@ -9,7 +9,9 @@ import { useProducts, useDeleteProduct } from '@/lib/hooks/use-products';
 import { getImageUrl, getPrimaryProductImage } from '@/lib/images';
 import { formatPrice } from '@/lib/utils';
 import { isAdmin } from '@/lib/auth';
-import { Plus, Edit, Trash2, Eye, CheckCircle2, Languages, FileText } from 'lucide-react';
+import { Plus, Edit, Trash2, Eye, CheckCircle2, Languages, FileText, Settings } from 'lucide-react';
+import { useCurrency } from '@/lib/contexts/currency-context';
+import { useModal } from '@/lib/contexts/modal-context';
 import Image from 'next/image';
 
 interface Product {
@@ -31,6 +33,8 @@ interface Product {
 
 export default function AdminDashboard() {
   const router = useRouter();
+  const { currentCurrency, currencySymbol } = useCurrency();
+  const { showAlert, showConfirm } = useModal();
   const [page, setPage] = useState(1);
 
   useEffect(() => {
@@ -47,21 +51,37 @@ export default function AdminDashboard() {
   const deleteProduct = useDeleteProduct();
 
   const handleDelete = async (productId: string) => {
-    if (!confirm('Are you sure you want to delete this product?')) {
+    const confirmed = await showConfirm(
+      'Are you sure you want to delete this product?',
+      {
+        title: 'Delete Product',
+        description: 'This action cannot be undone. All product data, images, and variants will be permanently deleted.',
+        variant: 'destructive',
+        confirmText: 'Delete',
+        cancelText: 'Cancel',
+      }
+    );
+    if (!confirmed) {
       return;
     }
 
     try {
       await deleteProduct.mutateAsync(productId);
     } catch (err: any) {
-      alert(err.message || 'Failed to delete product');
+      await showAlert(err.message || 'Failed to delete product', {
+        title: 'Error',
+        variant: 'destructive',
+      });
     }
   };
 
   const handleReactivate = async (productId: string) => {
     const token = localStorage.getItem('token');
     if (!token) {
-      alert('Not authenticated');
+      await showAlert('Not authenticated', {
+        title: 'Authentication Error',
+        variant: 'destructive',
+      });
       return;
     }
 
@@ -74,7 +94,10 @@ export default function AdminDashboard() {
       // Refetch products
       window.location.reload();
     } catch (err: any) {
-      alert(err.message || 'Failed to reactivate product');
+      await showAlert(err.message || 'Failed to reactivate product', {
+        title: 'Error',
+        variant: 'destructive',
+      });
     }
   };
 
@@ -123,24 +146,15 @@ export default function AdminDashboard() {
         </Link>
       </div>
 
-      {/* Translation Management Quick Links */}
-      <div className="grid gap-4 md:grid-cols-2 mb-8">
-        <Card className="cursor-pointer hover:bg-accent transition-colors" onClick={() => router.push('/admin/languages')}>
+      {/* Settings Quick Link */}
+      <div className="mb-8">
+        <Card className="cursor-pointer hover:bg-accent transition-colors" onClick={() => router.push('/admin/settings')}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Languages className="h-5 w-5" />
-              Languages
+              <Settings className="h-5 w-5" />
+              Settings
             </CardTitle>
-            <CardDescription>Manage supported languages</CardDescription>
-          </CardHeader>
-        </Card>
-        <Card className="cursor-pointer hover:bg-accent transition-colors" onClick={() => router.push('/admin/translations')}>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5" />
-              UI Translations
-            </CardTitle>
-            <CardDescription>Manage interface text translations</CardDescription>
+            <CardDescription>Manage languages, currencies, and UI translations</CardDescription>
           </CardHeader>
         </Card>
       </div>
@@ -162,7 +176,7 @@ export default function AdminDashboard() {
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {products.map((product) => {
               const minPrice = product.variants[0]?.price
-                ? formatPrice(product.variants[0].price)
+                ? formatPrice(product.variants[0].price, currentCurrency, currencySymbol)
                 : 'N/A';
               const imageUrl = product.productImages
                 ? getPrimaryProductImage(product.productImages)

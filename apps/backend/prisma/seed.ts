@@ -25,6 +25,29 @@ async function main() {
   }
   console.log(`✅ Seeded ${languages.length} languages`);
 
+  // Seed Currencies
+  console.log('💰 Seeding currencies...');
+  const instanceCurrencyCode = process.env.INSTANCE_CURRENCY_CODE || process.env.DEFAULT_CURRENCY_CODE || 'EUR';
+  const currencies = [
+    { code: 'USD', name: 'US Dollar', symbol: '$', isDefault: instanceCurrencyCode === 'USD', isActive: true },
+    { code: 'EUR', name: 'Euro', symbol: '€', isDefault: instanceCurrencyCode === 'EUR', isActive: true },
+    { code: 'GBP', name: 'British Pound', symbol: '£', isDefault: instanceCurrencyCode === 'GBP', isActive: true },
+    { code: 'RON', name: 'Romanian Leu', symbol: 'lei', isDefault: instanceCurrencyCode === 'RON', isActive: true },
+    { code: 'MDL', name: 'Moldovan Leu', symbol: 'lei', isDefault: instanceCurrencyCode === 'MDL', isActive: true },
+    { code: 'RUB', name: 'Russian Ruble', symbol: '₽', isDefault: instanceCurrencyCode === 'RUB', isActive: true },
+    { code: 'TRY', name: 'Turkish Lira', symbol: '₺', isDefault: instanceCurrencyCode === 'TRY', isActive: true },
+  ];
+
+  for (const currency of currencies) {
+    await prisma.currency.upsert({
+      where: { code: currency.code },
+      update: {},
+      create: currency,
+    });
+  }
+  console.log(`✅ Seeded ${currencies.length} currencies`);
+  console.log(`   Instance currency: ${instanceCurrencyCode}`);
+
   // Seed UI Translations (English)
   console.log('📝 Seeding UI translations...');
   const uiTranslations = [

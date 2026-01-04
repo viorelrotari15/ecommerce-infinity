@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useLanguages } from '@/lib/hooks/use-languages';
 import { useProductTranslations, useCreateProductTranslation, useUpdateProductTranslation } from '@/lib/hooks/use-product-translations';
+import { useModal } from '@/lib/contexts/modal-context';
 import { Save, Plus } from 'lucide-react';
 
 interface ProductTranslationsTabsProps {
@@ -30,6 +31,7 @@ export function ProductTranslationsTabs({
 }: ProductTranslationsTabsProps) {
   const { data: languages = [] } = useLanguages(true);
   const { data: translations = [] } = useProductTranslations(productId);
+  const { showAlert } = useModal();
   const createTranslation = useCreateProductTranslation();
   const updateTranslation = useUpdateProductTranslation();
 
@@ -79,9 +81,14 @@ export function ProductTranslationsTabs({
           ...data,
         });
       }
-      alert('Translation saved successfully!');
+      await showAlert('Translation saved successfully!', {
+        title: 'Success',
+      });
     } catch (error: any) {
-      alert(error.message || 'Failed to save translation');
+      await showAlert(error.message || 'Failed to save translation', {
+        title: 'Error',
+        variant: 'destructive',
+      });
     }
   };
 

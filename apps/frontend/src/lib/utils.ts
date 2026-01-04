@@ -5,11 +5,18 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function formatPrice(price: number | string): string {
+export function formatPrice(price: number | string, currencyCode: string = 'EUR', currencySymbol?: string): string {
   const numPrice = typeof price === 'string' ? parseFloat(price) : price;
+  
+  // If currency symbol is provided, use custom formatting
+  if (currencySymbol) {
+    return `${currencySymbol}${numPrice.toFixed(2)}`;
+  }
+  
+  // Use Intl.NumberFormat for proper currency formatting
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
-    currency: 'USD',
+    currency: currencyCode,
   }).format(numPrice);
 }
 

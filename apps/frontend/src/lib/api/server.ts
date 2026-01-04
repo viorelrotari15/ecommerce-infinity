@@ -23,7 +23,7 @@ export interface ProductsResponse {
     images: string[];
     productImages?: Array<{ filepath: string; url?: string; isPrimary?: boolean }>;
     brand: { name: string; slug: string };
-    variants: Array<{ price: number | string }>;
+    variants: Array<{ price: number | string; currency?: string }>;
   }>;
   meta: {
     total: number;
@@ -51,6 +51,7 @@ export interface Product {
     id: string;
     name: string;
     price: number | string;
+    currency?: string;
     stock: number;
     isActive: boolean;
   }>;
@@ -215,5 +216,49 @@ export async function fetchFeaturedProducts(limit: number = 6): Promise<Products
 
   const data = await response.json();
   return data.data || [];
+}
+
+/**
+ * Fetch default currency
+ * Cache for 1 hour
+ */
+export async function fetchDefaultCurrency(): Promise<{ code: string; symbol?: string }> {
+  try {
+    const [currencyResponse, currenciesResponse] = await Promise.all([
+      fetch(`${API_URL}/api/currencies/default`, {
+        next: { revalidate: 3600 }, // 1 hour
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }),
+      fetch(`${API_URL}/api/currencies`, {
+        next: { revalidate: 3600 }, // 1 hour
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }),
+    ]);
+
+    if (!currencyResponse.ok) {
+      return { code: 'EUR' }; // Fallback
+    }
+
+    const currencyData = await currencyResponse.json();
+    const code = currencyData.code || 'EUR';
+
+    if (currenciesResponse.ok) {
+      const currenciesData = await currenciesResponse.json();
+      const currency = currenciesData.find((c: any) => c.code === code);
+      return {
+        code,
+        symbol: currency?.symbol,
+      };
+    }
+
+    return { code };
+  } catch (error) {
+    console.error('Failed to fetch currency:', error);
+    return { code: 'EUR' }; // Fallback
+  }
 }
 

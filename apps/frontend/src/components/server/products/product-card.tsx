@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatPrice } from '@/lib/utils';
 import { getPrimaryProductImage, getImageUrl } from '@/lib/images';
+import { fetchDefaultCurrency } from '@/lib/api/server';
 import Image from 'next/image';
 
 interface ProductCardProps {
@@ -12,13 +13,16 @@ interface ProductCardProps {
     images: string[];
     productImages?: Array<{ filepath: string; url?: string; isPrimary?: boolean }>;
     brand: { name: string; slug: string };
-    variants: Array<{ price: number | string }>;
+    variants: Array<{ price: number | string; currency?: string }>;
   };
 }
 
-export function ProductCard({ product }: ProductCardProps) {
-  const minPrice = product.variants[0]?.price
-    ? formatPrice(product.variants[0].price)
+export async function ProductCard({ product }: ProductCardProps) {
+  const currencyInfo = await fetchDefaultCurrency();
+  const variant = product.variants[0];
+  const currency = variant?.currency || currencyInfo.code;
+  const minPrice = variant?.price
+    ? formatPrice(variant.price, currency, currencyInfo.symbol)
     : 'N/A';
 
   const imageUrl = product.productImages

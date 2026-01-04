@@ -1,12 +1,19 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateOrderDto } from './dto/create-order.dto';
+import { CurrencyHelperService } from '../currencies/currency-helper.service';
 
 @Injectable()
 export class OrdersService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private currencyHelper: CurrencyHelperService,
+  ) {}
 
   async create(userId: string, createOrderDto: CreateOrderDto) {
+    // Get instance currency (single currency per instance)
+    const currency = await this.currencyHelper.getInstanceCurrency();
+    
     // Calculate totals
     const items = await Promise.all(
       createOrderDto.items.map(async (item) => {
@@ -17,10 +24,11 @@ export class OrdersService {
         if (!variant) {
           throw new NotFoundException(`Variant ${item.variantId} not found`);
         }
+        
         return {
           variant,
           quantity: item.quantity,
-          price: variant.price,
+          price: variant.price, // Price is already in instance currency
         };
       }),
     );
@@ -37,6 +45,7 @@ export class OrdersService {
     const order = await this.prisma.order.create({
       data: {
         userId,
+        currencyCode: currency,
         status: 'PENDING',
         subtotal,
         tax,

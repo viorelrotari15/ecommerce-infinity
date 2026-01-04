@@ -4,6 +4,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useState } from 'react';
 import { ReactQueryDevtoolsWrapper } from '@/components/devtools/react-query-devtools';
 import { LanguageProvider } from '@/lib/contexts/language-context';
+import { CurrencyProvider } from '@/lib/contexts/currency-context';
+import { ModalProvider } from '@/lib/contexts/modal-context';
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
@@ -25,9 +27,13 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       <LanguageProvider>
-        {children}
-        {/* React Query DevTools - only in development, gracefully handles missing package */}
-        <ReactQueryDevtoolsWrapper initialIsOpen={false} />
+        <CurrencyProvider>
+          <ModalProvider>
+            {children}
+            {/* React Query DevTools - only in development, gracefully handles missing package */}
+            <ReactQueryDevtoolsWrapper initialIsOpen={false} />
+          </ModalProvider>
+        </CurrencyProvider>
       </LanguageProvider>
     </QueryClientProvider>
   );

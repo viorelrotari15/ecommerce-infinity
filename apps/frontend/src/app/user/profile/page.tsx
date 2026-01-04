@@ -5,6 +5,7 @@ import { useUserOrders } from '@/lib/hooks/use-orders';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { formatPrice } from '@/lib/utils';
+import { useCurrency } from '@/lib/contexts/currency-context';
 import { Loader2, User, Mail, Phone, Calendar, Package, MapPin } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { isAuthenticated } from '@/lib/auth';
@@ -12,6 +13,7 @@ import { useEffect } from 'react';
 
 export default function UserProfilePage() {
   const router = useRouter();
+  const { currentCurrency, currencySymbol } = useCurrency();
   const { data: profile, isLoading: profileLoading, error: profileError } = useUserProfile();
   const { data: orders, isLoading: ordersLoading } = useUserOrders();
 
@@ -213,7 +215,7 @@ export default function UserProfilePage() {
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="font-semibold">{formatPrice(parseFloat(order.total))}</p>
+                      <p className="font-semibold">{formatPrice(parseFloat(order.total), order.currencyCode || currentCurrency, currencySymbol)}</p>
                       <span
                         className={`inline-block px-2 py-1 rounded text-xs font-medium mt-1 ${getStatusColor(order.status)}`}
                       >
@@ -233,7 +235,7 @@ export default function UserProfilePage() {
                             SKU: {item.productVariant.sku} × {item.quantity}
                           </p>
                         </div>
-                        <p className="font-medium">{formatPrice(parseFloat(item.price))}</p>
+                        <p className="font-medium">{formatPrice(parseFloat(item.price), order.currencyCode || currentCurrency, currencySymbol)}</p>
                       </div>
                     ))}
                   </div>

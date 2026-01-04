@@ -22,6 +22,7 @@ export class PaymentsService {
     const payment = await this.prisma.payment.create({
       data: {
         orderId,
+        currencyCode: order.currencyCode,
         amount: order.total,
         method: createPaymentDto.method,
         status,

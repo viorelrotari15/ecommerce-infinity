@@ -2,15 +2,18 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
 import { UpdateCartDto } from './dto/update-cart.dto';
+import { CurrencyHelperService } from '../currencies/currency-helper.service';
 
 @Injectable()
 export class CartService {
   constructor(
     private prisma: PrismaService,
     private storageService: StorageService,
+    private currencyHelper: CurrencyHelperService,
   ) {}
 
   async getCart(userId: string) {
+    const currency = await this.currencyHelper.getInstanceCurrency();
     let cart = await this.prisma.cart.findUnique({
       where: { userId },
       include: {
@@ -93,7 +96,8 @@ export class CartService {
           productName: item.productVariant.product.name,
           productSlug: item.productVariant.product.slug,
           variantName: item.productVariant.name || 'Standard',
-          price: item.productVariant.price,
+          price: item.productVariant.price, // Price is already in instance currency
+          currency,
           quantity: item.quantity,
           stock: item.productVariant.stock,
           image: imageUrl,

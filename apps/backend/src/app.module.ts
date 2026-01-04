@@ -16,6 +16,7 @@ import { StorageModule } from './storage/storage.module';
 import { CartModule } from './cart/cart.module';
 import { LanguagesModule } from './languages/languages.module';
 import { TranslationsModule } from './translations/translations.module';
+import { CurrenciesModule } from './currencies/currencies.module';
 import { LanguageInterceptor } from './languages/interceptors/language.interceptor';
 
 @Module({
@@ -38,6 +39,7 @@ import { LanguageInterceptor } from './languages/interceptors/language.intercept
     CartModule,
     LanguagesModule,
     TranslationsModule,
+    CurrenciesModule,
   ],
   providers: [
     {

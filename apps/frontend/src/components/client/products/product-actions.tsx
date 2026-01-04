@@ -3,6 +3,7 @@
 import { AddToCartButton } from '@/components/client/cart/add-to-cart-button';
 import { Button } from '@/components/ui/button';
 import { formatPrice } from '@/lib/utils';
+import { useCurrency } from '@/lib/contexts/currency-context';
 
 interface ProductVariant {
   id: string;
@@ -26,6 +27,7 @@ export function ProductActions({
   variants,
   primaryImage,
 }: ProductActionsProps) {
+  const { currentCurrency, currencySymbol } = useCurrency();
   const defaultVariant = variants[0];
 
   if (!defaultVariant) {
@@ -51,7 +53,7 @@ export function ProductActions({
                 </div>
                 <div className="flex items-center gap-4">
                   <p className="text-lg font-semibold">
-                    {formatPrice(variant.price)}
+                    {formatPrice(variant.price, currentCurrency, currencySymbol)}
                   </p>
                   <AddToCartButton
                     variantId={variant.id}

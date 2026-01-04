@@ -32,6 +32,7 @@ export interface Payment {
 export interface Order {
   id: string;
   status: string;
+  currencyCode?: string;
   total: string;
   subtotal: string;
   tax: string;

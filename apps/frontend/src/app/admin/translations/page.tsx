@@ -12,6 +12,7 @@ import { isAdmin } from '@/lib/auth';
 import { Plus, Save, Trash2, Download, Upload, Search, ChevronDown, ChevronUp, FileUp } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { getAllTranslationKeys, getEnglishTemplate } from '@/lib/utils/translations';
+import { useModal } from '@/lib/contexts/modal-context';
 
 export default function TranslationsPage() {
   const router = useRouter();
@@ -35,6 +36,7 @@ export default function TranslationsPage() {
   useEffect(() => {
     setIsMounted(true);
   }, []);
+  const { showAlert, showConfirm } = useModal();
   const createTranslation = useCreateTranslation();
   const updateTranslation = useUpdateTranslation();
   const deleteTranslation = useDeleteTranslation();
@@ -157,14 +159,27 @@ export default function TranslationsPage() {
   };
 
   const handleDelete = async (key: string, language: string) => {
-    if (confirm(`Delete translation for ${key} in ${language}?`)) {
+    const confirmed = await showConfirm(
+      `Delete translation for ${key} in ${language}?`,
+      {
+        title: 'Delete Translation',
+        description: 'This action cannot be undone.',
+        variant: 'destructive',
+        confirmText: 'Delete',
+        cancelText: 'Cancel',
+      }
+    );
+    if (confirmed) {
       await deleteTranslation.mutateAsync({ key, language });
     }
   };
 
   const handleAddNewKey = async () => {
     if (!newKey || !newKeyLanguage || !newKeyValue) {
-      alert('Please fill all fields');
+      await showAlert('Please fill all fields', {
+        title: 'Validation Error',
+        variant: 'destructive',
+      });
       return;
     }
 
@@ -183,10 +198,15 @@ export default function TranslationsPage() {
     try {
       const translations = JSON.parse(jsonText);
       await bulkUpdate.mutateAsync({ language, translations });
-      alert('Translations imported successfully!');
+      await showAlert('Translations imported successfully!', {
+        title: 'Success',
+      });
       setImportingLanguage(null);
     } catch (error) {
-      alert('Invalid JSON format');
+      await showAlert('Invalid JSON format', {
+        title: 'Error',
+        variant: 'destructive',
+      });
     }
   };
 
@@ -200,7 +220,10 @@ export default function TranslationsPage() {
         fileInput.value = '';
       }
     } catch (error) {
-      alert('Failed to read file');
+      await showAlert('Failed to read file', {
+        title: 'Error',
+        variant: 'destructive',
+      });
     }
   };
 

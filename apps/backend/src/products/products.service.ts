@@ -4,6 +4,7 @@ import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { StorageService } from '../storage/storage.service';
 import { LanguageHelperService } from '../languages/language-helper.service';
+import { CurrencyHelperService } from '../currencies/currency-helper.service';
 
 @Injectable()
 export class ProductsService {
@@ -11,6 +12,7 @@ export class ProductsService {
     private prisma: PrismaService,
     private storageService: StorageService,
     private languageHelper: LanguageHelperService,
+    private currencyHelper: CurrencyHelperService,
   ) {}
 
   /**
@@ -81,6 +83,7 @@ export class ProductsService {
     featured?: boolean | string;
     includeInactive?: boolean | string;
     lang?: string;
+    currency?: string;
   }) {
     // Parse query parameters (they come as strings from HTTP)
     const page = query.page ? Number(query.page) : 1;
@@ -126,8 +129,9 @@ export class ProductsService {
       where.isFeatured = featured;
     }
 
-    // Resolve language
+    // Resolve language and get instance currency
     const language = await this.languageHelper.resolveLanguage(query.lang);
+    const currency = await this.currencyHelper.getInstanceCurrency();
 
     const [products, total] = await Promise.all([
       this.prisma.product.findMany({
@@ -177,7 +181,7 @@ export class ProductsService {
       this.prisma.product.count({ where }),
     ]);
 
-    // Add URLs to product images, convert legacy images, and apply translations
+    // Add URLs to product images, convert legacy images, apply translations, and convert prices
     const bucket = this.storageService.getBucketName();
     const productsWithImageUrls = await Promise.all(
       products.map(async (product) => {
@@ -218,6 +222,14 @@ export class ProductsService {
           }
         }
 
+        // Add currency info to variants (no conversion, prices are already in instance currency)
+        if (translated.variants) {
+          translated.variants = translated.variants.map((variant: any) => ({
+            ...variant,
+            currency,
+          }));
+        }
+
         return {
           ...translated,
           images: this.convertLegacyImages(product.images),
@@ -242,6 +254,7 @@ export class ProductsService {
 
   async findOne(slug: string, language?: string) {
     const resolvedLanguage = await this.languageHelper.resolveLanguage(language);
+    const currency = await this.currencyHelper.getInstanceCurrency();
     
     const product = await this.prisma.product.findUnique({
       where: { slug },
@@ -343,6 +356,7 @@ export class ProductsService {
 
   async findById(id: string, language?: string) {
     const resolvedLanguage = await this.languageHelper.resolveLanguage(language);
+    const currency = await this.currencyHelper.getInstanceCurrency();
     
     const product = await this.prisma.product.findUnique({
       where: { id },
@@ -425,6 +439,14 @@ export class ProductsService {
           delete pc.category.translations;
         }
       }
+    }
+
+    // Add currency info to variants (no conversion)
+    if (translated.variants) {
+      translated.variants = translated.variants.map((variant: any) => ({
+        ...variant,
+        currency,
+      }));
     }
 
     // Add URLs to product images and convert legacy images

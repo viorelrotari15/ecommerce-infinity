@@ -1,7 +1,7 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { fetchProduct } from '@/lib/api/server';
+import { fetchProduct, fetchDefaultCurrency } from '@/lib/api/server';
 import { formatPrice } from '@/lib/utils';
 import { getProductImages, getPrimaryProductImage, getImageUrl } from '@/lib/images';
 import { ProductActions } from '@/components/client/products/product-actions';
@@ -56,8 +56,10 @@ export default async function ProductPage({
     notFound();
   }
 
+  const currencyInfo = await fetchDefaultCurrency();
   const defaultVariant = product.variants[0];
-  const minPrice = defaultVariant ? formatPrice(defaultVariant.price) : 'N/A';
+  const currency = defaultVariant?.currency || currencyInfo.code;
+  const minPrice = defaultVariant ? formatPrice(defaultVariant.price, currency, currencyInfo.symbol) : 'N/A';
 
   // Get images - prefer productImages over legacy images array
   // Check if productImages exists and has items
