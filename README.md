@@ -12,13 +12,18 @@ A production-ready, scalable e-commerce monorepo platform built with Next.js, Ne
 ### One-Command Startup
 
 ```bash
+# Quick setup (creates .env.local files)
+./scripts/setup-local-env.sh
+
+# Start all services
 docker compose up
 ```
 
-This single command will:
+This will:
 - Start PostgreSQL database
 - Start NestJS backend API
 - Start Next.js frontend
+- Start MinIO object storage
 - Run database migrations
 - Seed the database with demo data
 
@@ -26,14 +31,21 @@ The application will be available at:
 - **Frontend**: http://localhost:3000
 - **Backend API**: http://localhost:3001
 - **API Documentation**: http://localhost:3001/api/docs
+- **MinIO Console**: http://localhost:9001 (admin/minioadmin)
 
 ### Environment Variables
 
-Copy `.env.example` to `.env` and customize as needed:
+For Docker Compose, create `.env` in the project root:
 
 ```bash
 cp .env.example .env
 ```
+
+For local development (without Docker), create `.env.local` files:
+- `apps/backend/.env.local` - Backend configuration
+- `apps/frontend/.env.local` - Frontend configuration
+
+See [docs/LOCAL_DEVELOPMENT.md](docs/LOCAL_DEVELOPMENT.md) for fully local setup, or [docs/ENVIRONMENT_SETUPS.md](docs/ENVIRONMENT_SETUPS.md) for all configuration options.
 
 Key environment variables:
 - `DATABASE_URL`: PostgreSQL connection string
@@ -524,6 +536,33 @@ curl -X POST http://localhost:3001/api/auth/login \
 - SQL injection prevention (Prisma)
 - CORS configuration
 - Environment variable management
+
+## 🚀 Deployment
+
+### Fly.io Deployment
+
+This project is configured for deployment to Fly.io with automated CI/CD from GitHub.
+
+**Quick Setup:**
+1. Install Fly CLI: `curl -L https://fly.io/install.sh | sh`
+2. Run setup script: `./scripts/fly-setup.sh`
+3. Follow the deployment guide: [docs/FLY_IO_DEPLOYMENT.md](docs/FLY_IO_DEPLOYMENT.md)
+
+**Features:**
+- ✅ Automated deployments from GitHub Actions (on push/merge to main)
+- ✅ Production-ready Dockerfiles
+- ✅ Health check endpoints
+- ✅ Database migrations on deploy
+- ✅ Auto-scaling configuration
+- ✅ Local development with Fly.io services support
+- ✅ CI/CD with tests and linters
+
+**Documentation:**
+- [Fully Local Development](docs/LOCAL_DEVELOPMENT.md) - Run everything locally (frontend, backend, database, MinIO)
+- [Environment Setups](docs/ENVIRONMENT_SETUPS.md) - All possible configuration scenarios
+- [Local Dev with Fly.io](docs/LOCAL_DEV_FLYIO.md) - Hybrid setups (local + Fly.io services)
+- [Complete Deployment Guide](docs/FLY_IO_DEPLOYMENT.md) - Full Fly.io production setup
+- [Deployment Summary](docs/DEPLOYMENT_SETUP_SUMMARY.md) - Quick reference for deployment features
 
 ## 📄 License
 

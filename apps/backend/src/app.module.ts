@@ -17,6 +17,7 @@ import { CartModule } from './cart/cart.module';
 import { LanguagesModule } from './languages/languages.module';
 import { TranslationsModule } from './translations/translations.module';
 import { LanguageInterceptor } from './languages/interceptors/language.interceptor';
+import { HealthModule } from './health/health.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { LanguageInterceptor } from './languages/interceptors/language.intercept
     CartModule,
     LanguagesModule,
     TranslationsModule,
+    HealthModule,
   ],
   providers: [
     {
