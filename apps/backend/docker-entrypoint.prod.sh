@@ -12,4 +12,3 @@ npx prisma migrate deploy || {
 
 echo "🚀 Starting NestJS in production mode..."
 exec npm run start:prod
-

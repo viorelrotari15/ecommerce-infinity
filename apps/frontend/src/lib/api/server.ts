@@ -3,7 +3,7 @@
  * These use Next.js fetch with caching strategies
  */
 
-const API_URL = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const API_URL = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
 export interface FetchProductsParams {
   page?: number;

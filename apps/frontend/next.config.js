@@ -2,6 +2,8 @@
 const nextConfig = {
   reactStrictMode: true,
   output: 'standalone', // Enable standalone output for Docker
+  // Use PORT from environment or default to 3001
+  ...(process.env.PORT && { port: parseInt(process.env.PORT) }),
   images: {
     domains: ['localhost'],
     remotePatterns: [

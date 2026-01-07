@@ -1,0 +1,30 @@
+# Development docker-compose override
+# Use with: docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
+
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./apps/backend
+      dockerfile: Dockerfile.dev
+    volumes:
+      - ./apps/backend:/app
+      - /app/node_modules
+      - /app/dist
+    environment:
+      NODE_ENV: development
+    command: sh -c "npm install && npx prisma generate && npm run start:dev"
+
+  frontend:
+    build:
+      context: ./apps/frontend
+      dockerfile: Dockerfile.dev
+    volumes:
+      - ./apps/frontend:/app
+      - /app/node_modules
+      - /app/.next
+    environment:
+      NODE_ENV: development
+    command: sh -c "npm install && npm run dev"
+

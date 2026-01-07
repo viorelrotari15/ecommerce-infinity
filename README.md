@@ -539,30 +539,37 @@ curl -X POST http://localhost:3001/api/auth/login \
 
 ## 🚀 Deployment
 
-### Fly.io Deployment
+### Oracle Cloud Deployment
 
-This project is configured for deployment to Fly.io with automated CI/CD from GitHub.
+This project is configured for deployment to Oracle Cloud Infrastructure (OCI) Always Free tier using Docker Compose.
 
 **Quick Setup:**
-1. Install Fly CLI: `curl -L https://fly.io/install.sh | sh`
-2. Run setup script: `./scripts/fly-setup.sh`
-3. Follow the deployment guide: [docs/FLY_IO_DEPLOYMENT.md](docs/FLY_IO_DEPLOYMENT.md)
+1. Create Oracle VM instance (Always Free tier)
+2. Install Docker and Docker Compose on VM
+3. Clone repository and configure `.env` file
+4. Deploy with `docker-compose up -d --build`
 
 **Features:**
-- ✅ Automated deployments from GitHub Actions (on push/merge to main)
-- ✅ Production-ready Dockerfiles
+- ✅ Production-ready Dockerfiles (multi-stage builds)
+- ✅ Automated CI/CD from GitHub Actions
 - ✅ Health check endpoints
 - ✅ Database migrations on deploy
-- ✅ Auto-scaling configuration
-- ✅ Local development with Fly.io services support
-- ✅ CI/CD with tests and linters
+- ✅ Multiple environment configurations
+- ✅ Local development flexibility
+- ✅ Swagger API documentation
+
+**Port Configuration:**
+- Backend API: `3000`
+- Swagger Docs: `3000/api/docs`
+- Frontend: `3001`
+- MinIO API: `9000`
+- MinIO Console: `9001`
 
 **Documentation:**
-- [Fully Local Development](docs/LOCAL_DEVELOPMENT.md) - Run everything locally (frontend, backend, database, MinIO)
-- [Environment Setups](docs/ENVIRONMENT_SETUPS.md) - All possible configuration scenarios
-- [Local Dev with Fly.io](docs/LOCAL_DEV_FLYIO.md) - Hybrid setups (local + Fly.io services)
-- [Complete Deployment Guide](docs/FLY_IO_DEPLOYMENT.md) - Full Fly.io production setup
-- [Deployment Summary](docs/DEPLOYMENT_SETUP_SUMMARY.md) - Quick reference for deployment features
+- [Oracle Cloud Deployment Guide](docs/ORACLE_CLOUD_DEPLOYMENT.md) - Complete deployment instructions
+- [Deployment Quick Start](docs/DEPLOYMENT_QUICK_START.md) - 5-minute setup guide
+- [Fully Local Development](docs/LOCAL_DEVELOPMENT.md) - Run everything locally
+- [Environment Setups](docs/ENVIRONMENT_SETUPS.md) - All configuration scenarios
 
 ## 📄 License
 
