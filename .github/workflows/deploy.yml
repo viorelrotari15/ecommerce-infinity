@@ -76,11 +76,11 @@ jobs:
             echo "📥 Pulling latest code..."
             git pull origin main || git pull origin master
             echo "🛑 Stopping containers..."
-            docker-compose down
+            docker compose down
             echo "🔨 Building and starting containers..."
-            docker-compose up --build -d
+            docker compose up --build -d
             echo "🧹 Cleaning up unused images..."
             docker image prune -f
             echo "✅ Deployment complete!"
             echo "📊 Container status:"
-            docker-compose ps
+            docker compose ps

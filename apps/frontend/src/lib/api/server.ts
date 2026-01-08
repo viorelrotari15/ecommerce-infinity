@@ -3,6 +3,8 @@
  * These use Next.js fetch with caching strategies
  */
 
+// API_URL is for server-side requests (can use Docker service names)
+// NEXT_PUBLIC_API_URL is for client-side requests (must use public URLs)
 const API_URL = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
 export interface FetchProductsParams {

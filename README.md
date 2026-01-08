@@ -11,26 +11,42 @@ A production-ready, scalable e-commerce monorepo platform built with Next.js, Ne
 
 ### One-Command Startup
 
+**Development Mode (Hot Reload):**
 ```bash
-# Quick setup (creates .env.local files)
+# Quick setup
 ./scripts/setup-local-env.sh
 
-# Start all services
-docker compose up
+# Start with hot reload
+docker compose -f docker compose.yml -f docker compose.dev.yml up
+```
+
+**Production Mode (Optimized):**
+```bash
+# Create .env file
+cp docs/env-templates/.env.example .env
+# Edit .env with local values
+
+# Build and start
+docker compose up --build -d
+```
+
+**Or use the build script:**
+```bash
+./scripts/build-local.sh
 ```
 
 This will:
 - Start PostgreSQL database
-- Start NestJS backend API
-- Start Next.js frontend
-- Start MinIO object storage
+- Start NestJS backend API (port 3000)
+- Start Next.js frontend (port 3001)
+- Start MinIO object storage (ports 9000/9001)
 - Run database migrations
 - Seed the database with demo data
 
 The application will be available at:
-- **Frontend**: http://localhost:3000
-- **Backend API**: http://localhost:3001
-- **API Documentation**: http://localhost:3001/api/docs
+- **Frontend**: http://localhost:3001
+- **Backend API**: http://localhost:3000/api
+- **API Documentation**: http://localhost:3000/api/docs
 - **MinIO Console**: http://localhost:9001 (admin/minioadmin)
 
 ### Environment Variables
@@ -81,7 +97,7 @@ ecommerce-infinity/
 │   ├── shared/            # Shared TypeScript types
 │   └── ui/                # Shared UI theme config
 │
-├── docker-compose.yml     # Docker orchestration
+├── docker compose.yml     # Docker orchestration
 └── README.md
 ```
 
@@ -305,10 +321,10 @@ The project includes a VS Code debug configuration (`.vscode/launch.json`). To e
 
 ```bash
 # Use the debug compose file
-docker compose -f docker-compose.yml -f docker-compose.debug.yml up
+docker compose -f docker compose.yml -f docker compose.debug.yml up
 ```
 
-Or manually add debug ports to `docker-compose.yml`:
+Or manually add debug ports to `docker compose.yml`:
 
 ```yaml
 backend:
@@ -547,7 +563,7 @@ This project is configured for deployment to Oracle Cloud Infrastructure (OCI) A
 1. Create Oracle VM instance (Always Free tier)
 2. Install Docker and Docker Compose on VM
 3. Clone repository and configure `.env` file
-4. Deploy with `docker-compose up -d --build`
+4. Deploy with `docker compose up -d --build`
 
 **Features:**
 - ✅ Production-ready Dockerfiles (multi-stage builds)

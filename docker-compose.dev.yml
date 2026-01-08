@@ -1,7 +1,5 @@
 # Development docker-compose override
-# Use with: docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
-
-version: '3.8'
+# Use with: docker compose -f docker-compose.yml -f docker-compose.dev.yml up
 
 services:
   backend:
@@ -11,10 +9,27 @@ services:
     volumes:
       - ./apps/backend:/app
       - /app/node_modules
-      - /app/dist
+      # Don't exclude dist in development - let it be part of mounted volume for hot reload
     environment:
       NODE_ENV: development
-    command: sh -c "npm install && npx prisma generate && npm run start:dev"
+      PORT: ${BACKEND_PORT:-3000}
+      DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:postgres@postgres:5432/ecommerce}
+      JWT_SECRET: ${JWT_SECRET:-local-dev-jwt-secret-change-in-production}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
+      # MinIO Configuration
+      MINIO_ENDPOINT: ${MINIO_ENDPOINT:-minio}
+      MINIO_PORT: ${MINIO_PORT:-9000}
+      MINIO_USE_SSL: ${MINIO_USE_SSL:-false}
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-${MINIO_ROOT_USER:-minioadmin}}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-${MINIO_ROOT_PASSWORD:-minioadmin}}
+      MINIO_BUCKET: ${MINIO_BUCKET:-products}
+      MINIO_PUBLIC_URL: ${MINIO_PUBLIC_URL:-http://localhost:9000}
+      # CORS Configuration
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3001}
+    ports:
+      - "${BACKEND_PORT:-3000}:3000"
+    # Use the development entrypoint script
+    # command is handled by Dockerfile.dev CMD
 
   frontend:
     build:
@@ -26,5 +41,14 @@ services:
       - /app/.next
     environment:
       NODE_ENV: development
+      PORT: ${FRONTEND_PORT:-3001}
+      # API_URL for server-side requests (uses Docker service name)
+      API_URL: ${API_URL:-http://backend:3000}
+      # NEXT_PUBLIC_API_URL for client-side requests (uses localhost for browser)
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3000}
+      NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-http://localhost:3001}
+      NEXT_PUBLIC_CDN_URL: ${NEXT_PUBLIC_CDN_URL:-http://localhost:9000}
+    ports:
+      - "${FRONTEND_PORT:-3001}:3001"
     command: sh -c "npm install && npm run dev"
 

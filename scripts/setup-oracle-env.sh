@@ -50,7 +50,7 @@ echo ""
 echo "Next steps:"
 echo "1. Edit .env: nano .env"
 echo "2. Set secure passwords"
-echo "3. Deploy: docker-compose up -d --build"
+echo "3. Deploy: docker compose up -d --build"
 echo ""
 echo "📚 See docs/ORACLE_CLOUD_DEPLOYMENT.md for full guide"
 
