@@ -21,6 +21,8 @@ import { isAdmin } from '@/lib/auth';
 import { useProductTypes, productTypeQueryKeys } from '@/lib/hooks/use-product-types';
 import { Plus, Edit, Trash2 } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
+import { useToast } from '@/hooks/use-toast';
+import { useConfirm } from '@/contexts/confirm-dialog-context';
 
 interface ProductType {
   id: string;
@@ -41,6 +43,8 @@ export default function ProductTypesPage() {
   });
   const [isCreating, setIsCreating] = useState(false);
   const token = getAuthToken();
+  const { toast } = useToast();
+  const confirm = useConfirm();
 
   useEffect(() => {
     if (!isAdmin()) {
@@ -72,7 +76,11 @@ export default function ProductTypesPage() {
 
   const handleCreate = async () => {
     if (!formData.name) {
-      alert('Please fill in the name field');
+      toast({
+        variant: 'destructive',
+        title: 'Validation Error',
+        description: 'Please fill in the name field',
+      });
       return;
     }
 
@@ -93,10 +101,18 @@ export default function ProductTypesPage() {
       await queryClient.refetchQueries({ queryKey: productTypeQueryKeys.list() });
       closeDialog();
       setIsCreating(false);
-      alert('Product type created successfully!');
+      toast({
+        variant: 'success',
+        title: 'Success',
+        description: 'Product type created successfully!',
+      });
     } catch (error: any) {
       setIsCreating(false);
-      alert(error.message || 'Failed to create product type');
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: error.message || 'Failed to create product type. Please try again.',
+      });
     }
   };
 
@@ -104,7 +120,11 @@ export default function ProductTypesPage() {
     if (!editingId) return;
 
     if (!formData.name) {
-      alert('Please fill in the name field');
+      toast({
+        variant: 'destructive',
+        title: 'Validation Error',
+        description: 'Please fill in the name field',
+      });
       return;
     }
 
@@ -125,15 +145,31 @@ export default function ProductTypesPage() {
       await queryClient.invalidateQueries({ queryKey: productTypeQueryKeys.list() });
       closeDialog();
       setIsCreating(false);
-      alert('Product type updated successfully!');
+      toast({
+        variant: 'success',
+        title: 'Success',
+        description: 'Product type updated successfully!',
+      });
     } catch (error: any) {
       setIsCreating(false);
-      alert(error.message || 'Failed to update product type');
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: error.message || 'Failed to update product type. Please try again.',
+      });
     }
   };
 
   const handleDelete = async (id: string, name: string) => {
-    if (!confirm(`Are you sure you want to delete "${name}"?`)) {
+    const confirmed = await confirm({
+      title: 'Delete Product Type',
+      description: `Are you sure you want to delete "${name}"? This action cannot be undone.`,
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      variant: 'destructive',
+    });
+
+    if (!confirmed) {
       return;
     }
 
@@ -144,9 +180,17 @@ export default function ProductTypesPage() {
         },
       });
       await queryClient.refetchQueries({ queryKey: productTypeQueryKeys.list() });
-      alert('Product type deleted successfully!');
+      toast({
+        variant: 'success',
+        title: 'Success',
+        description: 'Product type deleted successfully!',
+      });
     } catch (error: any) {
-      alert(error.message || 'Failed to delete product type');
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: error.message || 'Failed to delete product type. Please try again.',
+      });
     }
   };
 

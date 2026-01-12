@@ -1,16 +1,30 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, useMemo, useRef } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useProducts, useDeleteProduct } from '@/lib/hooks/use-products';
+import { useCategories } from '@/lib/hooks/use-categories';
+import { useBrands } from '@/lib/hooks/use-brands';
 import { getImageUrl, getPrimaryProductImage } from '@/lib/images';
 import { formatPrice } from '@/lib/utils';
 import { isAdmin } from '@/lib/auth';
 import { Plus, Edit, Trash2, Eye, CheckCircle2 } from 'lucide-react';
 import Image from 'next/image';
+import { useConfirm } from '@/contexts/confirm-dialog-context';
+import { useToast } from '@/hooks/use-toast';
+import { MultiSelectCategory } from '@/components/ui/multi-select-category';
 
 interface Product {
   id: string;
@@ -31,7 +45,32 @@ interface Product {
 
 export default function ProductsPage() {
   const router = useRouter();
-  const [page, setPage] = useState(1);
+  const searchParams = useSearchParams();
+  
+  // Get filter values from URL params
+  const page = Number(searchParams.get('page')) || 1;
+  const searchParam = searchParams.get('search') || '';
+  const brandParam = searchParams.get('brand');
+  // Memoize categories param to prevent infinite loops
+  const categoriesParam = useMemo(() => searchParams.getAll('categories'), [searchParams]);
+  const categoryParam = searchParams.get('category');
+  const inactiveOnlyParam = searchParams.get('inactiveOnly') === 'true';
+  const featuredOnlyParam = searchParams.get('featuredOnly') === 'true';
+  
+  const [search, setSearch] = useState(searchParam);
+  const [selectedBrand, setSelectedBrand] = useState(brandParam && brandParam !== 'all' ? brandParam : 'all');
+  const getInitialCategories = () => {
+    if (categoriesParam && categoriesParam.length > 0) {
+      return categoriesParam.filter(c => c && c !== 'all');
+    }
+    if (categoryParam && categoryParam !== 'all') {
+      return [categoryParam];
+    }
+    return [];
+  };
+  const [selectedCategories, setSelectedCategories] = useState<string[]>(getInitialCategories());
+  const [inactiveOnly, setInactiveOnly] = useState(inactiveOnlyParam);
+  const [featuredOnly, setFeaturedOnly] = useState(featuredOnlyParam);
 
   useEffect(() => {
     // Check if user is admin
@@ -41,27 +80,149 @@ export default function ProductsPage() {
     }
   }, [router]);
 
+  // Memoize the computed categories from URL params
+  const urlCategories = useMemo(() => {
+    return categoriesParam && categoriesParam.length > 0
+      ? categoriesParam.filter(c => c && c !== 'all')
+      : categoryParam && categoryParam !== 'all'
+      ? [categoryParam]
+      : [];
+  }, [categoriesParam, categoryParam]);
+
+  const prevUrlCategoriesRef = useRef<string>('');
+
+  // Sync filter state with URL params
+  useEffect(() => {
+    setSearch(searchParam);
+    setSelectedBrand(brandParam && brandParam !== 'all' ? brandParam : 'all');
+    
+    // Only update if the categories actually changed (compare sorted arrays)
+    const urlCategoriesStr = JSON.stringify([...urlCategories].sort());
+    if (urlCategoriesStr !== prevUrlCategoriesRef.current) {
+      prevUrlCategoriesRef.current = urlCategoriesStr;
+      setSelectedCategories(urlCategories);
+    }
+    
+    setInactiveOnly(inactiveOnlyParam);
+    setFeaturedOnly(featuredOnlyParam);
+  }, [searchParam, brandParam, urlCategories, inactiveOnlyParam, featuredOnlyParam]);
+
+  // Fetch categories and brands for filters
+  const { data: categories = [] } = useCategories();
+  const { data: brands = [] } = useBrands();
+
+  // Build filters object from URL params (not state) so filters only apply when "Apply Filters" is clicked
+  const getCategoryIds = () => {
+    if (categoriesParam && categoriesParam.length > 0) {
+      return categoriesParam.filter(c => c && c !== 'all');
+    }
+    if (categoryParam && categoryParam !== 'all') {
+      return [categoryParam];
+    }
+    return undefined;
+  };
+
+  const filters = {
+    page,
+    limit: 20,
+    includeInactive: true,
+    search: searchParam || undefined,
+    brandId: brandParam && brandParam !== 'all' ? brandParam : undefined,
+    categoryIds: getCategoryIds(),
+    featured: featuredOnlyParam || undefined,
+    // Note: inactiveOnly filter needs to be handled on backend or client-side filtering
+    // For now, we'll include it in the filters but backend may need to support it
+  };
+
   // Use React Query instead of useState/useEffect
   // Include inactive products for admin dashboard
-  const { data, isLoading, error } = useProducts({ page, limit: 20, includeInactive: true });
+  const { data, isLoading, error } = useProducts(filters);
   const deleteProduct = useDeleteProduct();
+  const confirm = useConfirm();
+  const { toast } = useToast();
+
+  const applyFilters = () => {
+    const params = new URLSearchParams();
+    if (search) params.set('search', search);
+    if (selectedBrand && selectedBrand !== 'all') {
+      params.set('brand', selectedBrand);
+    }
+    // Add multiple categories
+    if (selectedCategories.length > 0) {
+      selectedCategories.forEach(catId => {
+        params.append('categories', catId);
+      });
+    }
+    if (inactiveOnly) params.set('inactiveOnly', 'true');
+    if (featuredOnly) params.set('featuredOnly', 'true');
+    params.set('page', '1'); // Reset to first page
+    router.push(`/admin/products?${params.toString()}`);
+  };
+
+  const clearFilters = () => {
+    setSearch('');
+    setSelectedBrand('all');
+    setSelectedCategories([]);
+    setInactiveOnly(false);
+    setFeaturedOnly(false);
+    router.push('/admin/products');
+  };
+
+  // Helper function to build pagination URL with filters
+  const buildPaginationUrl = (pageNum: number) => {
+    const params = new URLSearchParams();
+    params.set('page', String(pageNum));
+    if (search) params.set('search', search);
+    if (selectedBrand && selectedBrand !== 'all') {
+      params.set('brand', selectedBrand);
+    }
+    if (selectedCategories.length > 0) {
+      selectedCategories.forEach(catId => {
+        params.append('categories', catId);
+      });
+    }
+    if (inactiveOnly) params.set('inactiveOnly', 'true');
+    if (featuredOnly) params.set('featuredOnly', 'true');
+    return `/admin/products?${params.toString()}`;
+  };
 
   const handleDelete = async (productId: string) => {
-    if (!confirm('Are you sure you want to delete this product?')) {
+    const confirmed = await confirm({
+      title: 'Delete Product',
+      description: 'Are you sure you want to delete this product? This action cannot be undone.',
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      variant: 'destructive',
+    });
+
+    if (!confirmed) {
       return;
     }
 
     try {
       await deleteProduct.mutateAsync(productId);
+      toast({
+        variant: 'success',
+        title: 'Success',
+        description: 'Product deleted successfully!',
+      });
     } catch (err: any) {
-      alert(err.message || 'Failed to delete product');
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: err.message || 'Failed to delete product. Please try again.',
+      });
     }
   };
 
   const handleReactivate = async (productId: string) => {
     const token = localStorage.getItem('token');
     if (!token) {
-      alert('Not authenticated');
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Not authenticated',
+      });
       return;
     }
 
@@ -71,10 +232,19 @@ export default function ProductsPage() {
         method: 'PATCH',
         body: JSON.stringify({ isActive: true }),
       });
+      toast({
+        variant: 'success',
+        title: 'Success',
+        description: 'Product reactivated successfully!',
+      });
       // Refetch products
       window.location.reload();
     } catch (err: any) {
-      alert(err.message || 'Failed to reactivate product');
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: err.message || 'Failed to reactivate product. Please try again.',
+      });
     }
   };
 
@@ -103,7 +273,20 @@ export default function ProductsPage() {
     );
   }
 
-  const products = data?.data || [];
+  // Filter products client-side for inactiveOnly (backend doesn't support this filter)
+  // Use URL param value, not state, so it only applies when filters are applied
+  const inactiveOnlyFromUrl = inactiveOnlyParam;
+  let products = data?.data || [];
+  
+  if (inactiveOnlyFromUrl) {
+    products = products.filter((product: any) => !product.isActive);
+  }
+  
+  // Note: featuredOnly is already handled by backend via filters.featured
+  // We only need client-side filtering for inactiveOnly
+  
+  // Note: Pagination counts may be inaccurate when inactiveOnly filter is active
+  // since we're filtering client-side after fetching
   const meta = data?.meta || { totalPages: 1 };
 
   return (
@@ -121,6 +304,73 @@ export default function ProductsPage() {
             New Product
           </Button>
         </Link>
+      </div>
+
+      {/* Filters */}
+      <div className="mb-8 space-y-4 rounded-lg border p-4">
+        <div className="grid gap-4 md:grid-cols-3">
+          <Input
+            placeholder="Search products..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && applyFilters()}
+          />
+
+          <MultiSelectCategory
+            categories={categories}
+            selectedIds={selectedCategories}
+            onSelectionChange={setSelectedCategories}
+            placeholder="Select categories..."
+          />
+
+          <Select value={selectedBrand} onValueChange={setSelectedBrand}>
+            <SelectTrigger>
+              <SelectValue placeholder="All Brands" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Brands</SelectItem>
+              {brands.map((brand) => (
+                <SelectItem key={brand.id} value={brand.id}>
+                  {brand.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="flex gap-6">
+          <div className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              id="inactiveOnly"
+              checked={inactiveOnly}
+              onChange={(e) => setInactiveOnly(e.target.checked)}
+              className="h-4 w-4"
+            />
+            <Label htmlFor="inactiveOnly" className="font-normal cursor-pointer">
+              Show inactive only
+            </Label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              id="featuredOnly"
+              checked={featuredOnly}
+              onChange={(e) => setFeaturedOnly(e.target.checked)}
+              className="h-4 w-4"
+            />
+            <Label htmlFor="featuredOnly" className="font-normal cursor-pointer">
+              Show featured only
+            </Label>
+          </div>
+        </div>
+
+        <div className="flex gap-2">
+          <Button onClick={applyFilters}>Apply Filters</Button>
+          <Button variant="outline" onClick={clearFilters}>
+            Clear
+          </Button>
+        </div>
       </div>
 
       {products.length === 0 ? (
@@ -228,23 +478,25 @@ export default function ProductsPage() {
 
           {meta.totalPages > 1 && (
             <div className="mt-8 flex justify-center gap-2">
-              <Button
-                variant="outline"
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page === 1}
-              >
-                Previous
-              </Button>
+              <Link href={buildPaginationUrl(Math.max(1, page - 1))}>
+                <Button
+                  variant="outline"
+                  disabled={page === 1}
+                >
+                  Previous
+                </Button>
+              </Link>
               <span className="flex items-center px-4 text-sm text-muted-foreground">
                 Page {page} of {meta.totalPages}
               </span>
-              <Button
-                variant="outline"
-                onClick={() => setPage((p) => Math.min(meta.totalPages, p + 1))}
-                disabled={page === meta.totalPages}
-              >
-                Next
-              </Button>
+              <Link href={buildPaginationUrl(Math.min(meta.totalPages, page + 1))}>
+                <Button
+                  variant="outline"
+                  disabled={page === meta.totalPages}
+                >
+                  Next
+                </Button>
+              </Link>
             </div>
           )}
         </>

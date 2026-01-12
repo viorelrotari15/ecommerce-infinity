@@ -18,10 +18,19 @@ export default async function ProductsPage({
   const brandId = searchParams.brand && searchParams.brand !== 'all' 
     ? (searchParams.brand as string) 
     : undefined;
-  const categoryId = searchParams.category && searchParams.category !== 'all'
-    ? (searchParams.category as string)
+  
+  // Handle multiple categories
+  const categoriesParam = searchParams.categories;
+  const categoryIds = categoriesParam
+    ? (Array.isArray(categoriesParam) 
+        ? categoriesParam.filter(c => c && c !== 'all')
+        : [categoriesParam].filter(c => c && c !== 'all'))
+    : searchParams.category && searchParams.category !== 'all'
+    ? [searchParams.category as string]
     : undefined;
+  
   const search = searchParams.search ? (searchParams.search as string) : undefined;
+  const featured = searchParams.featuredOnly === 'true' ? true : undefined;
 
   // Server Component fetches initial data with caching
   const [initialData, initialCategories, initialBrands] = await Promise.all([
@@ -29,8 +38,9 @@ export default async function ProductsPage({
       page: Number(searchParams.page) || 1,
       limit: 20,
       brandId,
-      categoryId,
+      categoryIds,
       search,
+      featured,
     }),
     fetchCategories(),
     fetchBrands(),
@@ -40,8 +50,9 @@ export default async function ProductsPage({
     page: Number(searchParams.page) || 1,
     limit: 20,
     brandId,
-    categoryId,
+    categoryIds,
     search,
+    featured,
   };
 
   return (
@@ -66,15 +77,30 @@ export default async function ProductsPage({
       {/* Pagination */}
       {initialData.meta.totalPages > 1 && (
         <div className="mt-8 flex justify-center gap-2">
-          {Array.from({ length: initialData.meta.totalPages }, (_, i) => i + 1).map((page) => (
-            <Link
-              key={page}
-              href={`/products?page=${page}${searchParams.brand ? `&brand=${searchParams.brand}` : ''}${searchParams.category ? `&category=${searchParams.category}` : ''}${searchParams.search ? `&search=${searchParams.search}` : ''}`}
-              className="rounded-md border px-4 py-2 hover:bg-accent"
-            >
-              {page}
-            </Link>
-          ))}
+          {Array.from({ length: initialData.meta.totalPages }, (_, i) => i + 1).map((page) => {
+            const params = new URLSearchParams();
+            params.set('page', String(page));
+            if (searchParams.brand) params.set('brand', searchParams.brand as string);
+            if (searchParams.categories) {
+              const cats = Array.isArray(searchParams.categories) 
+                ? searchParams.categories 
+                : [searchParams.categories];
+              cats.forEach(cat => params.append('categories', cat as string));
+            } else if (searchParams.category) {
+              params.set('category', searchParams.category as string);
+            }
+            if (searchParams.search) params.set('search', searchParams.search as string);
+            if (searchParams.featuredOnly) params.set('featuredOnly', searchParams.featuredOnly as string);
+            return (
+              <Link
+                key={page}
+                href={`/products?${params.toString()}`}
+                className="rounded-md border px-4 py-2 hover:bg-accent"
+              >
+                {page}
+              </Link>
+            );
+          })}
         </div>
       )}
     </div>

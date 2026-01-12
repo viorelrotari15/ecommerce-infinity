@@ -12,6 +12,8 @@ import { isAdmin } from '@/lib/auth';
 import { Plus, Save, Trash2, Download, Upload, Search, ChevronDown, ChevronUp, FileUp } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { getAllTranslationKeys, getEnglishTemplate } from '@/lib/utils/translations';
+import { useToast } from '@/hooks/use-toast';
+import { useConfirm } from '@/contexts/confirm-dialog-context';
 
 export default function TranslationsPage() {
   const router = useRouter();
@@ -157,14 +159,26 @@ export default function TranslationsPage() {
   };
 
   const handleDelete = async (key: string, language: string) => {
-    if (confirm(`Delete translation for ${key} in ${language}?`)) {
+    const confirmed = await confirm({
+      title: 'Delete Translation',
+      description: `Are you sure you want to delete the translation for "${key}" in ${language}?`,
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      variant: 'destructive',
+    });
+
+    if (confirmed) {
       await deleteTranslation.mutateAsync({ key, language });
     }
   };
 
   const handleAddNewKey = async () => {
     if (!newKey || !newKeyLanguage || !newKeyValue) {
-      alert('Please fill all fields');
+      toast({
+        variant: 'destructive',
+        title: 'Validation Error',
+        description: 'Please fill all fields',
+      });
       return;
     }
 
@@ -200,7 +214,11 @@ export default function TranslationsPage() {
         fileInput.value = '';
       }
     } catch (error) {
-      alert('Failed to read file');
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to read file. Please try again.',
+      });
     }
   };
 

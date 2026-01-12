@@ -2,11 +2,9 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { isAdmin } from '@/lib/auth';
-import { Plus, Languages, FileText, Tag, FolderTree, Package } from 'lucide-react';
+import { Languages, FileText, Tag, FolderTree, Package } from 'lucide-react';
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -21,19 +19,11 @@ export default function AdminDashboard() {
 
   return (
     <div className="container py-8">
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Admin Dashboard</h1>
-          <p className="text-muted-foreground mt-2">
-            Manage your e-commerce store
-          </p>
-        </div>
-        <Link href="/admin/products">
-          <Button>
-            <Plus className="h-4 w-4 mr-2" />
-            Manage Products
-          </Button>
-        </Link>
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold tracking-tight">Admin Dashboard</h1>
+        <p className="text-muted-foreground mt-2">
+          Manage your e-commerce store
+        </p>
       </div>
 
       {/* Management Quick Links */}
@@ -93,24 +83,6 @@ export default function AdminDashboard() {
           </CardHeader>
         </Card>
       </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Quick Actions</CardTitle>
-          <CardDescription>Access your management pages</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p className="text-muted-foreground mb-4">
-            Use the quick links above to manage products, brands, categories, and more.
-          </p>
-          <Link href="/admin/products">
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              Go to Products Management
-            </Button>
-          </Link>
-        </CardContent>
-      </Card>
     </div>
   );
 }

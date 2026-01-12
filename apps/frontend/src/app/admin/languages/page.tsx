@@ -12,6 +12,8 @@ import { getAuthToken } from '@/lib/auth';
 import { isAdmin } from '@/lib/auth';
 import { Plus, Edit, Trash2, CheckCircle2, XCircle, Star } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
+import { useToast } from '@/hooks/use-toast';
+import { useConfirm } from '@/contexts/confirm-dialog-context';
 
 interface Language {
   code: string;
@@ -34,6 +36,8 @@ export default function LanguagesPage() {
   const { data: languages = [], isLoading } = useLanguages(true);
   const { data: defaultLanguage } = useDefaultLanguage();
   const token = getAuthToken();
+  const { toast } = useToast();
+  const confirm = useConfirm();
 
   useEffect(() => {
     if (!isAdmin()) {
@@ -43,7 +47,11 @@ export default function LanguagesPage() {
 
   const handleCreate = async () => {
     if (!formData.code || !formData.name) {
-      alert('Please fill all required fields');
+      toast({
+        variant: 'destructive',
+        title: 'Validation Error',
+        description: 'Please fill all required fields',
+      });
       return;
     }
 
@@ -59,9 +67,17 @@ export default function LanguagesPage() {
       );
       queryClient.invalidateQueries({ queryKey: ['languages'] });
       setFormData({ code: '', name: '', isDefault: false, isActive: true });
-      alert('Language created successfully!');
+      toast({
+        variant: 'success',
+        title: 'Success',
+        description: 'Language created successfully!',
+      });
     } catch (error: any) {
-      alert(error.message || 'Failed to create language');
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: error.message || 'Failed to create language. Please try again.',
+      });
     }
   };
 
@@ -78,9 +94,17 @@ export default function LanguagesPage() {
       );
       queryClient.invalidateQueries({ queryKey: ['languages'] });
       setEditingCode(null);
-      alert('Language updated successfully!');
+      toast({
+        variant: 'success',
+        title: 'Success',
+        description: 'Language updated successfully!',
+      });
     } catch (error: any) {
-      alert(error.message || 'Failed to update language');
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: error.message || 'Failed to update language. Please try again.',
+      });
     }
   };
 
@@ -96,14 +120,30 @@ export default function LanguagesPage() {
         }
       );
       queryClient.invalidateQueries({ queryKey: ['languages'] });
-      alert('Default language updated!');
+      toast({
+        variant: 'success',
+        title: 'Success',
+        description: 'Default language updated!',
+      });
     } catch (error: any) {
-      alert(error.message || 'Failed to set default language');
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: error.message || 'Failed to set default language. Please try again.',
+      });
     }
   };
 
   const handleDelete = async (code: string) => {
-    if (!confirm(`Are you sure you want to delete language ${code}?`)) {
+    const confirmed = await confirm({
+      title: 'Delete Language',
+      description: `Are you sure you want to delete language ${code}? This action cannot be undone.`,
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      variant: 'destructive',
+    });
+
+    if (!confirmed) {
       return;
     }
 
@@ -117,9 +157,17 @@ export default function LanguagesPage() {
         }
       );
       queryClient.invalidateQueries({ queryKey: ['languages'] });
-      alert('Language deleted successfully!');
+      toast({
+        variant: 'success',
+        title: 'Success',
+        description: 'Language deleted successfully!',
+      });
     } catch (error: any) {
-      alert(error.message || 'Failed to delete language');
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: error.message || 'Failed to delete language. Please try again.',
+      });
     }
   };
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
@@ -21,7 +21,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { productQueryKeys } from '@/lib/api/queries';
 import { X, Plus, Upload, Image as ImageIcon } from 'lucide-react';
 import Image from 'next/image';
-import { ProductTranslationsTabs } from '@/components/admin/product-translations-tabs';
+import { ProductTranslationsTabs, ProductTranslationsTabsRef } from '@/components/admin/product-translations-tabs';
 
 const productSchema = yup.object({
   name: yup.string().required('Product name is required'),
@@ -65,6 +65,8 @@ interface Category {
   id: string;
   name: string;
   slug: string;
+  parentId?: string;
+  children?: Category[];
 }
 
 interface ProductType {
@@ -98,6 +100,7 @@ export default function EditProductPage() {
   const [attributes, setAttributes] = useState<Attribute[]>([]);
   const [uploadedImages, setUploadedImages] = useState<ProductImage[]>([]);
   const [token, setToken] = useState<string | null>(null);
+  const translationsRef = useRef<ProductTranslationsTabsRef>(null);
 
   // Use React Query hooks for brands, categories, and product types
   const { data: brands = [] } = useBrands();
@@ -139,6 +142,77 @@ export default function EditProductPage() {
       control,
       name: 'attributes',
     });
+
+  // Get parent categories (categories with children are parent categories)
+  const parentCategories = (categories as unknown as Category[]).filter((cat) => cat.children && cat.children.length > 0);
+  
+  // Get selected category IDs
+  const selectedCategoryIds = watch('categoryIds') || [];
+  
+  // Helper to find parent category for a subcategory
+  const findParentCategory = (subcategoryId: string) => {
+    return parentCategories.find((cat) => 
+      cat.children?.some((child) => child.id === subcategoryId)
+    ) || null;
+  };
+  
+  // Helper to get all categories and subcategories for display
+  const getAllCategoriesForDisplay = () => {
+    const all: Array<{ id: string; name: string; isSubcategory: boolean; parentName?: string }> = [];
+    parentCategories.forEach(cat => {
+      all.push({ id: cat.id, name: cat.name, isSubcategory: false });
+      if (cat.children) {
+        cat.children.forEach(subcat => {
+          all.push({ 
+            id: subcat.id, 
+            name: subcat.name, 
+            isSubcategory: true,
+            parentName: cat.name
+          });
+        });
+      }
+    });
+    return all;
+  };
+  
+  // Toggle category selection
+  const toggleCategory = (categoryId: string) => {
+    const currentIds = selectedCategoryIds;
+    
+    // Check if it's a parent category
+    const parentCategory = parentCategories.find((cat) => cat.id === categoryId);
+    
+    if (parentCategory) {
+      // It's a parent category
+      if (currentIds.includes(categoryId)) {
+        // Deselecting parent - remove parent and all its subcategories
+        const subcategoryIds = parentCategory.children?.map((child) => child.id).filter((id): id is string => id !== undefined) || [];
+        const newIds = currentIds.filter((id) => {
+          if (!id || id === categoryId) return false;
+          return !subcategoryIds.includes(id);
+        });
+        setValue('categoryIds', newIds);
+      } else {
+        // Selecting parent - add parent only
+        setValue('categoryIds', [...currentIds, categoryId]);
+      }
+    } else {
+      // It's a subcategory
+      const parent = findParentCategory(categoryId);
+      
+      if (currentIds.includes(categoryId)) {
+        // Deselecting subcategory - remove subcategory only
+        setValue('categoryIds', currentIds.filter((id) => id !== categoryId));
+      } else {
+        // Selecting subcategory - add subcategory and parent if not already selected
+        const newIds = [...currentIds, categoryId];
+        if (parent && !currentIds.includes(parent.id)) {
+          newIds.push(parent.id);
+        }
+        setValue('categoryIds', newIds);
+      }
+    }
+  };
 
   const selectedProductTypeId = watch('productTypeId');
 
@@ -467,29 +541,105 @@ export default function EditProductPage() {
                 )}
               </div>
 
-              <div className="space-y-2">
-                <Label>
-                  Categories <span className="text-destructive">*</span>
-                </Label>
+              <div className="space-y-4">
                 <div className="space-y-2">
-                  {categories.map((category) => (
-                    <div key={category.id} className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        id={`category-${category.id}`}
-                        value={category.id}
-                        {...register('categoryIds')}
-                        className="h-4 w-4"
-                      />
-                      <Label htmlFor={`category-${category.id}`} className="font-normal">
-                        {category.name}
-                      </Label>
+                  <Label>
+                    Categories <span className="text-destructive">*</span>
+                  </Label>
+                  
+                  {/* Selected Categories Display */}
+                  {selectedCategoryIds.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mb-2 p-2 border rounded-md min-h-[40px]">
+                      {selectedCategoryIds.filter((id): id is string => id !== undefined).map((categoryId) => {
+                        const allCategories = getAllCategoriesForDisplay();
+                        const category = allCategories.find((cat) => cat.id === categoryId);
+                        if (!category) return null;
+                        return (
+                          <div
+                            key={categoryId}
+                            className="flex items-center gap-1 px-2 py-1 bg-muted border border-input rounded-md text-sm"
+                          >
+                            <span className="text-foreground">
+                              {category.isSubcategory && category.parentName 
+                                ? `${category.parentName} → ${category.name}`
+                                : category.name}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (categoryId) {
+                                  toggleCategory(categoryId);
+                                }
+                              }}
+                              className="ml-1 hover:bg-destructive/10 rounded p-0.5 transition-colors"
+                            >
+                              <X className="h-3 w-3 text-destructive" />
+                            </button>
+                          </div>
+                        );
+                      })}
                     </div>
-                  ))}
+                  )}
+
+                  {/* Categories and Subcategories with Checkboxes */}
+                  <div className="space-y-2 p-3 border rounded-md max-h-[300px] overflow-y-auto">
+                    {parentCategories.map((category) => {
+                      const isParentSelected = selectedCategoryIds.includes(category.id);
+                      const hasSelectedSubcategories = category.children?.some((child) =>
+                        selectedCategoryIds.includes(child.id)
+                      );
+                      const showSubcategories = isParentSelected || hasSelectedSubcategories;
+                      
+                      return (
+                        <div key={category.id} className="space-y-1">
+                          {/* Parent Category Checkbox */}
+                          <div className="flex items-center space-x-2">
+                            <input
+                              type="checkbox"
+                              id={`category-${category.id}`}
+                              checked={isParentSelected}
+                              onChange={() => toggleCategory(category.id)}
+                              className="h-4 w-4 rounded border-primary text-primary focus:ring-primary"
+                            />
+                            <Label
+                              htmlFor={`category-${category.id}`}
+                              className="text-sm font-medium cursor-pointer"
+                            >
+                              {category.name}
+                            </Label>
+                          </div>
+                          
+                          {/* Subcategories */}
+                          {showSubcategories && category.children && category.children.length > 0 && (
+                            <div className="ml-6 space-y-1">
+                              {category.children.map((subcategory) => (
+                                <div key={subcategory.id} className="flex items-center space-x-2">
+                                  <input
+                                    type="checkbox"
+                                    id={`subcategory-${subcategory.id}`}
+                                    checked={selectedCategoryIds.includes(subcategory.id)}
+                                    onChange={() => toggleCategory(subcategory.id)}
+                                    className="h-4 w-4 rounded border-primary text-primary focus:ring-primary"
+                                  />
+                                  <Label
+                                    htmlFor={`subcategory-${subcategory.id}`}
+                                    className="text-sm text-muted-foreground cursor-pointer"
+                                  >
+                                    {subcategory.name}
+                                  </Label>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {errors.categoryIds && (
+                    <p className="text-sm text-destructive">{errors.categoryIds.message}</p>
+                  )}
                 </div>
-                {errors.categoryIds && (
-                  <p className="text-sm text-destructive">{errors.categoryIds.message}</p>
-                )}
               </div>
             </CardContent>
           </Card>
@@ -720,6 +870,7 @@ export default function EditProductPage() {
 
         {/* Translations */}
         <ProductTranslationsTabs
+          ref={translationsRef}
           productId={productId}
           defaultName={watch('name') || ''}
           defaultDescription={watch('description') || ''}
@@ -761,7 +912,18 @@ export default function EditProductPage() {
 
         {/* Submit */}
         <div className="flex justify-end gap-4">
-          <Button type="button" variant="outline" onClick={() => router.push('/admin/products')}>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => {
+              // Reset translation changes
+              translationsRef.current?.resetChanges();
+              // Reset form to original values
+              // The form will be reset when we navigate away, but we explicitly reset it here
+              // Navigate back to products page
+              router.push('/admin/products');
+            }}
+          >
             Cancel
           </Button>
           <Button type="submit" disabled={isLoading}>

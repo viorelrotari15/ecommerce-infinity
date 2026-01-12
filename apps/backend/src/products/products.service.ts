@@ -204,7 +204,8 @@ export class ProductsService {
     page?: number | string;
     limit?: number | string;
     brandId?: string;
-    categoryId?: string;
+    categoryId?: string | string[];
+    categoryIds?: string | string[];
     search?: string;
     featured?: boolean | string;
     includeInactive?: boolean | string;
@@ -235,12 +236,25 @@ export class ProductsService {
       where.brandId = query.brandId;
     }
 
-    if (query.categoryId) {
-      where.categories = {
-        some: {
-          categoryId: query.categoryId,
-        },
-      };
+    // Support both single categoryId (backward compatibility) and multiple categoryIds
+    const categoryIds = query.categoryIds 
+      ? (Array.isArray(query.categoryIds) ? query.categoryIds : [query.categoryIds])
+      : query.categoryId
+      ? (Array.isArray(query.categoryId) ? query.categoryId : [query.categoryId])
+      : undefined;
+
+    if (categoryIds && categoryIds.length > 0) {
+      // Filter out empty strings and 'all' values
+      const validCategoryIds = categoryIds.filter(id => id && id !== 'all' && id !== '');
+      if (validCategoryIds.length > 0) {
+        where.categories = {
+          some: {
+            categoryId: {
+              in: validCategoryIds,
+            },
+          },
+        };
+      }
     }
 
     if (query.search) {

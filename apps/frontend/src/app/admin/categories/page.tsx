@@ -29,6 +29,8 @@ import { useCategories } from '@/lib/hooks/use-categories';
 import { categoryQueryKeys } from '@/lib/api/queries';
 import { Plus, Edit, Trash2 } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
+import { useToast } from '@/hooks/use-toast';
+import { useConfirm } from '@/contexts/confirm-dialog-context';
 
 interface Category {
   id: string;
@@ -53,6 +55,8 @@ export default function CategoriesPage() {
   });
   const [isCreating, setIsCreating] = useState(false);
   const token = getAuthToken();
+  const { toast } = useToast();
+  const confirm = useConfirm();
 
   useEffect(() => {
     if (!isAdmin()) {
@@ -102,7 +106,11 @@ export default function CategoriesPage() {
 
   const handleCreate = async () => {
     if (!formData.name) {
-      alert('Please fill in the name field');
+      toast({
+        variant: 'destructive',
+        title: 'Validation Error',
+        description: 'Please fill in the name field',
+      });
       return;
     }
 
@@ -124,10 +132,18 @@ export default function CategoriesPage() {
       await queryClient.refetchQueries({ queryKey: categoryQueryKeys.list() });
       closeDialog();
       setIsCreating(false);
-      alert('Category created successfully!');
+      toast({
+        variant: 'success',
+        title: 'Success',
+        description: 'Category created successfully!',
+      });
     } catch (error: any) {
       setIsCreating(false);
-      alert(error.message || 'Failed to create category');
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: error.message || 'Failed to create category. Please try again.',
+      });
     }
   };
 
@@ -135,7 +151,11 @@ export default function CategoriesPage() {
     if (!editingId) return;
 
     if (!formData.name) {
-      alert('Please fill in the name field');
+      toast({
+        variant: 'destructive',
+        title: 'Validation Error',
+        description: 'Please fill in the name field',
+      });
       return;
     }
 
@@ -157,15 +177,31 @@ export default function CategoriesPage() {
       await queryClient.invalidateQueries({ queryKey: categoryQueryKeys.list() });
       closeDialog();
       setIsCreating(false);
-      alert('Category updated successfully!');
+      toast({
+        variant: 'success',
+        title: 'Success',
+        description: 'Category updated successfully!',
+      });
     } catch (error: any) {
       setIsCreating(false);
-      alert(error.message || 'Failed to update category');
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: error.message || 'Failed to update category. Please try again.',
+      });
     }
   };
 
   const handleDelete = async (id: string, name: string) => {
-    if (!confirm(`Are you sure you want to delete "${name}"?`)) {
+    const confirmed = await confirm({
+      title: 'Delete Category',
+      description: `Are you sure you want to delete "${name}"? This action cannot be undone.`,
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      variant: 'destructive',
+    });
+
+    if (!confirmed) {
       return;
     }
 
@@ -176,9 +212,17 @@ export default function CategoriesPage() {
         },
       });
       await queryClient.refetchQueries({ queryKey: categoryQueryKeys.list() });
-      alert('Category deleted successfully!');
+      toast({
+        variant: 'success',
+        title: 'Success',
+        description: 'Category deleted successfully!',
+      });
     } catch (error: any) {
-      alert(error.message || 'Failed to delete category');
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: error.message || 'Failed to delete category. Please try again.',
+      });
     }
   };
 
