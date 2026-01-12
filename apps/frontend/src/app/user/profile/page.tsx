@@ -9,11 +9,13 @@ import { Loader2, User, Mail, Phone, Calendar, Package, MapPin } from 'lucide-re
 import { useRouter } from 'next/navigation';
 import { isAuthenticated } from '@/lib/auth';
 import { useEffect } from 'react';
+import { useT, translationKeys } from '@/lib/utils/translations';
 
 export default function UserProfilePage() {
   const router = useRouter();
   const { data: profile, isLoading: profileLoading, error: profileError } = useUserProfile();
   const { data: orders, isLoading: ordersLoading } = useUserOrders();
+  const t = useT();
 
   useEffect(() => {
     if (typeof window !== 'undefined' && !isAuthenticated()) {
@@ -34,11 +36,11 @@ export default function UserProfilePage() {
       <div className="container py-12">
         <Card>
           <CardHeader>
-            <CardTitle>Error</CardTitle>
-            <CardDescription>Failed to load profile. Please try again.</CardDescription>
+            <CardTitle>{t(translationKeys.profile.error, 'Error')}</CardTitle>
+            <CardDescription>{t(translationKeys.profile.failedToLoad, 'Failed to load profile. Please try again.')}</CardDescription>
           </CardHeader>
           <CardContent>
-            <Button onClick={() => router.push('/')}>Go Home</Button>
+            <Button onClick={() => router.push('/')}>{t(translationKeys.profile.goHome, 'Go Home')}</Button>
           </CardContent>
         </Card>
       </div>
@@ -51,13 +53,13 @@ export default function UserProfilePage() {
     if (order.shippingAddress) {
       const key = JSON.stringify(order.shippingAddress);
       if (!addresses.has(key)) {
-        addresses.set(key, { ...order.shippingAddress, type: 'Shipping' });
+        addresses.set(key, { ...order.shippingAddress, type: t(translationKeys.profile.shippingAddress, 'Shipping') });
       }
     }
     if (order.billingAddress) {
       const key = JSON.stringify(order.billingAddress);
       if (!addresses.has(key)) {
-        addresses.set(key, { ...order.billingAddress, type: 'Billing' });
+        addresses.set(key, { ...order.billingAddress, type: t(translationKeys.profile.billingAddress, 'Billing') });
       }
     }
   });
@@ -95,8 +97,8 @@ export default function UserProfilePage() {
   return (
     <div className="container py-12">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight">My Profile</h1>
-        <p className="text-muted-foreground mt-2">Manage your account information and view your orders</p>
+        <h1 className="text-3xl font-bold tracking-tight">{t(translationKeys.profile.title, 'My Profile')}</h1>
+        <p className="text-muted-foreground mt-2">{t(translationKeys.profile.description, 'Manage your account information and view your orders')}</p>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
@@ -105,15 +107,15 @@ export default function UserProfilePage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <User className="h-5 w-5" />
-              Personal Information
+              {t(translationKeys.profile.personalInformation, 'Personal Information')}
             </CardTitle>
-            <CardDescription>Your account details</CardDescription>
+            <CardDescription>{t(translationKeys.profile.accountDetails, 'Your account details')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-start gap-3">
               <Mail className="h-5 w-5 text-muted-foreground mt-0.5" />
               <div>
-                <p className="text-sm font-medium">Email</p>
+                <p className="text-sm font-medium">{t(translationKeys.profile.email, 'Email')}</p>
                 <p className="text-sm text-muted-foreground">{profile.email}</p>
               </div>
             </div>
@@ -121,7 +123,7 @@ export default function UserProfilePage() {
               <div className="flex items-start gap-3">
                 <User className="h-5 w-5 text-muted-foreground mt-0.5" />
                 <div>
-                  <p className="text-sm font-medium">Name</p>
+                  <p className="text-sm font-medium">{t(translationKeys.profile.name, 'Name')}</p>
                   <p className="text-sm text-muted-foreground">
                     {profile.firstName} {profile.lastName || ''}
                   </p>
@@ -132,7 +134,7 @@ export default function UserProfilePage() {
               <div className="flex items-start gap-3">
                 <Phone className="h-5 w-5 text-muted-foreground mt-0.5" />
                 <div>
-                  <p className="text-sm font-medium">Phone</p>
+                  <p className="text-sm font-medium">{t(translationKeys.profile.phone, 'Phone')}</p>
                   <p className="text-sm text-muted-foreground">{profile.phone}</p>
                 </div>
               </div>
@@ -140,7 +142,7 @@ export default function UserProfilePage() {
             <div className="flex items-start gap-3">
               <Calendar className="h-5 w-5 text-muted-foreground mt-0.5" />
               <div>
-                <p className="text-sm font-medium">Member Since</p>
+                <p className="text-sm font-medium">{t(translationKeys.profile.memberSince, 'Member Since')}</p>
                 <p className="text-sm text-muted-foreground">
                   {new Date(profile.createdAt).toLocaleDateString('en-US', {
                     year: 'numeric',
@@ -158,9 +160,9 @@ export default function UserProfilePage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <MapPin className="h-5 w-5" />
-              Addresses
+              {t(translationKeys.profile.addresses, 'Addresses')}
             </CardTitle>
-            <CardDescription>Your saved addresses from orders</CardDescription>
+            <CardDescription>{t(translationKeys.profile.savedAddresses, 'Your saved addresses from orders')}</CardDescription>
           </CardHeader>
           <CardContent>
             {uniqueAddresses.length > 0 ? (
@@ -168,14 +170,14 @@ export default function UserProfilePage() {
                 {uniqueAddresses.map((address, index) => (
                   <div key={index} className="border rounded-lg p-4">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium">{address.type} Address</span>
+                      <span className="text-sm font-medium">{address.type} {t(translationKeys.profile.addresses, 'Address')}</span>
                     </div>
                     <p className="text-sm text-muted-foreground">{formatAddress(address)}</p>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-muted-foreground">No addresses found. Addresses will appear here after you place orders.</p>
+              <p className="text-sm text-muted-foreground">{t(translationKeys.profile.noAddresses, 'No addresses found. Addresses will appear here after you place orders.')}</p>
             )}
           </CardContent>
         </Card>
@@ -186,9 +188,9 @@ export default function UserProfilePage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Package className="h-5 w-5" />
-            Previous Orders
+            {t(translationKeys.profile.previousOrders, 'Previous Orders')}
           </CardTitle>
-          <CardDescription>Your order history</CardDescription>
+          <CardDescription>{t(translationKeys.profile.orderHistory, 'Your order history')}</CardDescription>
         </CardHeader>
         <CardContent>
           {ordersLoading ? (
@@ -201,7 +203,7 @@ export default function UserProfilePage() {
                 <div key={order.id} className="border rounded-lg p-4">
                   <div className="flex items-start justify-between mb-4">
                     <div>
-                      <p className="font-medium">Order #{order.id.slice(0, 8)}</p>
+                      <p className="font-medium">{t(translationKeys.profile.order, 'Order')} #{order.id.slice(0, 8)}</p>
                       <p className="text-sm text-muted-foreground">
                         {new Date(order.createdAt).toLocaleDateString('en-US', {
                           year: 'numeric',
@@ -240,7 +242,7 @@ export default function UserProfilePage() {
                   {order.payment && (
                     <div className="mt-4 pt-4 border-t">
                       <p className="text-sm text-muted-foreground">
-                        Payment: {order.payment.method} - {order.payment.status}
+                        {t(translationKeys.profile.payment, 'Payment')}: {order.payment.method} - {order.payment.status}
                       </p>
                     </div>
                   )}
@@ -249,7 +251,7 @@ export default function UserProfilePage() {
             </div>
           ) : (
             <p className="text-sm text-muted-foreground text-center py-8">
-              No orders found. Start shopping to see your orders here!
+              {t(translationKeys.profile.noOrders, 'No orders found. Start shopping to see your orders here!')}
             </p>
           )}
         </CardContent>

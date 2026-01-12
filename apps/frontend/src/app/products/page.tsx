@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { fetchProducts, fetchCategories, fetchBrands } from '@/lib/api/server';
 import { ProductList } from '@/components/client/products/product-list';
 import { ProductFilters } from '@/components/client/products/product-filters';
+import { ProductsHeader } from '@/components/client/products/products-header';
 
 export const metadata: Metadata = {
   title: 'Products',
@@ -57,12 +58,7 @@ export default async function ProductsPage({
 
   return (
     <div className="container py-8">
-      <div className="mb-8">
-        <h1 className="text-4xl font-bold tracking-tight">All Products</h1>
-        <p className="mt-2 text-muted-foreground">
-          {initialData.meta.total} products found
-        </p>
-      </div>
+      <ProductsHeader total={initialData.meta.total} />
 
       {/* Client Component for interactive filters */}
       <ProductFilters

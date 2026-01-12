@@ -14,6 +14,7 @@ import { Plus, Edit, Trash2, CheckCircle2, XCircle, Star } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { useConfirm } from '@/contexts/confirm-dialog-context';
+import { useT, translationKeys } from '@/lib/utils/translations';
 
 interface Language {
   code: string;
@@ -38,6 +39,7 @@ export default function LanguagesPage() {
   const token = getAuthToken();
   const { toast } = useToast();
   const confirm = useConfirm();
+  const t = useT();
 
   useEffect(() => {
     if (!isAdmin()) {
@@ -49,8 +51,8 @@ export default function LanguagesPage() {
     if (!formData.code || !formData.name) {
       toast({
         variant: 'destructive',
-        title: 'Validation Error',
-        description: 'Please fill all required fields',
+        title: t(translationKeys.common.validationError, 'Validation Error'),
+        description: t(translationKeys.common.fillRequired, 'Please fill all required fields'),
       });
       return;
     }
@@ -69,14 +71,14 @@ export default function LanguagesPage() {
       setFormData({ code: '', name: '', isDefault: false, isActive: true });
       toast({
         variant: 'success',
-        title: 'Success',
-        description: 'Language created successfully!',
+        title: t(translationKeys.common.success, 'Success'),
+        description: t(translationKeys.admin.languages.createSuccess, 'Language created successfully!'),
       });
     } catch (error: any) {
       toast({
         variant: 'destructive',
-        title: 'Error',
-        description: error.message || 'Failed to create language. Please try again.',
+        title: t(translationKeys.common.error, 'Error'),
+        description: error.message || t(translationKeys.common.failed, 'Failed'),
       });
     }
   };
@@ -96,14 +98,14 @@ export default function LanguagesPage() {
       setEditingCode(null);
       toast({
         variant: 'success',
-        title: 'Success',
-        description: 'Language updated successfully!',
+        title: t(translationKeys.common.success, 'Success'),
+        description: t(translationKeys.admin.languages.updateSuccess, 'Language updated successfully!'),
       });
     } catch (error: any) {
       toast({
         variant: 'destructive',
-        title: 'Error',
-        description: error.message || 'Failed to update language. Please try again.',
+        title: t(translationKeys.common.error, 'Error'),
+        description: error.message || t(translationKeys.common.failed, 'Failed'),
       });
     }
   };
@@ -122,24 +124,25 @@ export default function LanguagesPage() {
       queryClient.invalidateQueries({ queryKey: ['languages'] });
       toast({
         variant: 'success',
-        title: 'Success',
-        description: 'Default language updated!',
+        title: t(translationKeys.common.success, 'Success'),
+        description: t(translationKeys.admin.languages.setDefaultSuccess, 'Default language updated!'),
       });
     } catch (error: any) {
       toast({
         variant: 'destructive',
-        title: 'Error',
-        description: error.message || 'Failed to set default language. Please try again.',
+        title: t(translationKeys.common.error, 'Error'),
+        description: error.message || t(translationKeys.common.failed, 'Failed'),
       });
     }
   };
 
   const handleDelete = async (code: string) => {
+    const deleteDescription = t(translationKeys.admin.languages.deleteDescription, `Are you sure you want to delete language ${code}? This action cannot be undone.`);
     const confirmed = await confirm({
-      title: 'Delete Language',
-      description: `Are you sure you want to delete language ${code}? This action cannot be undone.`,
-      confirmText: 'Delete',
-      cancelText: 'Cancel',
+      title: t(translationKeys.admin.languages.deleteTitle, 'Delete Language'),
+      description: deleteDescription.replace(/{code}/g, code),
+      confirmText: t(translationKeys.common.delete, 'Delete'),
+      cancelText: t(translationKeys.common.cancel, 'Cancel'),
       variant: 'destructive',
     });
 
@@ -159,54 +162,54 @@ export default function LanguagesPage() {
       queryClient.invalidateQueries({ queryKey: ['languages'] });
       toast({
         variant: 'success',
-        title: 'Success',
-        description: 'Language deleted successfully!',
+        title: t(translationKeys.common.success, 'Success'),
+        description: t(translationKeys.admin.languages.deleteSuccess, 'Language deleted successfully!'),
       });
     } catch (error: any) {
       toast({
         variant: 'destructive',
-        title: 'Error',
-        description: error.message || 'Failed to delete language. Please try again.',
+        title: t(translationKeys.common.error, 'Error'),
+        description: error.message || t(translationKeys.common.failed, 'Failed'),
       });
     }
   };
 
   if (isLoading) {
-    return <div className="container py-10">Loading languages...</div>;
+    return <div className="container py-10">{t(translationKeys.admin.languages.loading, 'Loading languages...')}</div>;
   }
 
   return (
     <div className="container py-10">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold">Languages Management</h1>
+        <h1 className="text-3xl font-bold">{t(translationKeys.admin.languages.title, 'Languages Management')}</h1>
         <p className="text-muted-foreground mt-2">
-          Add, edit, and manage supported languages for your application
+          {t(translationKeys.admin.languages.description, 'Add, edit, and manage supported languages for your application')}
         </p>
       </div>
 
       {/* Add New Language */}
       <Card className="mb-6">
         <CardHeader>
-          <CardTitle>Add New Language</CardTitle>
-          <CardDescription>Create a new language entry</CardDescription>
+          <CardTitle>{t(translationKeys.admin.languages.addNew, 'Add New Language')}</CardTitle>
+          <CardDescription>{t(translationKeys.admin.languages.addLanguage, 'Create a new language entry')}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 md:grid-cols-4">
             <div>
-              <Label htmlFor="code">Language Code *</Label>
+              <Label htmlFor="code">{t(translationKeys.admin.languages.code, 'Language Code *')}</Label>
               <Input
                 id="code"
-                placeholder="e.g., en, ro, ru"
+                placeholder={t(translationKeys.admin.languages.codePlaceholder, 'e.g., en, ro, ru')}
                 value={formData.code}
                 onChange={(e) => setFormData({ ...formData, code: e.target.value.toLowerCase() })}
                 maxLength={5}
               />
             </div>
             <div>
-              <Label htmlFor="name">Language Name *</Label>
+              <Label htmlFor="name">{t(translationKeys.admin.languages.name, 'Language Name *')}</Label>
               <Input
                 id="name"
-                placeholder="e.g., English"
+                placeholder={t(translationKeys.admin.languages.namePlaceholder, 'e.g., English')}
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               />
@@ -218,7 +221,7 @@ export default function LanguagesPage() {
                   checked={formData.isDefault}
                   onChange={(e) => setFormData({ ...formData, isDefault: e.target.checked })}
                 />
-                <span className="text-sm">Set as default</span>
+                <span className="text-sm">{t(translationKeys.admin.languages.setAsDefault, 'Set as default')}</span>
               </label>
               <label className="flex items-center gap-2">
                 <input
@@ -226,13 +229,13 @@ export default function LanguagesPage() {
                   checked={formData.isActive}
                   onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
                 />
-                <span className="text-sm">Active</span>
+                <span className="text-sm">{t(translationKeys.admin.languages.active, 'Active')}</span>
               </label>
             </div>
             <div className="flex items-end">
               <Button onClick={handleCreate} className="w-full">
                 <Plus className="h-4 w-4 mr-2" />
-                Add Language
+                {t(translationKeys.admin.languages.addLanguage, 'Add Language')}
               </Button>
             </div>
           </div>
@@ -242,9 +245,9 @@ export default function LanguagesPage() {
       {/* Languages List */}
       <Card>
         <CardHeader>
-          <CardTitle>All Languages</CardTitle>
+          <CardTitle>{t(translationKeys.admin.languages.allLanguages, 'All Languages')}</CardTitle>
           <CardDescription>
-            {languages.length} language{languages.length !== 1 ? 's' : ''} configured
+            {languages.length} {t(translationKeys.admin.languages.configured, 'language(s) configured')}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -269,8 +272,8 @@ export default function LanguagesPage() {
                       )}
                     </div>
                     <div className="text-sm text-muted-foreground mt-1">
-                      {lang.isDefault && 'Default • '}
-                      {lang.isActive ? 'Active' : 'Inactive'}
+                      {lang.isDefault && `${t(translationKeys.admin.languages.default, 'Default')} • `}
+                      {lang.isActive ? t(translationKeys.admin.languages.active, 'Active') : t(translationKeys.admin.languages.inactive, 'Inactive')}
                     </div>
                   </div>
                 </div>
@@ -281,7 +284,7 @@ export default function LanguagesPage() {
                       variant="outline"
                       onClick={() => handleSetDefault(lang.code)}
                     >
-                      Set Default
+                      {t(translationKeys.admin.languages.setDefault, 'Set Default')}
                     </Button>
                   )}
                   <Button
@@ -289,7 +292,7 @@ export default function LanguagesPage() {
                     variant="outline"
                     onClick={() => handleUpdate(lang.code, { isActive: !lang.isActive })}
                   >
-                    {lang.isActive ? 'Deactivate' : 'Activate'}
+                    {lang.isActive ? t(translationKeys.admin.languages.deactivate, 'Deactivate') : t(translationKeys.admin.languages.activate, 'Activate')}
                   </Button>
                   {!lang.isDefault && (
                     <Button

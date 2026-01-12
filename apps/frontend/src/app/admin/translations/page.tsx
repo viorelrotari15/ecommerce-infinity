@@ -8,15 +8,17 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useUiTranslations, useCreateTranslation, useUpdateTranslation, useDeleteTranslation, useBulkUpdateTranslations } from '@/lib/hooks/use-ui-translations';
 import { useLanguages } from '@/lib/hooks/use-languages';
-import { isAdmin } from '@/lib/auth';
+import { isAdmin, getAuthToken } from '@/lib/auth';
 import { Plus, Save, Trash2, Download, Upload, Search, ChevronDown, ChevronUp, FileUp } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { getAllTranslationKeys, getEnglishTemplate } from '@/lib/utils/translations';
 import { useToast } from '@/hooks/use-toast';
 import { useConfirm } from '@/contexts/confirm-dialog-context';
+import { useT, translationKeys } from '@/lib/utils/translations';
 
 export default function TranslationsPage() {
   const router = useRouter();
+  const t = useT();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [editingValues, setEditingValues] = useState<Record<string, Record<string, string>>>({});
@@ -37,6 +39,8 @@ export default function TranslationsPage() {
   useEffect(() => {
     setIsMounted(true);
   }, []);
+  const { toast } = useToast();
+  const confirm = useConfirm();
   const createTranslation = useCreateTranslation();
   const updateTranslation = useUpdateTranslation();
   const deleteTranslation = useDeleteTranslation();
@@ -160,10 +164,10 @@ export default function TranslationsPage() {
 
   const handleDelete = async (key: string, language: string) => {
     const confirmed = await confirm({
-      title: 'Delete Translation',
-      description: `Are you sure you want to delete the translation for "${key}" in ${language}?`,
-      confirmText: 'Delete',
-      cancelText: 'Cancel',
+      title: t(translationKeys.admin.translations.deleteTitle, 'Delete Translation'),
+      description: t(translationKeys.admin.translations.deleteDescription, `Are you sure you want to delete the translation for "${key}" in ${language}?`).replace('{key}', key).replace('{language}', language),
+      confirmText: t(translationKeys.common.delete, 'Delete'),
+      cancelText: t(translationKeys.common.cancel, 'Cancel'),
       variant: 'destructive',
     });
 
@@ -176,8 +180,8 @@ export default function TranslationsPage() {
     if (!newKey || !newKeyLanguage || !newKeyValue) {
       toast({
         variant: 'destructive',
-        title: 'Validation Error',
-        description: 'Please fill all fields',
+        title: t(translationKeys.admin.translations.validationError, 'Validation Error'),
+        description: t(translationKeys.admin.translations.fillAllFields, 'Please fill all fields'),
       });
       return;
     }
@@ -194,13 +198,118 @@ export default function TranslationsPage() {
   };
 
   const handleBulkImport = async (language: string, jsonText: string) => {
+    // Check authentication before proceeding
+    const token = getAuthToken();
+    if (!token) {
+      toast({
+        variant: 'destructive',
+        title: 'Not Authenticated',
+        description: 'Please log in to import translations.',
+      });
+      router.push('/auth/login');
+      return;
+    }
+
+    if (!isAdmin()) {
+      toast({
+        variant: 'destructive',
+        title: 'Permission Denied',
+        description: 'You do not have permission to import translations.',
+      });
+      return;
+    }
+
     try {
+      // Parse JSON
       const translations = JSON.parse(jsonText);
+      
+      // Validate that translations is an object
+      if (typeof translations !== 'object' || translations === null || Array.isArray(translations)) {
+        toast({
+          variant: 'destructive',
+          title: 'Invalid Format',
+          description: 'Translations must be a JSON object with key-value pairs.',
+        });
+        return;
+      }
+      
+      // Validate that all values are strings
+      const invalidKeys = Object.entries(translations).filter(([_, value]) => typeof value !== 'string');
+      if (invalidKeys.length > 0) {
+        toast({
+          variant: 'destructive',
+          title: 'Invalid Format',
+          description: `All translation values must be strings. Found invalid values for keys: ${invalidKeys.map(([key]) => key).join(', ')}`,
+        });
+        return;
+      }
+      
+      // Import translations
       await bulkUpdate.mutateAsync({ language, translations });
-      alert('Translations imported successfully!');
+      toast({
+        variant: 'default',
+        title: 'Success',
+        description: `Successfully imported ${Object.keys(translations).length} translations!`,
+      });
       setImportingLanguage(null);
-    } catch (error) {
-      alert('Invalid JSON format');
+      setImportText((prev) => ({
+        ...prev,
+        [language]: '',
+      }));
+    } catch (error: any) {
+      // Handle JSON parse errors
+      if (error instanceof SyntaxError) {
+        toast({
+          variant: 'destructive',
+          title: 'Invalid JSON',
+          description: 'The JSON format is invalid. Please check your syntax.',
+        });
+      } else if (error?.status === 401 || error?.status === 403) {
+        // Handle authentication/authorization errors
+        toast({
+          variant: 'destructive',
+          title: 'Unauthorized',
+          description: 'Your session has expired or you do not have permission. Please log in again.',
+        });
+        // Redirect to login after a short delay
+        setTimeout(() => {
+          router.push('/auth/login');
+        }, 2000);
+      } else if (error?.response?.message) {
+        // Handle API validation errors from backend
+        const errorMessage = error.response.message;
+        toast({
+          variant: 'destructive',
+          title: 'Import Failed',
+          description: errorMessage || 'Failed to import translations. Please try again.',
+        });
+      } else if (error?.message) {
+        // Handle other errors with message
+        const errorMessage = error.message.toLowerCase();
+        if (errorMessage.includes('unauthorized') || errorMessage.includes('forbidden')) {
+          toast({
+            variant: 'destructive',
+            title: 'Unauthorized',
+            description: 'Your session has expired or you do not have permission. Please log in again.',
+          });
+          setTimeout(() => {
+            router.push('/auth/login');
+          }, 2000);
+        } else {
+          toast({
+            variant: 'destructive',
+            title: 'Error',
+            description: error.message || 'Failed to import translations. Please try again.',
+          });
+        }
+      } else {
+        // Handle unknown errors
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: 'Failed to import translations. Please check your connection and try again.',
+        });
+      }
     }
   };
 
@@ -270,38 +379,38 @@ export default function TranslationsPage() {
   return (
     <div className="container py-10">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold">UI Translations Management</h1>
+        <h1 className="text-3xl font-bold">{t(translationKeys.admin.translations.title, 'UI Translations Management')}</h1>
         <p className="text-muted-foreground mt-2">
-          Manage all interface text translations for your application
+          {t(translationKeys.admin.translations.description, 'Manage all interface text translations for your application')}
         </p>
       </div>
 
       {/* Add New Translation */}
       <Card className="mb-6">
         <CardHeader>
-          <CardTitle>Add New Translation</CardTitle>
-          <CardDescription>Create a new translation key and value</CardDescription>
+          <CardTitle>{t(translationKeys.admin.translations.addTitle, 'Add New Translation')}</CardTitle>
+          <CardDescription>{t(translationKeys.admin.translations.addDescription, 'Create a new translation key and value')}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 md:grid-cols-4">
             <div>
-              <Label htmlFor="new-key">Translation Key</Label>
+              <Label htmlFor="new-key">{t(translationKeys.admin.translations.translationKey, 'Translation Key')}</Label>
               <Input
                 id="new-key"
-                placeholder="e.g., header.menu.home"
+                placeholder={t(translationKeys.admin.translations.keyPlaceholder, 'e.g., header.menu.home')}
                 value={newKey}
                 onChange={(e) => setNewKey(e.target.value)}
               />
             </div>
             <div>
-              <Label htmlFor="new-language">Language</Label>
+              <Label htmlFor="new-language">{t(translationKeys.admin.translations.language, 'Language')}</Label>
               <select
                 id="new-language"
                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                 value={newKeyLanguage}
                 onChange={(e) => setNewKeyLanguage(e.target.value)}
               >
-                <option value="">Select language</option>
+                <option value="">{t(translationKeys.common.select, 'Select language')}</option>
                 {languages.map((lang) => (
                   <option key={lang.code} value={lang.code}>
                     {lang.name}
@@ -310,10 +419,10 @@ export default function TranslationsPage() {
               </select>
             </div>
             <div>
-              <Label htmlFor="new-value">Value</Label>
+              <Label htmlFor="new-value">{t(translationKeys.admin.translations.value, 'Value')}</Label>
               <Input
                 id="new-value"
-                placeholder="Translation text"
+                placeholder={t(translationKeys.admin.translations.valuePlaceholder, 'Translation text')}
                 value={newKeyValue}
                 onChange={(e) => setNewKeyValue(e.target.value)}
               />
@@ -321,7 +430,7 @@ export default function TranslationsPage() {
             <div className="flex items-end">
               <Button onClick={handleAddNewKey} className="w-full">
                 <Plus className="h-4 w-4 mr-2" />
-                Add
+                {t(translationKeys.common.add, 'Add')}
               </Button>
             </div>
           </div>
@@ -333,7 +442,7 @@ export default function TranslationsPage() {
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search translation keys..."
+            placeholder={t(translationKeys.admin.translations.searchPlaceholder, 'Search translation keys...')}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10"
@@ -348,14 +457,14 @@ export default function TranslationsPage() {
               setExpandedLanguages(new Set(allLangCodes));
             }}
           >
-            Expand All
+            {t(translationKeys.admin.translations.expandAll, 'Expand All')}
           </Button>
           <Button
             variant="outline"
             size="sm"
             onClick={() => setExpandedLanguages(new Set())}
           >
-            Collapse All
+            {t(translationKeys.admin.translations.collapseAll, 'Collapse All')}
           </Button>
         </div>
       </div>
@@ -363,9 +472,9 @@ export default function TranslationsPage() {
       {/* Translations by Language */}
       <div className="space-y-4">
         {!isMounted || isLoading ? (
-          <div className="py-10 text-center text-muted-foreground">Loading translations...</div>
+          <div className="py-10 text-center text-muted-foreground">{t(translationKeys.admin.translations.loading, 'Loading translations...')}</div>
         ) : languages.length === 0 ? (
-          <div className="py-10 text-center text-muted-foreground">No languages available</div>
+          <div className="py-10 text-center text-muted-foreground">{t(translationKeys.admin.languages.noLanguages || 'admin.translations.noLanguages', 'No languages available')}</div>
         ) : (
           <>
             {languages
@@ -396,7 +505,7 @@ export default function TranslationsPage() {
                         {lang.name} ({lang.code})
                       </CardTitle>
                       <span className="text-sm text-muted-foreground">
-                        {translatedCount}/{totalCount} translated
+                        {translatedCount}/{totalCount} {t(translationKeys.admin.translations.translated || 'common.translated', 'translated')}
                       </span>
                     </button>
                     <div className="flex items-center gap-2">
@@ -406,15 +515,28 @@ export default function TranslationsPage() {
                         onClick={() => exportTranslations(lang.code)}
                       >
                         <Download className="h-4 w-4 mr-2" />
-                        Export
+                        {t(translationKeys.admin.translations.export, 'Export')}
                       </Button>
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => setImportingLanguage(importingLanguage === lang.code ? null : lang.code)}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          // Expand the accordion if it's collapsed
+                          if (!isExpanded) {
+                            setExpandedLanguages((prev) => {
+                              const newSet = new Set(prev);
+                              newSet.add(lang.code);
+                              return newSet;
+                            });
+                          }
+                          // Toggle import section
+                          setImportingLanguage(importingLanguage === lang.code ? null : lang.code);
+                        }}
                       >
                         <FileUp className="h-4 w-4 mr-2" />
-                        Import
+                        {t(translationKeys.admin.translations.import, 'Import')}
                       </Button>
                     </div>
                   </div>
@@ -426,27 +548,36 @@ export default function TranslationsPage() {
                     {importingLanguage === lang.code && (
                       <Card className="mb-4 border-2 border-dashed">
                         <CardHeader>
-                          <CardTitle className="text-sm">Import Translations from JSON</CardTitle>
+                          <CardTitle className="text-sm">{t(translationKeys.admin.translations.importSection, 'Import Translations from JSON')}</CardTitle>
                         </CardHeader>
                         <CardContent>
                           <div className="space-y-4">
                             <div>
-                              <Label htmlFor={`file-import-${lang.code}`}>Upload JSON File</Label>
-                              <Input
-                                id={`file-import-${lang.code}`}
-                                type="file"
-                                accept=".json"
-                                onChange={(e) => {
-                                  const file = e.target.files?.[0];
-                                  if (file) {
-                                    handleFileImport(lang.code, file);
-                                  }
-                                }}
-                                className="mt-2"
-                              />
+                              <Label>{t(translationKeys.admin.translations.uploadFile, 'Upload JSON File')}</Label>
+                              <div className="mt-2">
+                                <label
+                                  htmlFor={`file-import-${lang.code}`}
+                                  className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-3 cursor-pointer"
+                                >
+                                  <input
+                                    id={`file-import-${lang.code}`}
+                                    type="file"
+                                    accept=".json"
+                                    onChange={(e) => {
+                                      const file = e.target.files?.[0];
+                                      if (file) {
+                                        handleFileImport(lang.code, file);
+                                      }
+                                    }}
+                                    className="hidden"
+                                  />
+                                  <FileUp className="h-4 w-4 mr-2" />
+                                  {t(translationKeys.admin.translations.chooseFile, 'Choose File')}
+                                </label>
+                              </div>
                             </div>
                             <div>
-                              <Label htmlFor={`text-import-${lang.code}`}>Or Paste JSON</Label>
+                              <Label htmlFor={`text-import-${lang.code}`}>{t(translationKeys.admin.translations.pasteJson, 'Or Paste JSON')}</Label>
                               <Textarea
                                 id={`text-import-${lang.code}`}
                                 placeholder='{"header.menu.home": "Home", ...}'
@@ -475,7 +606,7 @@ export default function TranslationsPage() {
                                 disabled={!importText[lang.code]?.trim() || bulkUpdate.isPending}
                               >
                                 <Upload className="h-4 w-4 mr-2" />
-                                Import JSON
+                                {t(translationKeys.admin.translations.importJson, 'Import JSON')}
                               </Button>
                               <Button
                                 variant="outline"
@@ -488,7 +619,7 @@ export default function TranslationsPage() {
                                   }));
                                 }}
                               >
-                                Cancel
+                                {t(translationKeys.common.cancel, 'Cancel')}
                               </Button>
                             </div>
                           </div>
@@ -507,12 +638,12 @@ export default function TranslationsPage() {
                               <Label className="text-sm font-mono">{translation.key}</Label>
                               {translation.hasTranslation && (
                                 <span className="text-xs px-2 py-1 rounded bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-                                  Translated
+                                  {t(translationKeys.admin.translations.translated, 'Translated')}
                                 </span>
                               )}
                               {!translation.hasTranslation && (
                                 <span className="text-xs px-2 py-1 rounded bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
-                                  Missing
+                                  {t(translationKeys.admin.translations.missing, 'Missing')}
                                 </span>
                               )}
                             </div>
@@ -528,7 +659,7 @@ export default function TranslationsPage() {
                                 }));
                               }}
                               className="min-h-[80px]"
-                              placeholder={`Enter translation for ${translation.key}...`}
+                              placeholder={t(translationKeys.admin.translations.enterTranslation, `Enter translation for ${translation.key}...`).replace('{key}', translation.key)}
                             />
                             <div className="flex gap-2">
                               <Button
@@ -543,7 +674,7 @@ export default function TranslationsPage() {
                                 disabled={updateTranslation.isPending || bulkUpdate.isPending}
                               >
                                 <Save className="h-3 w-3 mr-1" />
-                                Save
+                                {t(translationKeys.common.save, 'Save')}
                               </Button>
                               {translation.hasTranslation && (
                                 <Button
@@ -553,7 +684,7 @@ export default function TranslationsPage() {
                                   disabled={deleteTranslation.isPending}
                                 >
                                   <Trash2 className="h-3 w-3 mr-1" />
-                                  Delete
+                                  {t(translationKeys.common.delete, 'Delete')}
                                 </Button>
                               )}
                             </div>

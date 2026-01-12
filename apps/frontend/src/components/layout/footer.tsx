@@ -11,20 +11,20 @@ export function Footer() {
       <div className="container py-10 md:py-12">
         <div className="grid gap-8 md:grid-cols-4">
           <div>
-            <h3 className="mb-4 text-lg font-semibold">E-commerce Infinity</h3>
+            <h3 className="mb-4 text-lg font-semibold">{t(translationKeys.footer.company.name, 'E-commerce Infinity')}</h3>
             <p className="text-sm text-muted-foreground">
-              Premium fragrances and luxury perfumes for every occasion.
+              {t(translationKeys.footer.company.tagline, 'Premium fragrances and luxury perfumes for every occasion.')}
             </p>
           </div>
           <div>
-            <h4 className="mb-4 text-sm font-semibold">Shop</h4>
+            <h4 className="mb-4 text-sm font-semibold">{t(translationKeys.footer.shop.title, 'Shop')}</h4>
             <ul className="space-y-2 text-sm">
               <li>
                 <Link
                   href="/products"
                   className="text-muted-foreground hover:text-foreground"
                 >
-                  All Products
+                  {t(translationKeys.footer.shop.allProducts, 'All Products')}
                 </Link>
               </li>
               <li>
@@ -32,7 +32,7 @@ export function Footer() {
                   href="/categories"
                   className="text-muted-foreground hover:text-foreground"
                 >
-                  Categories
+                  {t(translationKeys.footer.shop.categories, 'Categories')}
                 </Link>
               </li>
               <li>
@@ -40,13 +40,13 @@ export function Footer() {
                   href="/brands"
                   className="text-muted-foreground hover:text-foreground"
                 >
-                  Brands
+                  {t(translationKeys.footer.shop.brands, 'Brands')}
                 </Link>
               </li>
             </ul>
           </div>
           <div>
-            <h4 className="mb-4 text-sm font-semibold">Customer Service</h4>
+            <h4 className="mb-4 text-sm font-semibold">{t(translationKeys.footer.customerService.title, 'Customer Service')}</h4>
             <ul className="space-y-2 text-sm">
               <li>
                 <Link
@@ -82,7 +82,7 @@ export function Footer() {
                   href="/privacy"
                   className="text-muted-foreground hover:text-foreground"
                 >
-                  Privacy Policy
+                  {t(translationKeys.footer.legal.privacy, 'Privacy Policy')}
                 </Link>
               </li>
               <li>
@@ -90,14 +90,14 @@ export function Footer() {
                   href="/terms"
                   className="text-muted-foreground hover:text-foreground"
                 >
-                  Terms of Service
+                  {t(translationKeys.footer.legal.terms, 'Terms of Service')}
                 </Link>
               </li>
             </ul>
           </div>
         </div>
         <div className="mt-8 border-t pt-8 text-center text-sm text-muted-foreground">
-          <p>&copy; {new Date().getFullYear()} E-commerce Infinity. All rights reserved.</p>
+          <p>&copy; {new Date().getFullYear()} {t(translationKeys.footer.company.name, 'E-commerce Infinity')}. {t(translationKeys.footer.company.copyright, 'All rights reserved.')}</p>
         </div>
       </div>
     </footer>

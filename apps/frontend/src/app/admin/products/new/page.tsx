@@ -18,6 +18,7 @@ import { useCategories } from '@/lib/hooks/use-categories';
 import { useProductTypes } from '@/lib/hooks/use-product-types';
 import { X, Plus, Upload, Image as ImageIcon } from 'lucide-react';
 import Image from 'next/image';
+import { useT, translationKeys } from '@/lib/utils/translations';
 
 const productSchema = yup.object({
   name: yup.string().required('Product name is required'),
@@ -79,6 +80,7 @@ interface Attribute {
 
 export default function NewProductPage() {
   const router = useRouter();
+  const t = useT();
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [attributes, setAttributes] = useState<Attribute[]>([]);
@@ -232,7 +234,7 @@ export default function NewProductPage() {
     }
 
     if (!token) {
-      setError('Not authenticated');
+      setError(t(translationKeys.common.notAuthenticated, 'Not authenticated'));
       return;
     }
 
@@ -262,7 +264,7 @@ export default function NewProductPage() {
       // Don't reset state/ref here since we're redirecting away
       router.push(`/admin/products/${product.id}/edit`);
     } catch (err: any) {
-      setError(err.message || 'Failed to create product');
+      setError(err.message || t(translationKeys.common.failed, 'Failed to create product'));
       setIsLoading(false);
       isSubmittingRef.current = false;
     }
@@ -271,8 +273,8 @@ export default function NewProductPage() {
   return (
     <div className="container py-8">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold">Create New Product</h1>
-        <p className="text-muted-foreground">Add a new product to your store</p>
+        <h1 className="text-3xl font-bold">{t(translationKeys.admin.products.newProduct, 'Create New Product')}</h1>
+        <p className="text-muted-foreground">{t(translationKeys.admin.products.description, 'Add a new product to your store')}</p>
       </div>
 
       {error && (
@@ -287,20 +289,20 @@ export default function NewProductPage() {
           {/* Basic Information */}
           <Card>
             <CardHeader>
-              <CardTitle>Basic Information</CardTitle>
-              <CardDescription>Product name and details</CardDescription>
+              <CardTitle>{t(translationKeys.common.basicInfo, 'Basic Information')}</CardTitle>
+              <CardDescription>{t(translationKeys.common.productDetails, 'Product name and details')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="name">
-                  Product Name <span className="text-destructive">*</span>
+                  {t(translationKeys.common.name, 'Product Name')} <span className="text-destructive">*</span>
                 </Label>
                 <Input id="name" {...register('name')} />
                 {errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="shortDescription">Short Description</Label>
+                <Label htmlFor="shortDescription">{t(translationKeys.common.shortDescription, 'Short Description')}</Label>
                 <textarea
                   id="shortDescription"
                   {...register('shortDescription')}
@@ -310,7 +312,7 @@ export default function NewProductPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
+                <Label htmlFor="description">{t(translationKeys.common.description, 'Description')}</Label>
                 <textarea
                   id="description"
                   {...register('description')}
@@ -324,17 +326,17 @@ export default function NewProductPage() {
           {/* Classification */}
           <Card>
             <CardHeader>
-              <CardTitle>Classification</CardTitle>
-              <CardDescription>Brand, type, and categories</CardDescription>
+              <CardTitle>{t(translationKeys.common.classification, 'Classification')}</CardTitle>
+              <CardDescription>{t(translationKeys.common.brandTypeCategories, 'Brand, type, and categories')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="brandId">
-                  Brand <span className="text-destructive">*</span>
+                  {t(translationKeys.common.brand, 'Brand')} <span className="text-destructive">*</span>
                 </Label>
                 <Select onValueChange={(value) => setValue('brandId', value)}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select a brand" />
+                    <SelectValue placeholder={t(translationKeys.admin.products.selectBrand, 'Select a brand')} />
                   </SelectTrigger>
                   <SelectContent>
                     {brands.map((brand) => (
@@ -351,11 +353,11 @@ export default function NewProductPage() {
 
               <div className="space-y-2">
                 <Label htmlFor="productTypeId">
-                  Product Type <span className="text-destructive">*</span>
+                  {t(translationKeys.common.productType, 'Product Type')} <span className="text-destructive">*</span>
                 </Label>
                 <Select onValueChange={(value) => setValue('productTypeId', value)}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select a product type" />
+                    <SelectValue placeholder={t(translationKeys.admin.productTypes.namePlaceholder, 'Select a product type')} />
                   </SelectTrigger>
                   <SelectContent>
                     {productTypes.map((type) => (
@@ -373,7 +375,7 @@ export default function NewProductPage() {
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label>
-                    Categories <span className="text-destructive">*</span>
+                    {t(translationKeys.common.categories, 'Categories')} <span className="text-destructive">*</span>
                   </Label>
                   
                   {/* Selected Categories Display */}
@@ -477,14 +479,14 @@ export default function NewProductPage() {
         {/* Variants */}
         <Card>
           <CardHeader>
-            <CardTitle>Product Variants</CardTitle>
-            <CardDescription>Add pricing and stock information</CardDescription>
+            <CardTitle>{t(translationKeys.common.productVariants, 'Product Variants')}</CardTitle>
+            <CardDescription>{t(translationKeys.common.pricingStockInfo, 'Add pricing and stock information')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {variantFields.map((field, index) => (
               <div key={field.id} className="grid gap-4 rounded-lg border p-4 md:grid-cols-4">
                 <div className="space-y-2">
-                  <Label>Name</Label>
+                  <Label>{t(translationKeys.common.name, 'Name')}</Label>
                   <Input {...register(`variants.${index}.name`)} placeholder="e.g., 50ml" />
                   {errors.variants?.[index]?.name && (
                     <p className="text-sm text-destructive">
@@ -493,7 +495,7 @@ export default function NewProductPage() {
                   )}
                 </div>
                 <div className="space-y-2">
-                  <Label>Price</Label>
+                  <Label>{t(translationKeys.products.price, 'Price')}</Label>
                   <Input
                     type="number"
                     step="0.01"
@@ -506,7 +508,7 @@ export default function NewProductPage() {
                   )}
                 </div>
                 <div className="space-y-2">
-                  <Label>Stock</Label>
+                  <Label>{t(translationKeys.products.stock, 'Stock')}</Label>
                   <Input
                     type="number"
                     {...register(`variants.${index}.stock`, { valueAsNumber: true })}
@@ -537,7 +539,7 @@ export default function NewProductPage() {
               onClick={() => appendVariant({ name: '', price: 0, stock: 0, isActive: true })}
             >
               <Plus className="mr-2 h-4 w-4" />
-              Add Variant
+              {t(translationKeys.common.addVariant, 'Add Variant')}
             </Button>
             {errors.variants && (
               <p className="text-sm text-destructive">{errors.variants.message}</p>
@@ -549,19 +551,19 @@ export default function NewProductPage() {
         {attributes.length > 0 && (
           <Card>
             <CardHeader>
-              <CardTitle>Attributes</CardTitle>
-              <CardDescription>Product-specific attributes</CardDescription>
+              <CardTitle>{t(translationKeys.common.attributes, 'Attributes')}</CardTitle>
+              <CardDescription>{t(translationKeys.common.productSpecificAttributes, 'Product-specific attributes')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {attributeFields.map((field, index) => (
                 <div key={field.id} className="grid gap-4 rounded-lg border p-4 md:grid-cols-3">
                   <div className="space-y-2">
-                    <Label>Attribute</Label>
+                    <Label>{t(translationKeys.common.attribute, 'Attribute')}</Label>
                     <Select
                       onValueChange={(value) => setValue(`attributes.${index}.attributeId`, value)}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Select attribute" />
+                        <SelectValue placeholder={t(translationKeys.common.selectAttribute, 'Select attribute')} />
                       </SelectTrigger>
                       <SelectContent>
                         {attributes.map((attr) => (
@@ -573,7 +575,7 @@ export default function NewProductPage() {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label>Value</Label>
+                    <Label>{t(translationKeys.common.value, 'Value')}</Label>
                     <Input {...register(`attributes.${index}.value`)} />
                   </div>
                   <div className="flex items-end">
@@ -594,7 +596,7 @@ export default function NewProductPage() {
                 onClick={() => appendAttribute({ attributeId: '', value: '' })}
               >
                 <Plus className="mr-2 h-4 w-4" />
-                Add Attribute
+                {t(translationKeys.common.addAttribute, 'Add Attribute')}
               </Button>
             </CardContent>
           </Card>
@@ -603,16 +605,16 @@ export default function NewProductPage() {
         {/* SEO */}
         <Card>
           <CardHeader>
-            <CardTitle>SEO Settings</CardTitle>
-            <CardDescription>Meta title and description</CardDescription>
+            <CardTitle>{t(translationKeys.common.seoSettings, 'SEO Settings')}</CardTitle>
+            <CardDescription>{t(translationKeys.common.metaTitleDescription, 'Meta title and description')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="metaTitle">Meta Title</Label>
+              <Label htmlFor="metaTitle">{t(translationKeys.common.metaTitle, 'Meta Title')}</Label>
               <Input id="metaTitle" {...register('metaTitle')} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="metaDescription">Meta Description</Label>
+              <Label htmlFor="metaDescription">{t(translationKeys.common.metaDescription, 'Meta Description')}</Label>
               <textarea
                 id="metaDescription"
                 {...register('metaDescription')}
@@ -626,12 +628,12 @@ export default function NewProductPage() {
         {/* Images */}
         <Card>
           <CardHeader>
-            <CardTitle>Product Images</CardTitle>
-            <CardDescription>Manage product images</CardDescription>
+            <CardTitle>{t(translationKeys.common.productImages, 'Product Images')}</CardTitle>
+            <CardDescription>{t(translationKeys.common.manageProductImages, 'Manage product images')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              Images can be added in edit mode only. After creating the product, use the edit page to upload images (up to 5 images per product).
+              {t(translationKeys.common.imagesEditModeOnly, 'Images can be added in edit mode only. After creating the product, use the edit page to upload images (up to 5 images per product).')}
             </p>
           </CardContent>
         </Card>
@@ -639,12 +641,12 @@ export default function NewProductPage() {
         {/* Translations */}
         <Card>
           <CardHeader>
-            <CardTitle>Product Translations</CardTitle>
-            <CardDescription>Manage product translations for different languages</CardDescription>
+            <CardTitle>{t(translationKeys.common.productTranslations, 'Product Translations')}</CardTitle>
+            <CardDescription>{t(translationKeys.common.manageProductTranslations, 'Manage product translations for different languages')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              Translations can be added in edit mode only. After creating the product, use the edit page to add translations for different languages.
+              {t(translationKeys.common.translationsEditModeOnly, 'Translations can be added in edit mode only. After creating the product, use the edit page to add translations for different languages.')}
             </p>
           </CardContent>
         </Card>
@@ -653,10 +655,10 @@ export default function NewProductPage() {
         {/* Submit */}
         <div className="flex justify-end gap-4">
           <Button type="button" variant="outline" onClick={() => router.push('/admin/products')} disabled={isLoading}>
-            Cancel
+            {t(translationKeys.common.cancel, 'Cancel')}
           </Button>
           <Button type="submit" disabled={isLoading}>
-            {isLoading ? 'Creating...' : 'Create Product'}
+            {isLoading ? t(translationKeys.common.creating, 'Creating...') : t(translationKeys.admin.products.newProduct, 'Create Product')}
           </Button>
         </div>
       </form>

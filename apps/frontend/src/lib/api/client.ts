@@ -38,6 +38,17 @@ export const apiClient = {
   },
 };
 
+export class APIError extends Error {
+  constructor(
+    message: string,
+    public status?: number,
+    public response?: any,
+  ) {
+    super(message);
+    this.name = 'APIError';
+  }
+}
+
 export async function fetchAPI<T>(
   endpoint: string,
   options?: RequestInit,
@@ -54,13 +65,14 @@ export async function fetchAPI<T>(
 
   if (!response.ok) {
     let errorMessage = response.statusText;
+    let errorData: any = null;
     try {
-      const errorData = await response.json();
+      errorData = await response.json();
       errorMessage = errorData.message || errorData.error || response.statusText;
     } catch {
       // If response is not JSON, use status text
     }
-    throw new Error(errorMessage);
+    throw new APIError(errorMessage, response.status, errorData);
   }
 
   return response.json();

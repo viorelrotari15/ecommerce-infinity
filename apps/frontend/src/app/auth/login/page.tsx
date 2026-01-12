@@ -13,20 +13,31 @@ import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useCartStore } from '@/lib/store/cart-store';
 import { getCart, updateCart as updateCartAPI } from '@/lib/api/client';
+import { useT, translationKeys } from '@/lib/utils/translations';
 
-const loginSchema = yup.object({
-  email: yup.string().email('Invalid email address').required('Email is required'),
-  password: yup.string().min(6, 'Password must be at least 6 characters').required('Password is required'),
-});
-
-type LoginFormData = yup.InferType<typeof loginSchema>;
+type LoginFormData = {
+  email: string;
+  password: string;
+};
 
 export default function LoginPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const t = useT();
   const { mergeWithLocal } = useCartStore();
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+
+  const loginSchema = yup.object({
+    email: yup
+      .string()
+      .email(t(translationKeys.auth.emailInvalid, 'Invalid email address'))
+      .required(t(translationKeys.auth.emailRequired, 'Email is required')),
+    password: yup
+      .string()
+      .min(6, t(translationKeys.auth.passwordMinLength, 'Password must be at least 6 characters'))
+      .required(t(translationKeys.auth.passwordRequired, 'Password is required')),
+  });
 
   const {
     register,
@@ -90,7 +101,7 @@ export default function LoginPage() {
       }
       router.refresh();
     } catch (err: any) {
-      setError(err.message || 'Login failed. Please check your credentials.');
+      setError(err.message || t(translationKeys.auth.loginFailed, 'Login failed. Please check your credentials.'));
     } finally {
       setIsLoading(false);
     }
@@ -100,8 +111,8 @@ export default function LoginPage() {
     <div className="container flex min-h-[60vh] items-center justify-center py-12">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl">Login</CardTitle>
-          <CardDescription>Enter your credentials to access your account</CardDescription>
+          <CardTitle className="text-2xl">{t(translationKeys.auth.loginTitle, 'Login')}</CardTitle>
+          <CardDescription>{t(translationKeys.auth.loginDescription, 'Enter your credentials to access your account')}</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -112,33 +123,33 @@ export default function LoginPage() {
             )}
 
             <FormField
-              label="Email"
+              label={t(translationKeys.auth.email, 'Email')}
               name="email"
               type="email"
-              placeholder="you@example.com"
+              placeholder={t(translationKeys.auth.emailPlaceholder, 'you@example.com')}
               error={errors.email?.message}
               register={register}
               required
             />
 
             <FormField
-              label="Password"
+              label={t(translationKeys.auth.password, 'Password')}
               name="password"
               type="password"
-              placeholder="••••••••"
+              placeholder={t(translationKeys.auth.passwordPlaceholder, '••••••••')}
               error={errors.password?.message}
               register={register}
               required
             />
 
             <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? 'Logging in...' : 'Login'}
+              {isLoading ? t(translationKeys.auth.loggingIn, 'Logging in...') : t(translationKeys.auth.login, 'Login')}
             </Button>
 
             <div className="text-center text-sm text-muted-foreground">
-              Don't have an account?{' '}
+              {t(translationKeys.auth.dontHaveAccount, "Don't have an account?")}{' '}
               <Link href="/auth/register" className="text-foreground hover:underline">
-                Register
+                {t(translationKeys.auth.register, 'Register')}
               </Link>
             </div>
           </form>

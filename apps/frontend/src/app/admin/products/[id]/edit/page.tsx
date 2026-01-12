@@ -22,38 +22,30 @@ import { productQueryKeys } from '@/lib/api/queries';
 import { X, Plus, Upload, Image as ImageIcon } from 'lucide-react';
 import Image from 'next/image';
 import { ProductTranslationsTabs, ProductTranslationsTabsRef } from '@/components/admin/product-translations-tabs';
+import { useT, translationKeys } from '@/lib/utils/translations';
 
-const productSchema = yup.object({
-  name: yup.string().required('Product name is required'),
-  description: yup.string(),
-  shortDescription: yup.string(),
-  brandId: yup.string().required('Brand is required'),
-  productTypeId: yup.string().required('Product type is required'),
-  categoryIds: yup.array().of(yup.string()).min(1, 'At least one category is required'),
-  isActive: yup.boolean().default(true),
-  isFeatured: yup.boolean().default(false),
-  metaTitle: yup.string(),
-  metaDescription: yup.string(),
-  variants: yup
-    .array()
-    .of(
-      yup.object({
-        name: yup.string().required('Variant name is required'),
-        price: yup.number().min(0, 'Price must be positive').required('Price is required'),
-        stock: yup.number().min(0, 'Stock must be positive').required('Stock is required'),
-        isActive: yup.boolean().default(true),
-      }),
-    )
-    .min(1, 'At least one variant is required'),
-  attributes: yup.array().of(
-    yup.object({
-      attributeId: yup.string().required('Attribute is required'),
-      value: yup.string().required('Value is required'),
-    }),
-  ),
-});
-
-type ProductFormData = yup.InferType<typeof productSchema>;
+type ProductFormData = {
+  name: string;
+  description?: string;
+  shortDescription?: string;
+  brandId: string;
+  productTypeId: string;
+  categoryIds: string[];
+  isActive: boolean;
+  isFeatured: boolean;
+  metaTitle?: string;
+  metaDescription?: string;
+  variants: Array<{
+    name: string;
+    price: number;
+    stock: number;
+    isActive: boolean;
+  }>;
+  attributes: Array<{
+    attributeId: string;
+    value: string;
+  }>;
+};
 
 interface Brand {
   id: string;
@@ -94,6 +86,7 @@ export default function EditProductPage() {
   const params = useParams();
   const productId = params.id as string;
   const queryClient = useQueryClient();
+  const t = useT();
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingProduct, setIsLoadingProduct] = useState(true);
@@ -101,6 +94,36 @@ export default function EditProductPage() {
   const [uploadedImages, setUploadedImages] = useState<ProductImage[]>([]);
   const [token, setToken] = useState<string | null>(null);
   const translationsRef = useRef<ProductTranslationsTabsRef>(null);
+
+  const productSchema = yup.object({
+    name: yup.string().required(t(translationKeys.admin.products.productNameRequired, 'Product name is required')),
+    description: yup.string(),
+    shortDescription: yup.string(),
+    brandId: yup.string().required(t(translationKeys.admin.products.brandRequired, 'Brand is required')),
+    productTypeId: yup.string().required(t(translationKeys.admin.products.productTypeRequired, 'Product type is required')),
+    categoryIds: yup.array().of(yup.string()).min(1, t(translationKeys.admin.products.categoryRequired, 'At least one category is required')),
+    isActive: yup.boolean().default(true),
+    isFeatured: yup.boolean().default(false),
+    metaTitle: yup.string(),
+    metaDescription: yup.string(),
+    variants: yup
+      .array()
+      .of(
+        yup.object({
+          name: yup.string().required(t(translationKeys.admin.products.variantNameRequired, 'Variant name is required')),
+          price: yup.number().min(0, t(translationKeys.admin.products.pricePositive, 'Price must be positive')).required(t(translationKeys.admin.products.priceRequired, 'Price is required')),
+          stock: yup.number().min(0, t(translationKeys.admin.products.stockPositive, 'Stock must be positive')).required(t(translationKeys.admin.products.stockRequired, 'Stock is required')),
+          isActive: yup.boolean().default(true),
+        }),
+      )
+      .min(1, t(translationKeys.admin.products.variantRequired, 'At least one variant is required')),
+    attributes: yup.array().of(
+      yup.object({
+        attributeId: yup.string().required(t(translationKeys.admin.products.attributeRequired, 'Attribute is required')),
+        value: yup.string().required(t(translationKeys.admin.products.valueRequired, 'Value is required')),
+      }),
+    ),
+  });
 
   // Use React Query hooks for brands, categories, and product types
   const { data: brands = [] } = useBrands();
@@ -444,7 +467,7 @@ export default function EditProductPage() {
     return (
       <div className="container py-8">
         <div className="flex items-center justify-center min-h-[60vh]">
-          <p className="text-muted-foreground">Loading product...</p>
+          <p className="text-muted-foreground">{t(translationKeys.admin.products.loadingProduct, 'Loading product...')}</p>
         </div>
       </div>
     );
@@ -453,8 +476,8 @@ export default function EditProductPage() {
   return (
     <div className="container py-8">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold">Edit Product</h1>
-        <p className="text-muted-foreground">Update product information</p>
+        <h1 className="text-3xl font-bold">{t(translationKeys.admin.products.editProduct, 'Edit Product')}</h1>
+        <p className="text-muted-foreground">{t(translationKeys.admin.products.editDescription, 'Update product information')}</p>
       </div>
 
       {error && (
@@ -468,20 +491,20 @@ export default function EditProductPage() {
           {/* Basic Information */}
           <Card>
             <CardHeader>
-              <CardTitle>Basic Information</CardTitle>
-              <CardDescription>Product name and details</CardDescription>
+              <CardTitle>{t(translationKeys.common.basicInfo, 'Basic Information')}</CardTitle>
+              <CardDescription>{t(translationKeys.common.productDetails, 'Product name and details')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="name">
-                  Product Name <span className="text-destructive">*</span>
+                  {t(translationKeys.common.name, 'Product Name')} <span className="text-destructive">*</span>
                 </Label>
                 <Input id="name" {...register('name')} />
                 {errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="shortDescription">Short Description</Label>
+                <Label htmlFor="shortDescription">{t(translationKeys.common.shortDescription, 'Short Description')}</Label>
                 <textarea
                   id="shortDescription"
                   {...register('shortDescription')}
@@ -495,17 +518,17 @@ export default function EditProductPage() {
           {/* Product Details */}
           <Card>
             <CardHeader>
-              <CardTitle>Product Details</CardTitle>
-              <CardDescription>Brand, type, and categories</CardDescription>
+              <CardTitle>{t(translationKeys.common.classification, 'Product Details')}</CardTitle>
+              <CardDescription>{t(translationKeys.common.brandTypeCategories, 'Brand, type, and categories')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label>
-                  Brand <span className="text-destructive">*</span>
+                  {t(translationKeys.common.brand, 'Brand')} <span className="text-destructive">*</span>
                 </Label>
                 <Select onValueChange={(value) => setValue('brandId', value)}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select brand" />
+                    <SelectValue placeholder={t(translationKeys.admin.products.selectBrand, 'Select brand')} />
                   </SelectTrigger>
                   <SelectContent>
                     {brands.map((brand) => (
@@ -522,11 +545,11 @@ export default function EditProductPage() {
 
               <div className="space-y-2">
                 <Label>
-                  Product Type <span className="text-destructive">*</span>
+                  {t(translationKeys.common.productType, 'Product Type')} <span className="text-destructive">*</span>
                 </Label>
                 <Select onValueChange={(value) => setValue('productTypeId', value)}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select product type" />
+                    <SelectValue placeholder={t(translationKeys.admin.products.selectProductType, 'Select product type')} />
                   </SelectTrigger>
                   <SelectContent>
                     {productTypes.map((type) => (
@@ -544,7 +567,7 @@ export default function EditProductPage() {
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label>
-                    Categories <span className="text-destructive">*</span>
+                    {t(translationKeys.common.categories, 'Categories')} <span className="text-destructive">*</span>
                   </Label>
                   
                   {/* Selected Categories Display */}
@@ -648,12 +671,12 @@ export default function EditProductPage() {
         {/* Description */}
         <Card>
           <CardHeader>
-            <CardTitle>Description</CardTitle>
-            <CardDescription>Full product description</CardDescription>
+            <CardTitle>{t(translationKeys.common.description, 'Description')}</CardTitle>
+            <CardDescription>{t(translationKeys.common.description, 'Full product description')}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
+              <Label htmlFor="description">{t(translationKeys.common.description, 'Description')}</Label>
               <textarea
                 id="description"
                 {...register('description')}
@@ -667,14 +690,14 @@ export default function EditProductPage() {
         {/* Variants */}
         <Card>
           <CardHeader>
-            <CardTitle>Product Variants</CardTitle>
-            <CardDescription>Add variants with different sizes, colors, etc.</CardDescription>
+            <CardTitle>{t(translationKeys.common.productVariants, 'Product Variants')}</CardTitle>
+            <CardDescription>{t(translationKeys.common.pricingStockInfo, 'Add variants with different sizes, colors, etc.')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {variantFields.map((field, index) => (
               <div key={field.id} className="grid gap-4 rounded-lg border p-4 md:grid-cols-4">
                 <div className="space-y-2">
-                  <Label>Name</Label>
+                  <Label>{t(translationKeys.common.name, 'Name')}</Label>
                   <Input {...register(`variants.${index}.name`)} placeholder="e.g., 50ml" />
                   {errors.variants?.[index]?.name && (
                     <p className="text-sm text-destructive">
@@ -683,7 +706,7 @@ export default function EditProductPage() {
                   )}
                 </div>
                 <div className="space-y-2">
-                  <Label>Price</Label>
+                  <Label>{t(translationKeys.products.price, 'Price')}</Label>
                   <Input
                     type="number"
                     step="0.01"
@@ -696,7 +719,7 @@ export default function EditProductPage() {
                   )}
                 </div>
                 <div className="space-y-2">
-                  <Label>Stock</Label>
+                  <Label>{t(translationKeys.products.stock, 'Stock')}</Label>
                   <Input
                     type="number"
                     {...register(`variants.${index}.stock`, { valueAsNumber: true })}
@@ -727,7 +750,7 @@ export default function EditProductPage() {
               onClick={() => appendVariant({ name: '', price: 0, stock: 0, isActive: true })}
             >
               <Plus className="mr-2 h-4 w-4" />
-              Add Variant
+              {t(translationKeys.common.addVariant, 'Add Variant')}
             </Button>
             {errors.variants && (
               <p className="text-sm text-destructive">{errors.variants.message}</p>
@@ -739,19 +762,19 @@ export default function EditProductPage() {
         {attributes.length > 0 && (
           <Card>
             <CardHeader>
-              <CardTitle>Attributes</CardTitle>
-              <CardDescription>Product-specific attributes</CardDescription>
+              <CardTitle>{t(translationKeys.common.attributes, 'Attributes')}</CardTitle>
+              <CardDescription>{t(translationKeys.common.productSpecificAttributes, 'Product-specific attributes')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {attributeFields.map((field, index) => (
                 <div key={field.id} className="grid gap-4 rounded-lg border p-4 md:grid-cols-3">
                   <div className="space-y-2">
-                    <Label>Attribute</Label>
+                    <Label>{t(translationKeys.common.attribute, 'Attribute')}</Label>
                     <Select
                       onValueChange={(value) => setValue(`attributes.${index}.attributeId`, value)}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Select attribute" />
+                        <SelectValue placeholder={t(translationKeys.common.selectAttribute, 'Select attribute')} />
                       </SelectTrigger>
                       <SelectContent>
                         {attributes.map((attr) => (
@@ -763,7 +786,7 @@ export default function EditProductPage() {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label>Value</Label>
+                    <Label>{t(translationKeys.common.value, 'Value')}</Label>
                     <Input {...register(`attributes.${index}.value`)} />
                   </div>
                   <div className="flex items-end">
@@ -784,7 +807,7 @@ export default function EditProductPage() {
                 onClick={() => appendAttribute({ attributeId: '', value: '' })}
               >
                 <Plus className="mr-2 h-4 w-4" />
-                Add Attribute
+                {t(translationKeys.common.addAttribute, 'Add Attribute')}
               </Button>
             </CardContent>
           </Card>
@@ -793,16 +816,16 @@ export default function EditProductPage() {
         {/* SEO */}
         <Card>
           <CardHeader>
-            <CardTitle>SEO Settings</CardTitle>
-            <CardDescription>Meta title and description</CardDescription>
+            <CardTitle>{t(translationKeys.common.seoSettings, 'SEO Settings')}</CardTitle>
+            <CardDescription>{t(translationKeys.common.metaTitleDescription, 'Meta title and description')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="metaTitle">Meta Title</Label>
+              <Label htmlFor="metaTitle">{t(translationKeys.common.metaTitle, 'Meta Title')}</Label>
               <Input id="metaTitle" {...register('metaTitle')} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="metaDescription">Meta Description</Label>
+              <Label htmlFor="metaDescription">{t(translationKeys.common.metaDescription, 'Meta Description')}</Label>
               <textarea
                 id="metaDescription"
                 {...register('metaDescription')}
@@ -816,8 +839,8 @@ export default function EditProductPage() {
         {/* Images */}
         <Card>
           <CardHeader>
-            <CardTitle>Product Images</CardTitle>
-            <CardDescription>Manage product images (up to 5 images)</CardDescription>
+            <CardTitle>{t(translationKeys.common.productImages, 'Product Images')}</CardTitle>
+            <CardDescription>{t(translationKeys.common.manageProductImages, 'Manage product images (up to 5 images)')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex flex-wrap gap-4">
@@ -842,7 +865,7 @@ export default function EditProductPage() {
                   </Button>
                   {image.isPrimary && (
                     <div className="absolute bottom-0 left-0 right-0 bg-primary/80 px-2 py-1 text-xs text-primary-foreground">
-                      Primary
+                      {t(translationKeys.admin.products.primary, 'Primary')}
                     </div>
                   )}
                 </div>
@@ -858,7 +881,7 @@ export default function EditProductPage() {
                     disabled={uploadImageMutation.isPending}
                   />
                   {uploadImageMutation.isPending ? (
-                    <div className="text-muted-foreground">Uploading...</div>
+                    <div className="text-muted-foreground">{t(translationKeys.admin.products.uploading, 'Uploading...')}</div>
                   ) : (
                     <Upload className="h-8 w-8 text-muted-foreground" />
                   )}
@@ -882,7 +905,7 @@ export default function EditProductPage() {
         {/* Options */}
         <Card>
           <CardHeader>
-            <CardTitle>Options</CardTitle>
+            <CardTitle>{t(translationKeys.common.status, 'Options')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center space-x-2">
@@ -893,7 +916,7 @@ export default function EditProductPage() {
                 className="h-4 w-4"
               />
               <Label htmlFor="isActive" className="font-normal">
-                Product is active
+                {t(translationKeys.admin.products.productIsActive, 'Product is active')}
               </Label>
             </div>
             <div className="flex items-center space-x-2">
@@ -904,7 +927,7 @@ export default function EditProductPage() {
                 className="h-4 w-4"
               />
               <Label htmlFor="isFeatured" className="font-normal">
-                Feature this product
+                {t(translationKeys.admin.products.featureProduct, 'Feature this product')}
               </Label>
             </div>
           </CardContent>
@@ -924,10 +947,10 @@ export default function EditProductPage() {
               router.push('/admin/products');
             }}
           >
-            Cancel
+            {t(translationKeys.common.cancel, 'Cancel')}
           </Button>
           <Button type="submit" disabled={isLoading}>
-            {isLoading ? 'Updating...' : 'Update Product'}
+            {isLoading ? t(translationKeys.admin.products.updating, 'Updating...') : t(translationKeys.admin.products.updateProduct, 'Update Product')}
           </Button>
         </div>
       </form>

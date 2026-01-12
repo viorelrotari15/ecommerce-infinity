@@ -4,6 +4,7 @@ import { useProducts } from '@/lib/hooks/use-products';
 import { ProductCard } from '@/components/server/products/product-card';
 import type { ProductsResponse } from '@/lib/api/server';
 import type { ProductFilters } from '@/lib/api/queries';
+import { useT, translationKeys } from '@/lib/utils/translations';
 
 interface ProductListProps {
   initialData: ProductsResponse;
@@ -11,13 +12,14 @@ interface ProductListProps {
 }
 
 export function ProductList({ initialData, filters }: ProductListProps) {
+  const t = useT();
   // Hydrate React Query cache with server data
   const { data, isLoading, isFetching } = useProducts(filters, initialData);
 
   if (isLoading) {
     return (
       <div className="py-12 text-center">
-        <p className="text-muted-foreground">Loading products...</p>
+        <p className="text-muted-foreground">{t(translationKeys.products.loading, 'Loading products...')}</p>
       </div>
     );
   }
@@ -28,7 +30,7 @@ export function ProductList({ initialData, filters }: ProductListProps) {
   if (products.length === 0) {
     return (
       <div className="py-12 text-center">
-        <p className="text-muted-foreground">No products found.</p>
+        <p className="text-muted-foreground">{t(translationKeys.products.noProducts, 'No products found.')}</p>
       </div>
     );
   }
@@ -37,7 +39,7 @@ export function ProductList({ initialData, filters }: ProductListProps) {
     <>
       {isFetching && (
         <div className="mb-4 text-center text-sm text-muted-foreground">
-          Refreshing...
+          {t(translationKeys.products.refreshing, 'Refreshing...')}
         </div>
       )}
       
