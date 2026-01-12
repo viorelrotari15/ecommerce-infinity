@@ -25,10 +25,8 @@ import { ProductTranslationsTabs } from '@/components/admin/product-translations
 
 const productSchema = yup.object({
   name: yup.string().required('Product name is required'),
-  slug: yup.string().required('Slug is required'),
   description: yup.string(),
   shortDescription: yup.string(),
-  sku: yup.string().required('SKU is required'),
   brandId: yup.string().required('Brand is required'),
   productTypeId: yup.string().required('Product type is required'),
   categoryIds: yup.array().of(yup.string()).min(1, 'At least one category is required'),
@@ -41,7 +39,6 @@ const productSchema = yup.object({
     .of(
       yup.object({
         name: yup.string().required('Variant name is required'),
-        sku: yup.string().required('Variant SKU is required'),
         price: yup.number().min(0, 'Price must be positive').required('Price is required'),
         stock: yup.number().min(0, 'Stock must be positive').required('Stock is required'),
         isActive: yup.boolean().default(true),
@@ -125,10 +122,12 @@ export default function EditProductPage() {
       isActive: true,
       isFeatured: false,
       categoryIds: [],
-      variants: [{ name: '', sku: '', price: 0, stock: 0, isActive: true }],
+      variants: [{ name: '', price: 0, stock: 0, isActive: true }],
       attributes: [],
     },
   });
+
+  // SKU and slug are auto-generated on the backend, no need to handle them in frontend
 
   const { fields: variantFields, append: appendVariant, remove: removeVariant } = useFieldArray({
     control,
@@ -196,10 +195,8 @@ export default function EditProductPage() {
         // Set form values
         reset({
           name: product.name,
-          slug: product.slug,
           description: product.description || '',
           shortDescription: product.shortDescription || '',
-          sku: product.sku,
           brandId: product.brandId,
           productTypeId: product.productTypeId,
           categoryIds: product.categories.map((c) => c.categoryId),
@@ -209,7 +206,6 @@ export default function EditProductPage() {
           metaDescription: product.metaDescription || '',
           variants: product.variants.map((v) => ({
             name: v.name || '',
-            sku: v.sku,
             price: typeof v.price === 'string' ? parseFloat(v.price) : v.price,
             stock: v.stock,
             isActive: v.isActive,
@@ -345,13 +341,24 @@ export default function EditProductPage() {
     setError(null);
 
     try {
+      // SKU and slug are auto-generated on backend, don't send them
+      const submitData = {
+        ...data,
+        sku: undefined,
+        slug: undefined,
+        variants: (data.variants || []).map((v) => ({
+          ...v,
+          sku: undefined,
+        })),
+      };
+
       await fetchAPIAuth(`/products/${productId}`, token, {
         method: 'PATCH',
-        body: JSON.stringify(data),
+        body: JSON.stringify(submitData),
       });
 
-      // Redirect to dashboard
-      router.push('/admin/dashboard');
+      // Redirect to products page
+      router.push('/admin/products');
     } catch (err: any) {
       setError(err.message || 'Failed to update product');
     } finally {
@@ -388,7 +395,7 @@ export default function EditProductPage() {
           <Card>
             <CardHeader>
               <CardTitle>Basic Information</CardTitle>
-              <CardDescription>Product name, slug, and SKU</CardDescription>
+              <CardDescription>Product name and details</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
@@ -397,22 +404,6 @@ export default function EditProductPage() {
                 </Label>
                 <Input id="name" {...register('name')} />
                 {errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="slug">
-                  Slug <span className="text-destructive">*</span>
-                </Label>
-                <Input id="slug" {...register('slug')} placeholder="product-name" />
-                {errors.slug && <p className="text-sm text-destructive">{errors.slug.message}</p>}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="sku">
-                  SKU <span className="text-destructive">*</span>
-                </Label>
-                <Input id="sku" {...register('sku')} />
-                {errors.sku && <p className="text-sm text-destructive">{errors.sku.message}</p>}
               </div>
 
               <div className="space-y-2">
@@ -523,16 +514,6 @@ export default function EditProductPage() {
           </CardContent>
         </Card>
 
-        {/* Translations */}
-        <ProductTranslationsTabs
-          productId={productId}
-          defaultName={watch('name') || ''}
-          defaultDescription={watch('description') || ''}
-          defaultShortDescription={watch('shortDescription') || ''}
-          defaultMetaTitle={watch('metaTitle') || ''}
-          defaultMetaDescription={watch('metaDescription') || ''}
-        />
-
         {/* Variants */}
         <Card>
           <CardHeader>
@@ -541,22 +522,13 @@ export default function EditProductPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             {variantFields.map((field, index) => (
-              <div key={field.id} className="grid gap-4 rounded-lg border p-4 md:grid-cols-5">
+              <div key={field.id} className="grid gap-4 rounded-lg border p-4 md:grid-cols-4">
                 <div className="space-y-2">
                   <Label>Name</Label>
                   <Input {...register(`variants.${index}.name`)} placeholder="e.g., 50ml" />
                   {errors.variants?.[index]?.name && (
                     <p className="text-sm text-destructive">
                       {errors.variants[index]?.name?.message}
-                    </p>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <Label>SKU</Label>
-                  <Input {...register(`variants.${index}.sku`)} />
-                  {errors.variants?.[index]?.sku && (
-                    <p className="text-sm text-destructive">
-                      {errors.variants[index]?.sku?.message}
                     </p>
                   )}
                 </div>
@@ -602,7 +574,7 @@ export default function EditProductPage() {
             <Button
               type="button"
               variant="outline"
-              onClick={() => appendVariant({ name: '', sku: '', price: 0, stock: 0, isActive: true })}
+              onClick={() => appendVariant({ name: '', price: 0, stock: 0, isActive: true })}
             >
               <Plus className="mr-2 h-4 w-4" />
               Add Variant
@@ -746,6 +718,16 @@ export default function EditProductPage() {
           </CardContent>
         </Card>
 
+        {/* Translations */}
+        <ProductTranslationsTabs
+          productId={productId}
+          defaultName={watch('name') || ''}
+          defaultDescription={watch('description') || ''}
+          defaultShortDescription={watch('shortDescription') || ''}
+          defaultMetaTitle={watch('metaTitle') || ''}
+          defaultMetaDescription={watch('metaDescription') || ''}
+        />
+
         {/* Options */}
         <Card>
           <CardHeader>
@@ -779,7 +761,7 @@ export default function EditProductPage() {
 
         {/* Submit */}
         <div className="flex justify-end gap-4">
-          <Button type="button" variant="outline" onClick={() => router.back()}>
+          <Button type="button" variant="outline" onClick={() => router.push('/admin/products')}>
             Cancel
           </Button>
           <Button type="submit" disabled={isLoading}>

@@ -1,6 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { LanguageHelperService } from '../languages/language-helper.service';
+import { CreateBrandDto } from './dto/create-brand.dto';
+import { UpdateBrandDto } from './dto/update-brand.dto';
 
 @Injectable()
 export class BrandsService {
@@ -8,6 +10,44 @@ export class BrandsService {
     private prisma: PrismaService,
     private languageHelper: LanguageHelperService,
   ) {}
+
+  /**
+   * Generate a URL-friendly slug from text
+   */
+  private slugify(text: string): string {
+    return text
+      .toString()
+      .toLowerCase()
+      .trim()
+      .replace(/\s+/g, '-')
+      .replace(/[^\w\-]+/g, '')
+      .replace(/\-\-+/g, '-')
+      .replace(/^-+/, '')
+      .replace(/-+$/, '');
+  }
+
+  /**
+   * Generate a unique slug from base text
+   */
+  private async generateUniqueSlug(baseSlug: string, excludeId?: string): Promise<string> {
+    let slug = baseSlug;
+    let counter = 1;
+
+    while (true) {
+      const existing = await this.prisma.brand.findUnique({
+        where: { slug },
+      });
+
+      // If no existing brand, or it's the same brand being updated
+      if (!existing || (excludeId && existing.id === excludeId)) {
+        return slug;
+      }
+
+      // If slug exists, append counter
+      slug = `${baseSlug}-${counter}`;
+      counter++;
+    }
+  }
 
   async findAll(language?: string) {
     const resolvedLanguage = await this.languageHelper.resolveLanguage(language);
@@ -98,6 +138,100 @@ export class BrandsService {
           delete product.translations;
         }
       }
+    }
+
+    return brand;
+  }
+
+  async create(createBrandDto: CreateBrandDto) {
+    // Check if brand with same name already exists
+    const existingBrand = await this.prisma.brand.findUnique({
+      where: { name: createBrandDto.name },
+    });
+
+    if (existingBrand) {
+      throw new ConflictException(`Brand with name "${createBrandDto.name}" already exists`);
+    }
+
+    // Generate unique slug
+    const baseSlug = this.slugify(createBrandDto.name);
+    const slug = await this.generateUniqueSlug(baseSlug);
+
+    return this.prisma.brand.create({
+      data: {
+        name: createBrandDto.name,
+        slug,
+        description: createBrandDto.description,
+      },
+    });
+  }
+
+  async update(id: string, updateBrandDto: UpdateBrandDto) {
+    const brand = await this.prisma.brand.findUnique({
+      where: { id },
+    });
+
+    if (!brand) {
+      throw new NotFoundException(`Brand with ID ${id} not found`);
+    }
+
+    // If name is being updated, check for conflicts and regenerate slug
+    let slug = brand.slug;
+    if (updateBrandDto.name && updateBrandDto.name !== brand.name) {
+      const existingBrand = await this.prisma.brand.findUnique({
+        where: { name: updateBrandDto.name },
+      });
+
+      if (existingBrand && existingBrand.id !== id) {
+        throw new ConflictException(`Brand with name "${updateBrandDto.name}" already exists`);
+      }
+
+      const baseSlug = this.slugify(updateBrandDto.name);
+      slug = await this.generateUniqueSlug(baseSlug, id);
+    }
+
+    return this.prisma.brand.update({
+      where: { id },
+      data: {
+        ...updateBrandDto,
+        slug,
+      },
+    });
+  }
+
+  async remove(id: string) {
+    const brand = await this.prisma.brand.findUnique({
+      where: { id },
+      include: {
+        products: {
+          take: 1,
+        },
+      },
+    });
+
+    if (!brand) {
+      throw new NotFoundException(`Brand with ID ${id} not found`);
+    }
+
+    // Check if brand has products
+    if (brand.products.length > 0) {
+      throw new ConflictException(
+        `Cannot delete brand "${brand.name}" because it has associated products`,
+      );
+    }
+
+    return this.prisma.brand.delete({
+      where: { id },
+    });
+  }
+
+  async findById(id: string) {
+    const brand = await this.prisma.brand.findUnique({
+      where: { id },
+    });
+
+    if (!brand) {
+      throw new NotFoundException(`Brand with ID ${id} not found`);
     }
 
     return brand;

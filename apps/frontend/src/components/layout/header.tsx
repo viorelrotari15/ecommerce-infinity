@@ -73,7 +73,7 @@ export function Header() {
             >
               {t(translationKeys.header.menu.brands, 'Brands')}
             </Link>
-            {isUserAdmin && (
+            {mounted && isUserAdmin && (
               <>
                 <Link
                   href="/admin/dashboard"
@@ -103,7 +103,12 @@ export function Header() {
               )}
             </Button>
           </Link>
-          {isLoggedIn ? (
+          {!mounted ? (
+            // Render a placeholder during SSR to match initial client render
+            <Link href="/auth/login">
+              <Button variant="outline">{t(translationKeys.header.actions.login, 'Login')}</Button>
+            </Link>
+          ) : isLoggedIn ? (
             <>
               {isUserAdmin && (
                 <Link href="/admin/dashboard">
@@ -128,9 +133,9 @@ export function Header() {
               </div>
             </>
           ) : (
-          <Link href="/auth/login">
-            <Button variant="outline">{t(translationKeys.header.actions.login, 'Login')}</Button>
-          </Link>
+            <Link href="/auth/login">
+              <Button variant="outline">{t(translationKeys.header.actions.login, 'Login')}</Button>
+            </Link>
           )}
         </div>
       </div>
