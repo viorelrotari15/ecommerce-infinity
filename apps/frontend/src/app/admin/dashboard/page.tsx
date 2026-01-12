@@ -5,9 +5,11 @@ import { useRouter } from 'next/navigation';
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { isAdmin } from '@/lib/auth';
 import { Languages, FileText, Tag, FolderTree, Package } from 'lucide-react';
+import { useT, translationKeys } from '@/lib/utils/translations';
 
 export default function AdminDashboard() {
   const router = useRouter();
+  const t = useT();
 
   useEffect(() => {
     // Check if user is admin
@@ -20,9 +22,9 @@ export default function AdminDashboard() {
   return (
     <div className="container py-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight">Admin Dashboard</h1>
+        <h1 className="text-3xl font-bold tracking-tight">{t(translationKeys.admin.dashboard.title, 'Admin Dashboard')}</h1>
         <p className="text-muted-foreground mt-2">
-          Manage your e-commerce store
+          {t(translationKeys.admin.dashboard.description, 'Manage your e-commerce store')}
         </p>
       </div>
 
@@ -34,7 +36,7 @@ export default function AdminDashboard() {
               <Package className="h-5 w-5" />
               Products
             </CardTitle>
-            <CardDescription>Manage products</CardDescription>
+            <CardDescription>{t(translationKeys.admin.dashboard.manageProducts, 'Manage products')}</CardDescription>
           </CardHeader>
         </Card>
         <Card className="cursor-pointer hover:bg-accent transition-colors" onClick={() => router.push('/admin/brands')}>
@@ -43,7 +45,7 @@ export default function AdminDashboard() {
               <Tag className="h-5 w-5" />
               Brands
             </CardTitle>
-            <CardDescription>Manage product brands</CardDescription>
+            <CardDescription>{t(translationKeys.admin.dashboard.manageBrands, 'Manage product brands')}</CardDescription>
           </CardHeader>
         </Card>
         <Card className="cursor-pointer hover:bg-accent transition-colors" onClick={() => router.push('/admin/categories')}>
@@ -52,7 +54,7 @@ export default function AdminDashboard() {
               <FolderTree className="h-5 w-5" />
               Categories
             </CardTitle>
-            <CardDescription>Manage product categories</CardDescription>
+            <CardDescription>{t(translationKeys.admin.dashboard.manageCategories, 'Manage product categories')}</CardDescription>
           </CardHeader>
         </Card>
         <Card className="cursor-pointer hover:bg-accent transition-colors" onClick={() => router.push('/admin/product-types')}>
@@ -61,7 +63,7 @@ export default function AdminDashboard() {
               <Package className="h-5 w-5" />
               Product Types
             </CardTitle>
-            <CardDescription>Manage product types</CardDescription>
+            <CardDescription>{t(translationKeys.admin.dashboard.manageProductTypes, 'Manage product types')}</CardDescription>
           </CardHeader>
         </Card>
         <Card className="cursor-pointer hover:bg-accent transition-colors" onClick={() => router.push('/admin/languages')}>
@@ -70,7 +72,7 @@ export default function AdminDashboard() {
               <Languages className="h-5 w-5" />
               Languages
             </CardTitle>
-            <CardDescription>Manage supported languages</CardDescription>
+            <CardDescription>{t(translationKeys.admin.dashboard.manageLanguages, 'Manage supported languages')}</CardDescription>
           </CardHeader>
         </Card>
         <Card className="cursor-pointer hover:bg-accent transition-colors" onClick={() => router.push('/admin/translations')}>
@@ -79,7 +81,7 @@ export default function AdminDashboard() {
               <FileText className="h-5 w-5" />
               UI Translations
             </CardTitle>
-            <CardDescription>Manage interface text translations</CardDescription>
+            <CardDescription>{t(translationKeys.admin.dashboard.manageTranslations, 'Manage interface text translations')}</CardDescription>
           </CardHeader>
         </Card>
       </div>

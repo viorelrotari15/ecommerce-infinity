@@ -23,6 +23,7 @@ import { Plus, Edit, Trash2 } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { useConfirm } from '@/contexts/confirm-dialog-context';
+import { useT, translationKeys } from '@/lib/utils/translations';
 
 interface ProductType {
   id: string;
@@ -45,6 +46,7 @@ export default function ProductTypesPage() {
   const token = getAuthToken();
   const { toast } = useToast();
   const confirm = useConfirm();
+  const t = useT();
 
   useEffect(() => {
     if (!isAdmin()) {
@@ -78,8 +80,8 @@ export default function ProductTypesPage() {
     if (!formData.name) {
       toast({
         variant: 'destructive',
-        title: 'Validation Error',
-        description: 'Please fill in the name field',
+        title: t(translationKeys.common.validationError, 'Validation Error'),
+        description: t(translationKeys.common.fillRequired, 'Please fill in the name field'),
       });
       return;
     }
@@ -103,15 +105,15 @@ export default function ProductTypesPage() {
       setIsCreating(false);
       toast({
         variant: 'success',
-        title: 'Success',
-        description: 'Product type created successfully!',
+        title: t(translationKeys.common.success, 'Success'),
+        description: t(translationKeys.admin.productTypes.createSuccess, 'Product type created successfully!'),
       });
     } catch (error: any) {
       setIsCreating(false);
       toast({
         variant: 'destructive',
-        title: 'Error',
-        description: error.message || 'Failed to create product type. Please try again.',
+        title: t(translationKeys.common.error, 'Error'),
+        description: error.message || t(translationKeys.common.failed, 'Failed'),
       });
     }
   };
@@ -122,8 +124,8 @@ export default function ProductTypesPage() {
     if (!formData.name) {
       toast({
         variant: 'destructive',
-        title: 'Validation Error',
-        description: 'Please fill in the name field',
+        title: t(translationKeys.common.validationError, 'Validation Error'),
+        description: t(translationKeys.common.fillRequired, 'Please fill in the name field'),
       });
       return;
     }
@@ -147,25 +149,26 @@ export default function ProductTypesPage() {
       setIsCreating(false);
       toast({
         variant: 'success',
-        title: 'Success',
-        description: 'Product type updated successfully!',
+        title: t(translationKeys.common.success, 'Success'),
+        description: t(translationKeys.admin.productTypes.updateSuccess, 'Product type updated successfully!'),
       });
     } catch (error: any) {
       setIsCreating(false);
       toast({
         variant: 'destructive',
-        title: 'Error',
-        description: error.message || 'Failed to update product type. Please try again.',
+        title: t(translationKeys.common.error, 'Error'),
+        description: error.message || t(translationKeys.common.failed, 'Failed'),
       });
     }
   };
 
   const handleDelete = async (id: string, name: string) => {
+    const deleteDescription = t(translationKeys.admin.productTypes.deleteDescription, `Are you sure you want to delete "${name}"? This action cannot be undone.`);
     const confirmed = await confirm({
-      title: 'Delete Product Type',
-      description: `Are you sure you want to delete "${name}"? This action cannot be undone.`,
-      confirmText: 'Delete',
-      cancelText: 'Cancel',
+      title: t(translationKeys.admin.productTypes.deleteTitle, 'Delete Product Type'),
+      description: deleteDescription.replace(/{name}/g, name),
+      confirmText: t(translationKeys.common.delete, 'Delete'),
+      cancelText: t(translationKeys.common.cancel, 'Cancel'),
       variant: 'destructive',
     });
 
@@ -182,14 +185,14 @@ export default function ProductTypesPage() {
       await queryClient.refetchQueries({ queryKey: productTypeQueryKeys.list() });
       toast({
         variant: 'success',
-        title: 'Success',
-        description: 'Product type deleted successfully!',
+        title: t(translationKeys.common.success, 'Success'),
+        description: t(translationKeys.admin.productTypes.deleteSuccess, 'Product type deleted successfully!'),
       });
     } catch (error: any) {
       toast({
         variant: 'destructive',
-        title: 'Error',
-        description: error.message || 'Failed to delete product type. Please try again.',
+        title: t(translationKeys.common.error, 'Error'),
+        description: error.message || t(translationKeys.common.failed, 'Failed'),
       });
     }
   };
@@ -198,7 +201,7 @@ export default function ProductTypesPage() {
     return (
       <div className="container py-8">
         <div className="flex items-center justify-center min-h-[60vh]">
-          <p className="text-muted-foreground">Loading product types...</p>
+          <p className="text-muted-foreground">{t(translationKeys.admin.productTypes.loading, 'Loading product types...')}</p>
         </div>
       </div>
     );
@@ -208,14 +211,14 @@ export default function ProductTypesPage() {
     <div className="container py-8">
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Manage Product Types</h1>
+          <h1 className="text-3xl font-bold tracking-tight">{t(translationKeys.admin.productTypes.title, 'Manage Product Types')}</h1>
           <p className="text-muted-foreground mt-2">
-            Create, edit, and delete product types
+            {t(translationKeys.admin.productTypes.description, 'Create, edit, and delete product types')}
           </p>
         </div>
         <Button onClick={openCreateDialog}>
           <Plus className="h-4 w-4 mr-2" />
-          Add New Product Type
+          {t(translationKeys.admin.productTypes.addNew, 'Add New Product Type')}
         </Button>
       </div>
 
@@ -240,7 +243,7 @@ export default function ProductTypesPage() {
                   onClick={() => openEditDialog(productType)}
                 >
                   <Edit className="h-4 w-4 mr-2" />
-                  Edit
+                  {t(translationKeys.admin.productTypes.edit, 'Edit')}
                 </Button>
                 <Button
                   variant="outline"
@@ -259,10 +262,10 @@ export default function ProductTypesPage() {
       {productTypes.length === 0 && (
         <Card>
           <CardContent className="py-12 text-center">
-            <p className="text-muted-foreground mb-4">No product types found.</p>
+            <p className="text-muted-foreground mb-4">{t(translationKeys.admin.productTypes.noProductTypesFound, 'No product types found.')}</p>
             <Button onClick={openCreateDialog}>
               <Plus className="h-4 w-4 mr-2" />
-              Create Your First Product Type
+              {t(translationKeys.admin.productTypes.createFirst, 'Create Your First Product Type')}
             </Button>
           </CardContent>
         </Card>
@@ -272,35 +275,35 @@ export default function ProductTypesPage() {
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{editingId ? 'Edit Product Type' : 'Create New Product Type'}</DialogTitle>
+            <DialogTitle>{editingId ? t(translationKeys.admin.productTypes.editTitle, 'Edit Product Type') : t(translationKeys.admin.productTypes.createTitle, 'Create New Product Type')}</DialogTitle>
             <DialogDescription>
-              {editingId ? 'Update product type information' : 'Add a new product type to the system'}
+              {editingId ? t(translationKeys.admin.productTypes.editDescription, 'Update product type information') : t(translationKeys.admin.productTypes.createDescription, 'Add a new product type to the system')}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label htmlFor="name">Name *</Label>
+              <Label htmlFor="name">{t(translationKeys.admin.productTypes.name, 'Name *')}</Label>
               <Input
                 id="name"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="Product type name"
+                placeholder={t(translationKeys.admin.productTypes.namePlaceholder, 'Product type name')}
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="description">Description</Label>
+              <Label htmlFor="description">{t(translationKeys.common.description, 'Description')}</Label>
               <Textarea
                 id="description"
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="Product type description"
+                placeholder={t(translationKeys.admin.productTypes.descriptionPlaceholder, 'Product type description')}
                 rows={3}
               />
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={closeDialog}>
-              Cancel
+              {t(translationKeys.common.cancel, 'Cancel')}
             </Button>
             <Button
               onClick={editingId ? handleUpdate : handleCreate}
@@ -308,11 +311,11 @@ export default function ProductTypesPage() {
             >
               {isCreating
                 ? editingId
-                  ? 'Updating...'
-                  : 'Creating...'
+                  ? t(translationKeys.admin.productTypes.updating, 'Updating...')
+                  : t(translationKeys.admin.productTypes.creating, 'Creating...')
                 : editingId
-                  ? 'Update Product Type'
-                  : 'Create Product Type'}
+                  ? t(translationKeys.admin.productTypes.update, 'Update Product Type')
+                  : t(translationKeys.admin.productTypes.create, 'Create Product Type')}
             </Button>
           </DialogFooter>
         </DialogContent>

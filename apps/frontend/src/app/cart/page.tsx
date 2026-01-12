@@ -8,9 +8,11 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Trash2, Plus, Minus, ShoppingBag } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useT, translationKeys } from '@/lib/utils/translations';
 
 export default function CartPage() {
   const router = useRouter();
+  const t = useT();
   const { items, removeItem, updateQuantity, clearCart, getTotalPrice } = useCartStore();
   const total = getTotalPrice();
   const subtotal = total;
@@ -23,12 +25,12 @@ export default function CartPage() {
       <div className="container py-16">
         <div className="flex flex-col items-center justify-center space-y-4 text-center">
           <ShoppingBag className="h-16 w-16 text-muted-foreground" />
-          <h1 className="text-3xl font-bold">Your cart is empty</h1>
+          <h1 className="text-3xl font-bold">{t(translationKeys.cart.empty, 'Your cart is empty')}</h1>
           <p className="text-muted-foreground">
-            Start adding items to your cart to see them here.
+            {t(translationKeys.cart.startAdding, 'Start adding items to your cart to see them here.')}
           </p>
           <Link href="/products">
-            <Button>Continue Shopping</Button>
+            <Button>{t(translationKeys.cart.continueShopping, 'Continue Shopping')}</Button>
           </Link>
         </div>
       </div>
@@ -38,9 +40,9 @@ export default function CartPage() {
   return (
     <div className="container py-8">
       <div className="mb-8">
-        <h1 className="text-4xl font-bold tracking-tight">Shopping Cart</h1>
+        <h1 className="text-4xl font-bold tracking-tight">{t(translationKeys.cart.title, 'Shopping Cart')}</h1>
         <p className="mt-2 text-muted-foreground">
-          {items.length} {items.length === 1 ? 'item' : 'items'} in your cart
+          {items.length} {items.length === 1 ? t(translationKeys.cart.item, 'item') : t(translationKeys.cart.items, 'items')} in your cart
         </p>
       </div>
 
@@ -85,11 +87,11 @@ export default function CartPage() {
                           </Link>
                           {item.variantName && (
                             <p className="text-sm text-muted-foreground">
-                              Variant: {item.variantName}
+                              {t(translationKeys.products.variant, 'Variant')}: {item.variantName}
                             </p>
                           )}
                           <p className="text-sm text-muted-foreground">
-                            Stock: {item.stock}
+                            {t(translationKeys.products.stock, 'Stock')}: {item.stock}
                           </p>
                         </div>
                         <Button
@@ -129,7 +131,7 @@ export default function CartPage() {
                         <div className="text-right">
                           <p className="font-semibold">{formatPrice(itemTotal)}</p>
                           <p className="text-sm text-muted-foreground">
-                            {formatPrice(itemPrice)} each
+                            {formatPrice(itemPrice)} {t(translationKeys.products.each, 'each')}
                           </p>
                         </div>
                       </div>
@@ -142,7 +144,7 @@ export default function CartPage() {
 
           <div className="flex justify-end">
             <Button variant="outline" onClick={clearCart}>
-              Clear Cart
+              {t(translationKeys.cart.clear, 'Clear Cart')}
             </Button>
           </div>
         </div>
@@ -151,23 +153,23 @@ export default function CartPage() {
         <div className="lg:col-span-1">
           <Card className="sticky top-24">
             <CardHeader>
-              <CardTitle>Order Summary</CardTitle>
+              <CardTitle>{t(translationKeys.cart.orderSummary, 'Order Summary')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Subtotal</span>
+                  <span className="text-muted-foreground">{t(translationKeys.cart.subtotal, 'Subtotal')}</span>
                   <span>{formatPrice(subtotal)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Tax</span>
+                  <span className="text-muted-foreground">{t(translationKeys.cart.tax, 'Tax')}</span>
                   <span>{formatPrice(tax)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Shipping</span>
+                  <span className="text-muted-foreground">{t(translationKeys.cart.shipping, 'Shipping')}</span>
                   <span>
                     {shipping === 0 ? (
-                      <span className="text-green-600">Free</span>
+                      <span className="text-green-600">{t(translationKeys.cart.free, 'Free')}</span>
                     ) : (
                       formatPrice(shipping)
                     )}
@@ -175,13 +177,13 @@ export default function CartPage() {
                 </div>
                 {subtotal < 100 && (
                   <p className="text-xs text-muted-foreground">
-                    Add {formatPrice(100 - subtotal)} more for free shipping
+                    {t(translationKeys.cart.freeShipping, `Add ${formatPrice(100 - subtotal)} more for free shipping`).replace('{amount}', formatPrice(100 - subtotal))}
                   </p>
                 )}
               </div>
               <div className="border-t pt-4">
                 <div className="flex justify-between text-lg font-semibold">
-                  <span>Total</span>
+                  <span>{t(translationKeys.cart.total, 'Total')}</span>
                   <span>{formatPrice(finalTotal)}</span>
                 </div>
               </div>
@@ -191,11 +193,11 @@ export default function CartPage() {
                   size="lg"
                   onClick={() => router.push('/checkout')}
                 >
-                  Proceed to Checkout
+                  {t(translationKeys.cart.proceedToCheckout, 'Proceed to Checkout')}
                 </Button>
                 <Link href="/products">
                   <Button variant="outline" className="w-full">
-                    Continue Shopping
+                    {t(translationKeys.cart.continueShopping, 'Continue Shopping')}
                   </Button>
                 </Link>
               </div>

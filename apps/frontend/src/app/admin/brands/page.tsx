@@ -24,6 +24,7 @@ import { Plus, Edit, Trash2 } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { useConfirm } from '@/contexts/confirm-dialog-context';
+import { useT, translationKeys } from '@/lib/utils/translations';
 
 interface Brand {
   id: string;
@@ -46,6 +47,7 @@ export default function BrandsPage() {
   const token = getAuthToken();
   const { toast } = useToast();
   const confirm = useConfirm();
+  const t = useT();
 
   useEffect(() => {
     if (!isAdmin()) {
@@ -79,8 +81,8 @@ export default function BrandsPage() {
     if (!formData.name) {
       toast({
         variant: 'destructive',
-        title: 'Validation Error',
-        description: 'Please fill in the name field',
+        title: t(translationKeys.common.validationError, 'Validation Error'),
+        description: t(translationKeys.common.fillRequired, 'Please fill in the name field'),
       });
       return;
     }
@@ -104,15 +106,15 @@ export default function BrandsPage() {
       setIsCreating(false);
       toast({
         variant: 'success',
-        title: 'Success',
-        description: 'Brand created successfully!',
+        title: t(translationKeys.common.success, 'Success'),
+        description: t(translationKeys.admin.brands.createSuccess, 'Brand created successfully!'),
       });
     } catch (error: any) {
       setIsCreating(false);
       toast({
         variant: 'destructive',
-        title: 'Error',
-        description: error.message || 'Failed to create brand. Please try again.',
+        title: t(translationKeys.common.error, 'Error'),
+        description: error.message || t(translationKeys.common.failed, 'Failed'),
       });
     }
   };
@@ -123,8 +125,8 @@ export default function BrandsPage() {
     if (!formData.name) {
       toast({
         variant: 'destructive',
-        title: 'Validation Error',
-        description: 'Please fill in the name field',
+        title: t(translationKeys.common.validationError, 'Validation Error'),
+        description: t(translationKeys.common.fillRequired, 'Please fill in the name field'),
       });
       return;
     }
@@ -148,25 +150,26 @@ export default function BrandsPage() {
       setIsCreating(false);
       toast({
         variant: 'success',
-        title: 'Success',
-        description: 'Brand updated successfully!',
+        title: t(translationKeys.common.success, 'Success'),
+        description: t(translationKeys.admin.brands.updateSuccess, 'Brand updated successfully!'),
       });
     } catch (error: any) {
       setIsCreating(false);
       toast({
         variant: 'destructive',
-        title: 'Error',
-        description: error.message || 'Failed to update brand. Please try again.',
+        title: t(translationKeys.common.error, 'Error'),
+        description: error.message || t(translationKeys.common.failed, 'Failed'),
       });
     }
   };
 
   const handleDelete = async (id: string, name: string) => {
+    const deleteDescription = t(translationKeys.admin.brands.deleteDescription, `Are you sure you want to delete "${name}"? This action cannot be undone.`);
     const confirmed = await confirm({
-      title: 'Delete Brand',
-      description: `Are you sure you want to delete "${name}"? This action cannot be undone.`,
-      confirmText: 'Delete',
-      cancelText: 'Cancel',
+      title: t(translationKeys.admin.brands.deleteTitle, 'Delete Brand'),
+      description: deleteDescription.replace(/{name}/g, name),
+      confirmText: t(translationKeys.common.delete, 'Delete'),
+      cancelText: t(translationKeys.common.cancel, 'Cancel'),
       variant: 'destructive',
     });
 
@@ -183,14 +186,14 @@ export default function BrandsPage() {
       await queryClient.refetchQueries({ queryKey: brandQueryKeys.list() });
       toast({
         variant: 'success',
-        title: 'Success',
-        description: 'Brand deleted successfully!',
+        title: t(translationKeys.common.success, 'Success'),
+        description: t(translationKeys.admin.brands.deleteSuccess, 'Brand deleted successfully!'),
       });
     } catch (error: any) {
       toast({
         variant: 'destructive',
-        title: 'Error',
-        description: error.message || 'Failed to delete brand. Please try again.',
+        title: t(translationKeys.common.error, 'Error'),
+        description: error.message || t(translationKeys.common.failed, 'Failed'),
       });
     }
   };
@@ -199,7 +202,7 @@ export default function BrandsPage() {
     return (
       <div className="container py-8">
         <div className="flex items-center justify-center min-h-[60vh]">
-          <p className="text-muted-foreground">Loading brands...</p>
+          <p className="text-muted-foreground">{t(translationKeys.admin.brands.loading, 'Loading brands...')}</p>
         </div>
       </div>
     );
@@ -209,14 +212,14 @@ export default function BrandsPage() {
     <div className="container py-8">
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Manage Brands</h1>
+          <h1 className="text-3xl font-bold tracking-tight">{t(translationKeys.admin.brands.title, 'Manage Brands')}</h1>
           <p className="text-muted-foreground mt-2">
-            Create, edit, and delete product brands
+            {t(translationKeys.admin.brands.description, 'Create, edit, and delete product brands')}
           </p>
         </div>
         <Button onClick={openCreateDialog}>
           <Plus className="h-4 w-4 mr-2" />
-          Add New Brand
+          {t(translationKeys.admin.brands.addNew, 'Add New Brand')}
         </Button>
       </div>
 
@@ -241,7 +244,7 @@ export default function BrandsPage() {
                   onClick={() => openEditDialog(brand)}
                 >
                   <Edit className="h-4 w-4 mr-2" />
-                  Edit
+                  {t(translationKeys.admin.brands.edit, 'Edit')}
                 </Button>
                 <Button
                   variant="outline"
@@ -260,10 +263,10 @@ export default function BrandsPage() {
       {brands.length === 0 && (
         <Card>
           <CardContent className="py-12 text-center">
-            <p className="text-muted-foreground mb-4">No brands found.</p>
+            <p className="text-muted-foreground mb-4">{t(translationKeys.admin.brands.noBrandsFound, 'No brands found.')}</p>
             <Button onClick={openCreateDialog}>
               <Plus className="h-4 w-4 mr-2" />
-              Create Your First Brand
+              {t(translationKeys.admin.brands.createFirst, 'Create Your First Brand')}
             </Button>
           </CardContent>
         </Card>
@@ -273,35 +276,35 @@ export default function BrandsPage() {
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{editingId ? 'Edit Brand' : 'Create New Brand'}</DialogTitle>
+            <DialogTitle>{editingId ? t(translationKeys.admin.brands.editTitle, 'Edit Brand') : t(translationKeys.admin.brands.createTitle, 'Create New Brand')}</DialogTitle>
             <DialogDescription>
-              {editingId ? 'Update brand information' : 'Add a new brand to the system'}
+              {editingId ? t(translationKeys.admin.brands.editDescription, 'Update brand information') : t(translationKeys.admin.brands.createDescription, 'Add a new brand to the system')}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label htmlFor="name">Name *</Label>
+              <Label htmlFor="name">{t(translationKeys.admin.brands.name, 'Name *')}</Label>
               <Input
                 id="name"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="Brand name"
+                placeholder={t(translationKeys.admin.brands.namePlaceholder, 'Brand name')}
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="description">Description</Label>
+              <Label htmlFor="description">{t(translationKeys.common.description, 'Description')}</Label>
               <Textarea
                 id="description"
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="Brand description"
+                placeholder={t(translationKeys.admin.brands.descriptionPlaceholder, 'Brand description')}
                 rows={3}
               />
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={closeDialog}>
-              Cancel
+              {t(translationKeys.common.cancel, 'Cancel')}
             </Button>
             <Button
               onClick={editingId ? handleUpdate : handleCreate}
@@ -309,11 +312,11 @@ export default function BrandsPage() {
             >
               {isCreating
                 ? editingId
-                  ? 'Updating...'
-                  : 'Creating...'
+                  ? t(translationKeys.admin.brands.updating, 'Updating...')
+                  : t(translationKeys.admin.brands.creating, 'Creating...')
                 : editingId
-                  ? 'Update Brand'
-                  : 'Create Brand'}
+                  ? t(translationKeys.admin.brands.update, 'Update Brand')
+                  : t(translationKeys.admin.brands.create, 'Create Brand')}
             </Button>
           </DialogFooter>
         </DialogContent>

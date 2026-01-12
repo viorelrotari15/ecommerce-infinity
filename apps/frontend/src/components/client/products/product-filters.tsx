@@ -16,6 +16,7 @@ import { MultiSelectCategory } from '@/components/ui/multi-select-category';
 import { useCategories } from '@/lib/hooks/use-categories';
 import { useBrands } from '@/lib/hooks/use-brands';
 import type { Category, Brand } from '@/lib/api/server';
+import { useT, translationKeys } from '@/lib/utils/translations';
 
 interface ProductFiltersProps {
   initialFilters: { [key: string]: string | string[] | undefined };
@@ -30,6 +31,7 @@ export function ProductFilters({
 }: ProductFiltersProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const t = useT();
   const [search, setSearch] = useState((initialFilters.search as string) || '');
   // Use "all" as a special value instead of empty string
   // Convert undefined/empty to "all" for proper Select component behavior
@@ -121,7 +123,7 @@ export function ProductFilters({
     <div className="mb-8 space-y-4 rounded-lg border p-4">
       <div className="grid gap-4 md:grid-cols-3">
         <Input
-          placeholder="Search products..."
+          placeholder={t(translationKeys.products.searchPlaceholder, 'Search products...')}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && applyFilters()}
@@ -131,15 +133,15 @@ export function ProductFilters({
           categories={categories}
           selectedIds={selectedCategories}
           onSelectionChange={setSelectedCategories}
-          placeholder="Select categories..."
+          placeholder={t(translationKeys.products.selectCategories, 'Select categories...')}
         />
 
         <Select value={selectedBrand} onValueChange={setSelectedBrand}>
           <SelectTrigger>
-            <SelectValue placeholder="All Brands" />
+            <SelectValue placeholder={t(translationKeys.products.allBrands, 'All Brands')} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Brands</SelectItem>
+            <SelectItem value="all">{t(translationKeys.products.allBrands, 'All Brands')}</SelectItem>
             {brands.map((brand) => (
               <SelectItem key={brand.id} value={brand.id}>
                 {brand.name}
@@ -159,15 +161,15 @@ export function ProductFilters({
             className="h-4 w-4"
           />
           <Label htmlFor="featuredOnly" className="font-normal cursor-pointer">
-            Show featured only
+            {t(translationKeys.products.showFeaturedOnly, 'Show featured only')}
           </Label>
         </div>
       </div>
 
       <div className="flex gap-2">
-        <Button onClick={applyFilters}>Apply Filters</Button>
+        <Button onClick={applyFilters}>{t(translationKeys.products.applyFilters, 'Apply Filters')}</Button>
         <Button variant="outline" onClick={clearFilters}>
-          Clear
+          {t(translationKeys.common.clear, 'Clear')}
         </Button>
       </div>
     </div>

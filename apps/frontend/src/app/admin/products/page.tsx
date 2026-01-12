@@ -25,6 +25,7 @@ import Image from 'next/image';
 import { useConfirm } from '@/contexts/confirm-dialog-context';
 import { useToast } from '@/hooks/use-toast';
 import { MultiSelectCategory } from '@/components/ui/multi-select-category';
+import { useT, translationKeys } from '@/lib/utils/translations';
 
 interface Product {
   id: string;
@@ -45,6 +46,7 @@ interface Product {
 
 export default function ProductsPage() {
   const router = useRouter();
+  const t = useT();
   const searchParams = useSearchParams();
   
   // Get filter values from URL params
@@ -188,10 +190,10 @@ export default function ProductsPage() {
 
   const handleDelete = async (productId: string) => {
     const confirmed = await confirm({
-      title: 'Delete Product',
-      description: 'Are you sure you want to delete this product? This action cannot be undone.',
-      confirmText: 'Delete',
-      cancelText: 'Cancel',
+      title: t(translationKeys.admin.products.deleteTitle, 'Delete Product'),
+      description: t(translationKeys.admin.products.deleteDescription, 'Are you sure you want to delete this product? This action cannot be undone.'),
+      confirmText: t(translationKeys.common.delete, 'Delete'),
+      cancelText: t(translationKeys.common.cancel, 'Cancel'),
       variant: 'destructive',
     });
 
@@ -203,14 +205,14 @@ export default function ProductsPage() {
       await deleteProduct.mutateAsync(productId);
       toast({
         variant: 'success',
-        title: 'Success',
-        description: 'Product deleted successfully!',
+        title: t(translationKeys.common.success, 'Success'),
+        description: t(translationKeys.admin.products.deleteSuccess, 'Product deleted successfully!'),
       });
     } catch (err: any) {
       toast({
         variant: 'destructive',
-        title: 'Error',
-        description: err.message || 'Failed to delete product. Please try again.',
+        title: t(translationKeys.common.error, 'Error'),
+        description: err.message || t(translationKeys.common.failed, 'Failed to delete product. Please try again.'),
       });
     }
   };
@@ -220,8 +222,8 @@ export default function ProductsPage() {
     if (!token) {
       toast({
         variant: 'destructive',
-        title: 'Error',
-        description: 'Not authenticated',
+        title: t(translationKeys.common.error, 'Error'),
+        description: t(translationKeys.common.notAuthenticated, 'Not authenticated'),
       });
       return;
     }
@@ -234,16 +236,16 @@ export default function ProductsPage() {
       });
       toast({
         variant: 'success',
-        title: 'Success',
-        description: 'Product reactivated successfully!',
+        title: t(translationKeys.common.success, 'Success'),
+        description: t(translationKeys.admin.products.reactivateSuccess, 'Product reactivated successfully!'),
       });
       // Refetch products
       window.location.reload();
     } catch (err: any) {
       toast({
         variant: 'destructive',
-        title: 'Error',
-        description: err.message || 'Failed to reactivate product. Please try again.',
+        title: t(translationKeys.common.error, 'Error'),
+        description: err.message || t(translationKeys.common.failed, 'Failed to reactivate product. Please try again.'),
       });
     }
   };
@@ -252,7 +254,7 @@ export default function ProductsPage() {
     return (
       <div className="container py-8">
         <div className="flex items-center justify-center min-h-[60vh]">
-          <p className="text-muted-foreground">Loading products...</p>
+          <p className="text-muted-foreground">{t(translationKeys.admin.products.loading, 'Loading products...')}</p>
         </div>
       </div>
     );
@@ -264,8 +266,8 @@ export default function ProductsPage() {
         <div className="flex items-center justify-center min-h-[60vh]">
           <Card className="w-full max-w-md">
             <CardHeader>
-              <CardTitle>Error</CardTitle>
-              <CardDescription>{error.message || 'Failed to load products'}</CardDescription>
+              <CardTitle>{t(translationKeys.common.error, 'Error')}</CardTitle>
+              <CardDescription>{error.message || t(translationKeys.common.failed, 'Failed to load products')}</CardDescription>
             </CardHeader>
           </Card>
         </div>
@@ -293,15 +295,15 @@ export default function ProductsPage() {
     <div className="container py-8">
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Manage Products</h1>
+          <h1 className="text-3xl font-bold tracking-tight">{t(translationKeys.admin.products.title, 'Manage Products')}</h1>
           <p className="text-muted-foreground mt-2">
-            Create, edit, and delete products
+            {t(translationKeys.admin.products.description, 'Create, edit, and delete products')}
           </p>
         </div>
         <Link href="/admin/products/new">
           <Button>
             <Plus className="h-4 w-4 mr-2" />
-            New Product
+            {t(translationKeys.admin.products.newProduct, 'New Product')}
           </Button>
         </Link>
       </div>
@@ -310,7 +312,7 @@ export default function ProductsPage() {
       <div className="mb-8 space-y-4 rounded-lg border p-4">
         <div className="grid gap-4 md:grid-cols-3">
           <Input
-            placeholder="Search products..."
+            placeholder={t(translationKeys.admin.products.searchPlaceholder, 'Search products...')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && applyFilters()}
@@ -320,15 +322,15 @@ export default function ProductsPage() {
             categories={categories}
             selectedIds={selectedCategories}
             onSelectionChange={setSelectedCategories}
-            placeholder="Select categories..."
+            placeholder={t(translationKeys.admin.products.selectCategories, 'Select categories...')}
           />
 
           <Select value={selectedBrand} onValueChange={setSelectedBrand}>
             <SelectTrigger>
-              <SelectValue placeholder="All Brands" />
+              <SelectValue placeholder={t(translationKeys.admin.products.allBrands, 'All Brands')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Brands</SelectItem>
+              <SelectItem value="all">{t(translationKeys.admin.products.allBrands, 'All Brands')}</SelectItem>
               {brands.map((brand) => (
                 <SelectItem key={brand.id} value={brand.id}>
                   {brand.name}
@@ -348,7 +350,7 @@ export default function ProductsPage() {
               className="h-4 w-4"
             />
             <Label htmlFor="inactiveOnly" className="font-normal cursor-pointer">
-              Show inactive only
+              {t(translationKeys.admin.products.showInactiveOnly, 'Show inactive only')}
             </Label>
           </div>
           <div className="flex items-center space-x-2">
@@ -360,15 +362,15 @@ export default function ProductsPage() {
               className="h-4 w-4"
             />
             <Label htmlFor="featuredOnly" className="font-normal cursor-pointer">
-              Show featured only
+              {t(translationKeys.admin.products.showFeaturedOnly, 'Show featured only')}
             </Label>
           </div>
         </div>
 
         <div className="flex gap-2">
-          <Button onClick={applyFilters}>Apply Filters</Button>
+          <Button onClick={applyFilters}>{t(translationKeys.admin.products.applyFilters, 'Apply Filters')}</Button>
           <Button variant="outline" onClick={clearFilters}>
-            Clear
+            {t(translationKeys.common.clear, 'Clear')}
           </Button>
         </div>
       </div>
@@ -376,11 +378,11 @@ export default function ProductsPage() {
       {products.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center">
-            <p className="text-muted-foreground mb-4">No products found</p>
+            <p className="text-muted-foreground mb-4">{t(translationKeys.admin.products.noProductsFound, 'No products found')}</p>
             <Link href="/admin/products/new">
               <Button>
                 <Plus className="h-4 w-4 mr-2" />
-                Create Your First Product
+                {t(translationKeys.admin.products.createFirstProduct, 'Create Your First Product')}
               </Button>
             </Link>
           </CardContent>
@@ -410,18 +412,18 @@ export default function ProductsPage() {
                       />
                     ) : (
                       <div className="flex h-full items-center justify-center">
-                        <span className="text-muted-foreground">No Image</span>
+                        <span className="text-muted-foreground">{t(translationKeys.products.noImage, 'No Image')}</span>
                       </div>
                     )}
                     <div className="absolute top-2 right-2 flex gap-2">
                       {(product as any).isFeatured && (
                         <span className="bg-primary text-primary-foreground text-xs px-2 py-1 rounded">
-                          Featured
+                          {t(translationKeys.products.featured, 'Featured')}
                         </span>
                       )}
                       {!(product as any).isActive && (
                         <span className="bg-destructive text-destructive-foreground text-xs px-2 py-1 rounded">
-                          Inactive
+                          {t(translationKeys.products.inactive, 'Inactive')}
                         </span>
                       )}
                     </div>
@@ -429,47 +431,47 @@ export default function ProductsPage() {
                   <CardHeader>
                     <CardTitle className="line-clamp-2">{product.name}</CardTitle>
                     <CardDescription>
-                      {product.brand.name} • SKU: {(product as any).sku || 'N/A'}
+                      {product.brand.name} • {t(translationKeys.admin.products.sku, 'SKU')}: {(product as any).sku || 'N/A'}
                     </CardDescription>
                     <p className="text-lg font-semibold mt-2">{minPrice}</p>
                   </CardHeader>
                   <CardContent>
-                    <div className="flex flex-col gap-2">
-                      <div className="flex gap-2">
-                        <Link href={`/products/${product.slug}`} className="flex-1">
-                          <Button variant="outline" size="sm" className="w-full">
-                            <Eye className="h-4 w-4 mr-2" />
-                            View
+                      <div className="flex flex-col gap-2">
+                        <div className="flex gap-2">
+                          <Link href={`/products/${product.slug}`} className="flex-1">
+                            <Button variant="outline" size="sm" className="w-full">
+                              <Eye className="h-4 w-4 mr-2" />
+                              {t(translationKeys.admin.products.view, 'View')}
+                            </Button>
+                          </Link>
+                          <Link href={`/admin/products/${product.id}/edit`} className="flex-1">
+                            <Button variant="outline" size="sm" className="w-full">
+                              <Edit className="h-4 w-4 mr-2" />
+                              {t(translationKeys.common.edit, 'Edit')}
+                            </Button>
+                          </Link>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleDelete(product.id)}
+                            disabled={deleteProduct.isPending}
+                            className="text-destructive hover:text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4" />
                           </Button>
-                        </Link>
-                        <Link href={`/admin/products/${product.id}/edit`} className="flex-1">
-                          <Button variant="outline" size="sm" className="w-full">
-                            <Edit className="h-4 w-4 mr-2" />
-                            Edit
+                        </div>
+                        {!(product as any).isActive && (
+                          <Button
+                            variant="default"
+                            size="sm"
+                            onClick={() => handleReactivate(product.id)}
+                            className="w-full"
+                          >
+                            <CheckCircle2 className="h-4 w-4 mr-2" />
+                            {t(translationKeys.admin.products.reactivate, 'Reactivate Product')}
                           </Button>
-                        </Link>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleDelete(product.id)}
-                          disabled={deleteProduct.isPending}
-                          className="text-destructive hover:text-destructive"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        )}
                       </div>
-                      {!(product as any).isActive && (
-                        <Button
-                          variant="default"
-                          size="sm"
-                          onClick={() => handleReactivate(product.id)}
-                          className="w-full"
-                        >
-                          <CheckCircle2 className="h-4 w-4 mr-2" />
-                          Reactivate Product
-                        </Button>
-                      )}
-                    </div>
                   </CardContent>
                 </Card>
               );
@@ -483,18 +485,18 @@ export default function ProductsPage() {
                   variant="outline"
                   disabled={page === 1}
                 >
-                  Previous
+                  {t(translationKeys.admin.products.previous, 'Previous')}
                 </Button>
               </Link>
               <span className="flex items-center px-4 text-sm text-muted-foreground">
-                Page {page} of {meta.totalPages}
+                {t(translationKeys.admin.products.page, 'Page')} {page} {t(translationKeys.admin.products.of, 'of')} {meta.totalPages}
               </span>
               <Link href={buildPaginationUrl(Math.min(meta.totalPages, page + 1))}>
                 <Button
                   variant="outline"
                   disabled={page === meta.totalPages}
                 >
-                  Next
+                  {t(translationKeys.admin.products.next, 'Next')}
                 </Button>
               </Link>
             </div>
