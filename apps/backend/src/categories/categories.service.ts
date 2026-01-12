@@ -1,6 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { LanguageHelperService } from '../languages/language-helper.service';
+import { CreateCategoryDto } from './dto/create-category.dto';
+import { UpdateCategoryDto } from './dto/update-category.dto';
 
 @Injectable()
 export class CategoriesService {
@@ -8,6 +10,44 @@ export class CategoriesService {
     private prisma: PrismaService,
     private languageHelper: LanguageHelperService,
   ) {}
+
+  /**
+   * Generate a URL-friendly slug from text
+   */
+  private slugify(text: string): string {
+    return text
+      .toString()
+      .toLowerCase()
+      .trim()
+      .replace(/\s+/g, '-')
+      .replace(/[^\w\-]+/g, '')
+      .replace(/\-\-+/g, '-')
+      .replace(/^-+/, '')
+      .replace(/-+$/, '');
+  }
+
+  /**
+   * Generate a unique slug from base text
+   */
+  private async generateUniqueSlug(baseSlug: string, excludeId?: string): Promise<string> {
+    let slug = baseSlug;
+    let counter = 1;
+
+    while (true) {
+      const existing = await this.prisma.category.findUnique({
+        where: { slug },
+      });
+
+      // If no existing category, or it's the same category being updated
+      if (!existing || (excludeId && existing.id === excludeId)) {
+        return slug;
+      }
+
+      // If slug exists, append counter
+      slug = `${baseSlug}-${counter}`;
+      counter++;
+    }
+  }
 
   /**
    * Apply translations to category recursively
@@ -164,6 +204,151 @@ export class CategoriesService {
     }
 
     return translated;
+  }
+
+  async create(createCategoryDto: CreateCategoryDto) {
+    // Validate parent if provided
+    if (createCategoryDto.parentId) {
+      const parent = await this.prisma.category.findUnique({
+        where: { id: createCategoryDto.parentId },
+      });
+
+      if (!parent) {
+        throw new NotFoundException(`Parent category with ID ${createCategoryDto.parentId} not found`);
+      }
+    }
+
+    // Generate unique slug
+    const baseSlug = this.slugify(createCategoryDto.name);
+    const slug = await this.generateUniqueSlug(baseSlug);
+
+    return this.prisma.category.create({
+      data: {
+        name: createCategoryDto.name,
+        slug,
+        description: createCategoryDto.description,
+        parentId: createCategoryDto.parentId,
+      },
+    });
+  }
+
+  async update(id: string, updateCategoryDto: UpdateCategoryDto) {
+    const category = await this.prisma.category.findUnique({
+      where: { id },
+    });
+
+    if (!category) {
+      throw new NotFoundException(`Category with ID ${id} not found`);
+    }
+
+    // Prevent circular reference: category cannot be its own parent
+    if (updateCategoryDto.parentId === id) {
+      throw new BadRequestException('Category cannot be its own parent');
+    }
+
+    // Validate parent if being updated
+    if (updateCategoryDto.parentId && updateCategoryDto.parentId !== category.parentId) {
+      const parent = await this.prisma.category.findUnique({
+        where: { id: updateCategoryDto.parentId },
+      });
+
+      if (!parent) {
+        throw new NotFoundException(`Parent category with ID ${updateCategoryDto.parentId} not found`);
+      }
+
+      // Check for circular reference: ensure parent is not a descendant
+      const isDescendant = await this.isDescendant(id, updateCategoryDto.parentId);
+      if (isDescendant) {
+        throw new BadRequestException('Cannot set parent: would create circular reference');
+      }
+    }
+
+    // If name is being updated, regenerate slug
+    let slug = category.slug;
+    if (updateCategoryDto.name && updateCategoryDto.name !== category.name) {
+      const baseSlug = this.slugify(updateCategoryDto.name);
+      slug = await this.generateUniqueSlug(baseSlug, id);
+    }
+
+    return this.prisma.category.update({
+      where: { id },
+      data: {
+        ...updateCategoryDto,
+        slug,
+      },
+    });
+  }
+
+  /**
+   * Check if a category is a descendant of another category
+   */
+  private async isDescendant(categoryId: string, potentialAncestorId: string): Promise<boolean> {
+    const category = await this.prisma.category.findUnique({
+      where: { id: categoryId },
+      include: { parent: true },
+    });
+
+    if (!category || !category.parent) {
+      return false;
+    }
+
+    if (category.parent.id === potentialAncestorId) {
+      return true;
+    }
+
+    return this.isDescendant(category.parent.id, potentialAncestorId);
+  }
+
+  async remove(id: string) {
+    const category = await this.prisma.category.findUnique({
+      where: { id },
+      include: {
+        children: {
+          take: 1,
+        },
+        products: {
+          take: 1,
+        },
+      },
+    });
+
+    if (!category) {
+      throw new NotFoundException(`Category with ID ${id} not found`);
+    }
+
+    // Check if category has children
+    if (category.children.length > 0) {
+      throw new ConflictException(
+        `Cannot delete category "${category.name}" because it has subcategories`,
+      );
+    }
+
+    // Check if category has products
+    if (category.products.length > 0) {
+      throw new ConflictException(
+        `Cannot delete category "${category.name}" because it has associated products`,
+      );
+    }
+
+    return this.prisma.category.delete({
+      where: { id },
+    });
+  }
+
+  async findById(id: string) {
+    const category = await this.prisma.category.findUnique({
+      where: { id },
+      include: {
+        parent: true,
+        children: true,
+      },
+    });
+
+    if (!category) {
+      throw new NotFoundException(`Category with ID ${id} not found`);
+    }
+
+    return category;
   }
 }
 

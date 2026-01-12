@@ -1,9 +1,10 @@
 'use client';
 
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -11,6 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { MultiSelectCategory } from '@/components/ui/multi-select-category';
 import { useCategories } from '@/lib/hooks/use-categories';
 import { useBrands } from '@/lib/hooks/use-brands';
 import type { Category, Brand } from '@/lib/api/server';
@@ -35,12 +37,21 @@ export function ProductFilters({
     const brand = initialFilters.brand as string;
     return brand && brand !== 'all' ? brand : 'all';
   };
-  const getInitialCategory = () => {
-    const category = initialFilters.category as string;
-    return category && category !== 'all' ? category : 'all';
+  const getInitialCategories = () => {
+    const category = initialFilters.category;
+    const categories = initialFilters.categories;
+    if (categories && Array.isArray(categories)) {
+      return categories.filter((c: string) => c && c !== 'all');
+    }
+    if (category && category !== 'all' && typeof category === 'string') {
+      return [category];
+    }
+    return [];
   };
   const [selectedBrand, setSelectedBrand] = useState(getInitialBrand());
-  const [selectedCategory, setSelectedCategory] = useState(getInitialCategory());
+  const [selectedCategories, setSelectedCategories] = useState<string[]>(getInitialCategories());
+  const featuredOnlyParam = (initialFilters.featuredOnly as string) === 'true';
+  const [featuredOnly, setFeaturedOnly] = useState(featuredOnlyParam);
 
   // Fetch categories and brands for filter dropdowns
   const { data: categoriesData } = useCategories(initialCategories);
@@ -49,6 +60,36 @@ export function ProductFilters({
   const categories = categoriesData || [];
   const brands = brandsData || [];
 
+  // Sync featuredOnly with URL params
+  useEffect(() => {
+    const featured = (initialFilters.featuredOnly as string) === 'true';
+    setFeaturedOnly(featured);
+  }, [initialFilters.featuredOnly]);
+
+  // Memoize categories from URL to prevent infinite loops
+  const urlCategories = useMemo(() => {
+    const category = initialFilters.category;
+    const categories = initialFilters.categories;
+    return categories && Array.isArray(categories)
+      ? categories.filter((c: string) => c && c !== 'all')
+      : category && category !== 'all' && typeof category === 'string'
+      ? [category]
+      : [];
+  }, [initialFilters.category, initialFilters.categories]);
+
+  const prevUrlCategoriesRef = useRef<string>('');
+
+  // Sync selectedCategories with URL params
+  useEffect(() => {
+    const urlCategoriesStr = JSON.stringify([...urlCategories].sort());
+    
+    // Only update if the categories actually changed
+    if (urlCategoriesStr !== prevUrlCategoriesRef.current) {
+      prevUrlCategoriesRef.current = urlCategoriesStr;
+      setSelectedCategories(urlCategories);
+    }
+  }, [urlCategories]);
+
   const applyFilters = () => {
     const params = new URLSearchParams();
     if (search) params.set('search', search);
@@ -56,9 +97,13 @@ export function ProductFilters({
     if (selectedBrand && selectedBrand !== 'all') {
       params.set('brand', selectedBrand);
     }
-    if (selectedCategory && selectedCategory !== 'all') {
-      params.set('category', selectedCategory);
+    // Add multiple categories
+    if (selectedCategories.length > 0) {
+      selectedCategories.forEach(catId => {
+        params.append('categories', catId);
+      });
     }
+    if (featuredOnly) params.set('featuredOnly', 'true');
     params.set('page', '1'); // Reset to first page
 
     router.push(`/products?${params.toString()}`);
@@ -67,7 +112,8 @@ export function ProductFilters({
   const clearFilters = () => {
     setSearch('');
     setSelectedBrand('all');
-    setSelectedCategory('all');
+    setSelectedCategories([]);
+    setFeaturedOnly(false);
     router.push('/products');
   };
 
@@ -81,19 +127,12 @@ export function ProductFilters({
           onKeyDown={(e) => e.key === 'Enter' && applyFilters()}
         />
 
-        <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-          <SelectTrigger>
-            <SelectValue placeholder="All Categories" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Categories</SelectItem>
-            {categories.map((category) => (
-              <SelectItem key={category.id} value={category.id}>
-                {category.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <MultiSelectCategory
+          categories={categories}
+          selectedIds={selectedCategories}
+          onSelectionChange={setSelectedCategories}
+          placeholder="Select categories..."
+        />
 
         <Select value={selectedBrand} onValueChange={setSelectedBrand}>
           <SelectTrigger>
@@ -108,6 +147,21 @@ export function ProductFilters({
             ))}
           </SelectContent>
         </Select>
+      </div>
+
+      <div className="flex gap-6">
+        <div className="flex items-center space-x-2">
+          <input
+            type="checkbox"
+            id="featuredOnly"
+            checked={featuredOnly}
+            onChange={(e) => setFeaturedOnly(e.target.checked)}
+            className="h-4 w-4"
+          />
+          <Label htmlFor="featuredOnly" className="font-normal cursor-pointer">
+            Show featured only
+          </Label>
+        </div>
       </div>
 
       <div className="flex gap-2">

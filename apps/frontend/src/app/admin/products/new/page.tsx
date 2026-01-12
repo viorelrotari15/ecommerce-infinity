@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
@@ -21,10 +21,8 @@ import Image from 'next/image';
 
 const productSchema = yup.object({
   name: yup.string().required('Product name is required'),
-  slug: yup.string().required('Slug is required'),
   description: yup.string(),
   shortDescription: yup.string(),
-  sku: yup.string().required('SKU is required'),
   brandId: yup.string().required('Brand is required'),
   productTypeId: yup.string().required('Product type is required'),
   categoryIds: yup.array().of(yup.string()).min(1, 'At least one category is required'),
@@ -37,7 +35,6 @@ const productSchema = yup.object({
     .of(
       yup.object({
         name: yup.string().required('Variant name is required'),
-        sku: yup.string().required('Variant SKU is required'),
         price: yup.number().min(0, 'Price must be positive').required('Price is required'),
         stock: yup.number().min(0, 'Stock must be positive').required('Stock is required'),
         isActive: yup.boolean().default(true),
@@ -64,6 +61,8 @@ interface Category {
   id: string;
   name: string;
   slug: string;
+  parentId?: string;
+  children?: Category[];
 }
 
 interface ProductType {
@@ -78,22 +77,13 @@ interface Attribute {
   slug: string;
 }
 
-interface ProductImage {
-  id: string;
-  filepath: string;
-  url: string;
-  isPrimary: boolean;
-  order: number;
-}
-
 export default function NewProductPage() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
   const [attributes, setAttributes] = useState<Attribute[]>([]);
-  const [uploadedImages, setUploadedImages] = useState<ProductImage[]>([]);
   const [token, setToken] = useState<string | null>(null);
+  const isSubmittingRef = useRef(false);
 
   // Use React Query hooks for brands, categories, and product types
   const { data: brands = [] } = useBrands();
@@ -110,10 +100,10 @@ export default function NewProductPage() {
   } = useForm<ProductFormData>({
     resolver: yupResolver(productSchema),
     defaultValues: {
-      isActive: true,
+      isActive: false,
       isFeatured: false,
       categoryIds: [],
-      variants: [{ name: '', sku: '', price: 0, stock: 0, isActive: true }],
+      variants: [{ name: '', price: 0, stock: 0, isActive: true }],
       attributes: [],
     },
   });
@@ -128,6 +118,77 @@ export default function NewProductPage() {
       control,
       name: 'attributes',
     });
+
+  // Get parent categories (categories with children are parent categories)
+  const parentCategories = categories.filter((cat) => cat.children && cat.children.length > 0);
+  
+  // Get selected category IDs
+  const selectedCategoryIds = watch('categoryIds') || [];
+  
+  // Helper to find parent category for a subcategory
+  const findParentCategory = (subcategoryId: string) => {
+    return parentCategories.find((cat) => 
+      cat.children?.some((child) => child.id === subcategoryId)
+    ) || null;
+  };
+  
+  // Helper to get all categories and subcategories for display
+  const getAllCategoriesForDisplay = () => {
+    const all: Array<{ id: string; name: string; isSubcategory: boolean; parentName?: string }> = [];
+    parentCategories.forEach(cat => {
+      all.push({ id: cat.id, name: cat.name, isSubcategory: false });
+      if (cat.children) {
+        cat.children.forEach(subcat => {
+          all.push({ 
+            id: subcat.id, 
+            name: subcat.name, 
+            isSubcategory: true,
+            parentName: cat.name
+          });
+        });
+      }
+    });
+    return all;
+  };
+  
+  // Toggle category selection
+  const toggleCategory = (categoryId: string) => {
+    const currentIds = selectedCategoryIds;
+    
+    // Check if it's a parent category
+    const parentCategory = parentCategories.find((cat) => cat.id === categoryId);
+    
+    if (parentCategory) {
+      // It's a parent category
+      if (currentIds.includes(categoryId)) {
+        // Deselecting parent - remove parent and all its subcategories
+        const subcategoryIds = parentCategory.children?.map((child) => child.id).filter((id): id is string => id !== undefined) || [];
+        const newIds = currentIds.filter((id) => {
+          if (!id || id === categoryId) return false;
+          return !subcategoryIds.includes(id);
+        });
+        setValue('categoryIds', newIds);
+      } else {
+        // Selecting parent - add parent only
+        setValue('categoryIds', [...currentIds, categoryId]);
+      }
+    } else {
+      // It's a subcategory
+      const parent = findParentCategory(categoryId);
+      
+      if (currentIds.includes(categoryId)) {
+        // Deselecting subcategory - remove subcategory only
+        setValue('categoryIds', currentIds.filter((id) => id !== categoryId));
+      } else {
+        // Selecting subcategory - add subcategory and parent if not already selected
+        const newIds = [...currentIds, categoryId];
+        if (parent && !currentIds.includes(parent.id)) {
+          newIds.push(parent.id);
+        }
+        setValue('categoryIds', newIds);
+      }
+    }
+  };
 
   const selectedProductTypeId = watch('productTypeId');
 
@@ -163,73 +224,47 @@ export default function NewProductPage() {
     }
   }, [selectedProductTypeId, token]);
 
-  const [createdProductId, setCreatedProductId] = useState<string | null>(null);
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0 || !token) return;
-
-    const productId = createdProductId;
-    if (!productId) {
-      setError('Please create the product first, then upload images');
+  const onSubmit = async (data: ProductFormData) => {
+    // Prevent multiple submissions using ref for immediate check
+    if (isSubmittingRef.current || isLoading) {
       return;
     }
 
-    setIsUploading(true);
-    try {
-      const uploadPromises = Array.from(files).map((file, index) =>
-        uploadImage(productId, file, token, {
-          isPrimary: index === 0 && uploadedImages.length === 0,
-          order: uploadedImages.length + index,
-        }),
-      );
-
-      const results = await Promise.all(uploadPromises);
-      setUploadedImages([...uploadedImages, ...results]);
-    } catch (err: any) {
-      setError(err.message || 'Failed to upload images');
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
-  const handleDeleteImage = async (imageId: string) => {
-    if (!token) return;
-
-    try {
-      await fetchAPIAuth(`/images/${imageId}`, token, { method: 'DELETE' });
-      setUploadedImages(uploadedImages.filter((img) => img.id !== imageId));
-    } catch (err: any) {
-      setError(err.message || 'Failed to delete image');
-    }
-  };
-
-  const onSubmit = async (data: ProductFormData) => {
     if (!token) {
       setError('Not authenticated');
       return;
     }
 
+    // Set both state and ref to prevent multiple submissions
+    isSubmittingRef.current = true;
     setIsLoading(true);
     setError(null);
 
     try {
-      const product = await fetchAPIAuth('/products', token, {
+      // SKU and slug are auto-generated on backend, don't send them
+      const submitData = {
+        ...data,
+        sku: undefined,
+        slug: undefined,
+        variants: (data.variants || []).map((v) => ({
+          ...v,
+          sku: undefined,
+        })),
+      };
+
+      const product = await fetchAPIAuth<{ id: string }>('/products', token, {
         method: 'POST',
-        body: JSON.stringify(data),
+        body: JSON.stringify(submitData),
       });
 
-      // Set product ID for image uploads
-      setCreatedProductId(product.id);
-
-      // Show success message
-      setError(null);
-      // Don't redirect immediately - allow user to upload images first
-      // router.push(`/admin/products/${product.id}`);
+      // Redirect to edit page automatically
+      // Don't reset state/ref here since we're redirecting away
+      router.push(`/admin/products/${product.id}/edit`);
     } catch (err: any) {
       setError(err.message || 'Failed to create product');
-    } finally {
       setIsLoading(false);
+      isSubmittingRef.current = false;
     }
   };
 
@@ -246,13 +281,14 @@ export default function NewProductPage() {
         </div>
       )}
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6" noValidate>
         <div className="grid gap-6 md:grid-cols-2">
           {/* Basic Information */}
           <Card>
             <CardHeader>
               <CardTitle>Basic Information</CardTitle>
-              <CardDescription>Product name, slug, and SKU</CardDescription>
+              <CardDescription>Product name and details</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
@@ -261,22 +297,6 @@ export default function NewProductPage() {
                 </Label>
                 <Input id="name" {...register('name')} />
                 {errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="slug">
-                  Slug <span className="text-destructive">*</span>
-                </Label>
-                <Input id="slug" {...register('slug')} placeholder="product-name" />
-                {errors.slug && <p className="text-sm text-destructive">{errors.slug.message}</p>}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="sku">
-                  SKU <span className="text-destructive">*</span>
-                </Label>
-                <Input id="sku" {...register('sku')} />
-                {errors.sku && <p className="text-sm text-destructive">{errors.sku.message}</p>}
               </div>
 
               <div className="space-y-2">
@@ -350,29 +370,105 @@ export default function NewProductPage() {
                 )}
               </div>
 
-              <div className="space-y-2">
-                <Label>
-                  Categories <span className="text-destructive">*</span>
-                </Label>
+              <div className="space-y-4">
                 <div className="space-y-2">
-                  {categories.map((category) => (
-                    <div key={category.id} className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        id={`category-${category.id}`}
-                        value={category.id}
-                        {...register('categoryIds')}
-                        className="h-4 w-4"
-                      />
-                      <Label htmlFor={`category-${category.id}`} className="font-normal">
-                        {category.name}
-                      </Label>
+                  <Label>
+                    Categories <span className="text-destructive">*</span>
+                  </Label>
+                  
+                  {/* Selected Categories Display */}
+                  {selectedCategoryIds.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mb-2 p-2 border rounded-md min-h-[40px]">
+                      {selectedCategoryIds.filter((id): id is string => id !== undefined).map((categoryId) => {
+                        const allCategories = getAllCategoriesForDisplay();
+                        const category = allCategories.find((cat) => cat.id === categoryId);
+                        if (!category) return null;
+                        return (
+                          <div
+                            key={categoryId}
+                            className="flex items-center gap-1 px-2 py-1 bg-muted border border-input rounded-md text-sm"
+                          >
+                            <span className="text-foreground">
+                              {category.isSubcategory && category.parentName 
+                                ? `${category.parentName} → ${category.name}`
+                                : category.name}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (categoryId) {
+                                  toggleCategory(categoryId);
+                                }
+                              }}
+                              className="ml-1 hover:bg-destructive/10 rounded p-0.5 transition-colors"
+                            >
+                              <X className="h-3 w-3 text-destructive" />
+                            </button>
+                          </div>
+                        );
+                      })}
                     </div>
-                  ))}
+                  )}
+
+                  {/* Categories and Subcategories with Checkboxes */}
+                  <div className="space-y-2 p-3 border rounded-md max-h-[300px] overflow-y-auto">
+                    {parentCategories.map((category) => {
+                      const isParentSelected = selectedCategoryIds.includes(category.id);
+                      const hasSelectedSubcategories = category.children?.some((child) =>
+                        selectedCategoryIds.includes(child.id)
+                      );
+                      const showSubcategories = isParentSelected || hasSelectedSubcategories;
+                      
+                      return (
+                        <div key={category.id} className="space-y-1">
+                          {/* Parent Category Checkbox */}
+                          <div className="flex items-center space-x-2">
+                            <input
+                              type="checkbox"
+                              id={`category-${category.id}`}
+                              checked={isParentSelected}
+                              onChange={() => toggleCategory(category.id)}
+                              className="h-4 w-4 rounded border-primary text-primary focus:ring-primary"
+                            />
+                            <Label
+                              htmlFor={`category-${category.id}`}
+                              className="text-sm font-medium cursor-pointer"
+                            >
+                              {category.name}
+                            </Label>
+                          </div>
+                          
+                          {/* Subcategories */}
+                          {showSubcategories && category.children && category.children.length > 0 && (
+                            <div className="ml-6 space-y-1">
+                              {category.children.map((subcategory) => (
+                                <div key={subcategory.id} className="flex items-center space-x-2">
+                                  <input
+                                    type="checkbox"
+                                    id={`subcategory-${subcategory.id}`}
+                                    checked={selectedCategoryIds.includes(subcategory.id)}
+                                    onChange={() => toggleCategory(subcategory.id)}
+                                    className="h-4 w-4 rounded border-primary text-primary focus:ring-primary"
+                                  />
+                                  <Label
+                                    htmlFor={`subcategory-${subcategory.id}`}
+                                    className="text-sm text-muted-foreground cursor-pointer"
+                                  >
+                                    {subcategory.name}
+                                  </Label>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {errors.categoryIds && (
+                    <p className="text-sm text-destructive">{errors.categoryIds.message}</p>
+                  )}
                 </div>
-                {errors.categoryIds && (
-                  <p className="text-sm text-destructive">{errors.categoryIds.message}</p>
-                )}
               </div>
             </CardContent>
           </Card>
@@ -386,22 +482,13 @@ export default function NewProductPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             {variantFields.map((field, index) => (
-              <div key={field.id} className="grid gap-4 rounded-lg border p-4 md:grid-cols-5">
+              <div key={field.id} className="grid gap-4 rounded-lg border p-4 md:grid-cols-4">
                 <div className="space-y-2">
                   <Label>Name</Label>
                   <Input {...register(`variants.${index}.name`)} placeholder="e.g., 50ml" />
                   {errors.variants?.[index]?.name && (
                     <p className="text-sm text-destructive">
                       {errors.variants[index]?.name?.message}
-                    </p>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <Label>SKU</Label>
-                  <Input {...register(`variants.${index}.sku`)} />
-                  {errors.variants?.[index]?.sku && (
-                    <p className="text-sm text-destructive">
-                      {errors.variants[index]?.sku?.message}
                     </p>
                   )}
                 </div>
@@ -447,7 +534,7 @@ export default function NewProductPage() {
             <Button
               type="button"
               variant="outline"
-              onClick={() => appendVariant({ name: '', sku: '', price: 0, stock: 0, isActive: true })}
+              onClick={() => appendVariant({ name: '', price: 0, stock: 0, isActive: true })}
             >
               <Plus className="mr-2 h-4 w-4" />
               Add Variant
@@ -540,105 +627,32 @@ export default function NewProductPage() {
         <Card>
           <CardHeader>
             <CardTitle>Product Images</CardTitle>
-            <CardDescription>Upload product images (up to 5 images)</CardDescription>
+            <CardDescription>Manage product images</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex flex-wrap gap-4">
-              {uploadedImages.map((image) => (
-                <div key={image.id} className="relative">
-                  <div className="relative h-32 w-32 overflow-hidden rounded-lg border">
-                    <Image
-                      src={getProductImageUrl(image)}
-                      alt="Product"
-                      fill
-                      className="object-cover"
-                    />
-                  </div>
-                  <Button
-                    type="button"
-                    variant="destructive"
-                    size="sm"
-                    className="absolute -right-2 -top-2 h-6 w-6 rounded-full p-0"
-                    onClick={() => handleDeleteImage(image.id)}
-                  >
-                    <X className="h-3 w-3" />
-                  </Button>
-                  {image.isPrimary && (
-                    <div className="absolute bottom-0 left-0 right-0 bg-primary/80 px-2 py-1 text-xs text-primary-foreground">
-                      Primary
-                    </div>
-                  )}
-                </div>
-              ))}
-              {uploadedImages.length < 5 && (
-                <label className="flex h-32 w-32 cursor-pointer items-center justify-center rounded-lg border-2 border-dashed hover:bg-muted">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    className="hidden"
-                    onChange={handleImageUpload}
-                    disabled={isUploading}
-                  />
-                  {isUploading ? (
-                    <div className="text-muted-foreground">Uploading...</div>
-                  ) : (
-                    <Upload className="h-8 w-8 text-muted-foreground" />
-                  )}
-                </label>
-              )}
-            </div>
             <p className="text-sm text-muted-foreground">
-              {createdProductId
-                ? 'Product created! You can now upload images (up to 5 images per product).'
-                : 'Create the product first, then upload images. You can upload up to 5 images per product.'}
+              Images can be added in edit mode only. After creating the product, use the edit page to upload images (up to 5 images per product).
             </p>
-            {createdProductId && (
-              <Button
-                type="button"
-                onClick={() => router.push(`/products/${createdProductId}`)}
-                variant="outline"
-              >
-                View Product
-              </Button>
-            )}
           </CardContent>
         </Card>
 
-        {/* Options */}
+        {/* Translations */}
         <Card>
           <CardHeader>
-            <CardTitle>Options</CardTitle>
+            <CardTitle>Product Translations</CardTitle>
+            <CardDescription>Manage product translations for different languages</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                id="isActive"
-                {...register('isActive')}
-                className="h-4 w-4"
-              />
-              <Label htmlFor="isActive" className="font-normal">
-                Product is active
-              </Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                id="isFeatured"
-                {...register('isFeatured')}
-                className="h-4 w-4"
-              />
-              <Label htmlFor="isFeatured" className="font-normal">
-                Feature this product
-              </Label>
-            </div>
+            <p className="text-sm text-muted-foreground">
+              Translations can be added in edit mode only. After creating the product, use the edit page to add translations for different languages.
+            </p>
           </CardContent>
         </Card>
+
 
         {/* Submit */}
         <div className="flex justify-end gap-4">
-          <Button type="button" variant="outline" onClick={() => router.back()}>
+          <Button type="button" variant="outline" onClick={() => router.push('/admin/products')} disabled={isLoading}>
             Cancel
           </Button>
           <Button type="submit" disabled={isLoading}>

@@ -15,9 +15,9 @@ export class CreateProductVariantDto {
   @IsNotEmpty()
   name: string;
 
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  sku: string;
+  sku?: string;
 
   @IsNumber()
   @Min(0)
@@ -47,9 +47,9 @@ export class CreateProductDto {
   @IsNotEmpty()
   name: string;
 
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  slug: string;
+  slug?: string;
 
   @IsOptional()
   @IsString()
@@ -59,9 +59,9 @@ export class CreateProductDto {
   @IsString()
   shortDescription?: string;
 
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  sku: string;
+  sku?: string;
 
   @IsString()
   @IsNotEmpty()

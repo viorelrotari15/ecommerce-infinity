@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useState } from 'react';
 import { ReactQueryDevtoolsWrapper } from '@/components/devtools/react-query-devtools';
 import { LanguageProvider } from '@/lib/contexts/language-context';
+import { ConfirmDialogProvider } from '@/contexts/confirm-dialog-context';
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
@@ -25,9 +26,11 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       <LanguageProvider>
-        {children}
-        {/* React Query DevTools - only in development, gracefully handles missing package */}
-        <ReactQueryDevtoolsWrapper initialIsOpen={false} />
+        <ConfirmDialogProvider>
+          {children}
+          {/* React Query DevTools - only in development, gracefully handles missing package */}
+          <ReactQueryDevtoolsWrapper initialIsOpen={false} />
+        </ConfirmDialogProvider>
       </LanguageProvider>
     </QueryClientProvider>
   );

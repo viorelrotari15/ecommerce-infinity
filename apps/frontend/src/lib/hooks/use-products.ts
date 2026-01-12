@@ -15,7 +15,17 @@ export function fetchProductsQuery(filters: ProductFilters) {
     queryFn: async (): Promise<ProductsResponse> => {
       const params = new URLSearchParams();
       if (filters.brandId) params.append('brandId', filters.brandId);
-      if (filters.categoryId) params.append('categoryId', filters.categoryId);
+      
+      // Support both categoryId (single) and categoryIds (multiple)
+      const categoryIds = filters.categoryIds || (filters.categoryId ? [filters.categoryId] : []);
+      if (categoryIds.length > 0) {
+        categoryIds.forEach(id => {
+          if (id && id !== 'all') {
+            params.append('categoryIds', id);
+          }
+        });
+      }
+      
       if (filters.search) params.append('search', filters.search);
       if (filters.featured) params.append('featured', 'true');
       if (filters.includeInactive) params.append('includeInactive', 'true');

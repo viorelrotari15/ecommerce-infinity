@@ -42,6 +42,134 @@ export class ProductsService {
   }
 
   /**
+   * Generate a URL-friendly slug from text
+   */
+  private slugify(text: string): string {
+    return text
+      .toString()
+      .toLowerCase()
+      .trim()
+      .replace(/\s+/g, '-')
+      .replace(/[^\w\-]+/g, '')
+      .replace(/\-\-+/g, '-')
+      .replace(/^-+/, '')
+      .replace(/-+$/, '');
+  }
+
+  /**
+   * Generate a unique slug from base text
+   */
+  private async generateUniqueSlug(baseSlug: string, excludeId?: string): Promise<string> {
+    let slug = baseSlug;
+    let counter = 1;
+
+    while (true) {
+      const existing = await this.prisma.product.findUnique({
+        where: { slug },
+      });
+
+      // If no existing product, or it's the same product being updated
+      if (!existing || (excludeId && existing.id === excludeId)) {
+        return slug;
+      }
+
+      // If slug exists, append counter
+      slug = `${baseSlug}-${counter}`;
+      counter++;
+    }
+  }
+
+  /**
+   * Generate a unique SKU for a product
+   */
+  private async generateProductSku(brandId: string, productTypeId: string): Promise<string> {
+    const brand = await this.prisma.brand.findUnique({ where: { id: brandId } });
+    const productType = await this.prisma.productType.findUnique({ where: { id: productTypeId } });
+
+    if (!brand || !productType) {
+      throw new BadRequestException('Brand or product type not found');
+    }
+
+    // Get brand code (first 3 letters, uppercase, remove spaces)
+    const brandCode = brand.name
+      .substring(0, 3)
+      .toUpperCase()
+      .replace(/\s/g, '')
+      .replace(/[^\w]/g, '');
+
+    // Get product type code (first 3 letters, uppercase, remove spaces)
+    const typeCode = productType.name
+      .substring(0, 3)
+      .toUpperCase()
+      .replace(/\s/g, '')
+      .replace(/[^\w]/g, '');
+
+    // Find the highest sequence number for this brand+type combination
+    const existingProducts = await this.prisma.product.findMany({
+      where: {
+        brandId,
+        productTypeId,
+        sku: { startsWith: `${brandCode}-${typeCode}-` },
+      },
+      orderBy: { sku: 'desc' },
+      take: 1,
+    });
+
+    let sequence = 1;
+    if (existingProducts.length > 0) {
+      const lastSku = existingProducts[0].sku;
+      const match = lastSku.match(/-(\d+)$/);
+      if (match) {
+        sequence = parseInt(match[1], 10) + 1;
+      }
+    }
+
+    const generatedSku = `${brandCode}-${typeCode}-${sequence.toString().padStart(4, '0')}`;
+
+    // Verify it's unique (in case of race condition)
+    const existing = await this.prisma.product.findUnique({
+      where: { sku: generatedSku },
+    });
+
+    if (existing) {
+      // If collision, increment and try again
+      return `${brandCode}-${typeCode}-${(sequence + 1).toString().padStart(4, '0')}`;
+    }
+
+    return generatedSku;
+  }
+
+  /**
+   * Generate a unique SKU for a product variant
+   */
+  private async generateVariantSku(productSku: string, variantName: string): Promise<string> {
+    // Extract variant identifier from name (e.g., "50ml" -> "50", "Red" -> "RED")
+    const variantCode = variantName
+      .replace(/[^\w\d]/g, '')
+      .toUpperCase()
+      .substring(0, 10);
+
+    const baseSku = `${productSku}-${variantCode}`;
+
+    // Check if this variant SKU already exists
+    let sku = baseSku;
+    let counter = 1;
+
+    while (true) {
+      const existing = await this.prisma.productVariant.findUnique({
+        where: { sku },
+      });
+
+      if (!existing) {
+        return sku;
+      }
+
+      sku = `${baseSku}-${counter}`;
+      counter++;
+    }
+  }
+
+  /**
    * Convert legacy images array paths to full URLs
    */
   private convertLegacyImages(images: string[]): string[] {
@@ -76,7 +204,8 @@ export class ProductsService {
     page?: number | string;
     limit?: number | string;
     brandId?: string;
-    categoryId?: string;
+    categoryId?: string | string[];
+    categoryIds?: string | string[];
     search?: string;
     featured?: boolean | string;
     includeInactive?: boolean | string;
@@ -107,12 +236,25 @@ export class ProductsService {
       where.brandId = query.brandId;
     }
 
-    if (query.categoryId) {
-      where.categories = {
-        some: {
-          categoryId: query.categoryId,
-        },
-      };
+    // Support both single categoryId (backward compatibility) and multiple categoryIds
+    const categoryIds = query.categoryIds 
+      ? (Array.isArray(query.categoryIds) ? query.categoryIds : [query.categoryIds])
+      : query.categoryId
+      ? (Array.isArray(query.categoryId) ? query.categoryId : [query.categoryId])
+      : undefined;
+
+    if (categoryIds && categoryIds.length > 0) {
+      // Filter out empty strings and 'all' values
+      const validCategoryIds = categoryIds.filter(id => id && id !== 'all' && id !== '');
+      if (validCategoryIds.length > 0) {
+        where.categories = {
+          some: {
+            categoryId: {
+              in: validCategoryIds,
+            },
+          },
+        };
+      }
     }
 
     if (query.search) {
@@ -468,32 +610,36 @@ export class ProductsService {
       throw new BadRequestException('One or more categories not found');
     }
 
-    // Verify SKU is unique
-    const existingProduct = await this.prisma.product.findUnique({
-      where: { sku: createProductDto.sku },
-    });
-    if (existingProduct) {
-      throw new BadRequestException(`Product with SKU ${createProductDto.sku} already exists`);
-    }
+    // Always auto-generate SKU (ignore any user input)
+    const productSku = await this.generateProductSku(createProductDto.brandId, createProductDto.productTypeId);
 
-    // Verify slug is unique
-    const existingSlug = await this.prisma.product.findUnique({
-      where: { slug: createProductDto.slug },
-    });
-    if (existingSlug) {
-      throw new BadRequestException(`Product with slug ${createProductDto.slug} already exists`);
-    }
+    // Always auto-generate slug from product name (ignore any user input)
+    const baseSlug = this.slugify(createProductDto.name);
+    const productSlug = await this.generateUniqueSlug(baseSlug);
 
     // Create product with variants, categories, and attributes
     const { categoryIds, variants, attributes, ...productData } = createProductDto;
 
+    // Always auto-generate variant SKUs (ignore any user input)
+    const variantsWithSku = await Promise.all(
+      variants.map(async (variant) => {
+        const variantSku = await this.generateVariantSku(productSku, variant.name);
+        return {
+          ...variant,
+          sku: variantSku,
+        };
+      }),
+    );
+
     const product = await this.prisma.product.create({
       data: {
         ...productData,
+        sku: productSku,
+        slug: productSlug,
         isActive: productData.isActive ?? true,
         isFeatured: productData.isFeatured ?? false,
         variants: {
-          create: variants.map((variant) => ({
+          create: variantsWithSku.map((variant) => ({
             ...variant,
             isActive: variant.isActive ?? true,
           })),
@@ -577,33 +723,46 @@ export class ProductsService {
       }
     }
 
-    // If updating SKU, verify it's unique
-    if (updateProductDto.sku && updateProductDto.sku !== product.sku) {
-      const existingProduct = await this.prisma.product.findUnique({
-        where: { sku: updateProductDto.sku },
-      });
-      if (existingProduct) {
-        throw new BadRequestException(`Product with SKU ${updateProductDto.sku} already exists`);
-      }
+    // Always auto-generate SKU (ignore any user input)
+    // Only regenerate if brand or product type changed, otherwise keep existing
+    let productSku = product.sku;
+    if (updateProductDto.brandId && updateProductDto.brandId !== product.brandId) {
+      productSku = await this.generateProductSku(updateProductDto.brandId, product.productTypeId);
+    } else if (updateProductDto.productTypeId && updateProductDto.productTypeId !== product.productTypeId) {
+      productSku = await this.generateProductSku(product.brandId, updateProductDto.productTypeId);
     }
 
-    // If updating slug, verify it's unique
-    if (updateProductDto.slug && updateProductDto.slug !== product.slug) {
-      const existingSlug = await this.prisma.product.findUnique({
-        where: { slug: updateProductDto.slug },
-      });
-      if (existingSlug) {
-        throw new BadRequestException(`Product with slug ${updateProductDto.slug} already exists`);
-      }
+    // Always auto-generate slug from product name (ignore any user input)
+    // Regenerate if name changed, otherwise keep existing
+    let productSlug = product.slug;
+    if (updateProductDto.name && updateProductDto.name !== product.name) {
+      const baseSlug = this.slugify(updateProductDto.name);
+      productSlug = await this.generateUniqueSlug(baseSlug, id);
     }
 
     const { categoryIds, variants, attributes, ...productData } = updateProductDto;
+
+    // Always auto-generate variant SKUs (ignore any user input)
+    let variantsWithSku = variants;
+    if (variants) {
+      variantsWithSku = await Promise.all(
+        variants.map(async (variant) => {
+          const variantSku = await this.generateVariantSku(productSku, variant.name);
+          return {
+            ...variant,
+            sku: variantSku,
+          };
+        }),
+      );
+    }
 
     // Update product
     const updatedProduct = await this.prisma.product.update({
       where: { id },
       data: {
         ...productData,
+        sku: productSku,
+        slug: productSlug,
         ...(categoryIds && {
           categories: {
             deleteMany: {},
@@ -612,10 +771,10 @@ export class ProductsService {
             })),
           },
         }),
-        ...(variants && {
+        ...(variantsWithSku && {
           variants: {
             deleteMany: {},
-            create: variants.map((variant) => ({
+            create: variantsWithSku.map((variant) => ({
               ...variant,
               isActive: variant.isActive ?? true,
             })),

@@ -7,7 +7,8 @@ export interface ProductFilters {
   page?: number;
   limit?: number;
   brandId?: string;
-  categoryId?: string;
+  categoryId?: string | string[];
+  categoryIds?: string | string[];
   search?: string;
   featured?: boolean;
   includeInactive?: boolean;

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useImperativeHandle, forwardRef } from 'react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useLanguages } from '@/lib/hooks/use-languages';
 import { useProductTranslations, useCreateProductTranslation, useUpdateProductTranslation } from '@/lib/hooks/use-product-translations';
 import { Save, Plus } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 interface ProductTranslationsTabsProps {
   productId: string;
@@ -20,20 +21,35 @@ interface ProductTranslationsTabsProps {
   defaultMetaDescription?: string;
 }
 
-export function ProductTranslationsTabs({
+export interface ProductTranslationsTabsRef {
+  resetChanges: () => void;
+}
+
+export const ProductTranslationsTabs = forwardRef<ProductTranslationsTabsRef, ProductTranslationsTabsProps>(({
   productId,
   defaultName = '',
   defaultDescription = '',
   defaultShortDescription = '',
   defaultMetaTitle = '',
   defaultMetaDescription = '',
-}: ProductTranslationsTabsProps) {
+}, ref) => {
   const { data: languages = [] } = useLanguages(true);
   const { data: translations = [] } = useProductTranslations(productId);
   const createTranslation = useCreateProductTranslation();
   const updateTranslation = useUpdateProductTranslation();
+  const { toast } = useToast();
 
   const [translationData, setTranslationData] = useState<
+    Record<string, {
+      name: string;
+      description: string;
+      shortDescription: string;
+      metaTitle: string;
+      metaDescription: string;
+    }>
+  >({});
+
+  const [originalTranslationData, setOriginalTranslationData] = useState<
     Record<string, {
       name: string;
       description: string;
@@ -57,9 +73,23 @@ export function ProductTranslationsTabs({
       };
     });
     setTranslationData(data);
+    setOriginalTranslationData(data);
   }, [translations, languages, defaultName, defaultDescription, defaultShortDescription, defaultMetaTitle, defaultMetaDescription]);
 
-  const handleSave = async (language: string) => {
+  // Expose reset function to parent
+  useImperativeHandle(ref, () => ({
+    resetChanges: () => {
+      setTranslationData(originalTranslationData);
+    },
+  }));
+
+  const handleSave = async (language: string, e?: React.MouseEvent<HTMLButtonElement>) => {
+    // Prevent form submission if button is inside a form
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+
     const data = translationData[language];
     if (!data) return;
 
@@ -79,9 +109,24 @@ export function ProductTranslationsTabs({
           ...data,
         });
       }
-      alert('Translation saved successfully!');
+      
+      // Update original data to reflect saved state
+      setOriginalTranslationData({
+        ...originalTranslationData,
+        [language]: { ...data },
+      });
+      
+      toast({
+        variant: 'success',
+        title: 'Success',
+        description: 'Translation saved successfully!',
+      });
     } catch (error: any) {
-      alert(error.message || 'Failed to save translation');
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: error.message || 'Failed to save translation. Please try again.',
+      });
     }
   };
 
@@ -221,7 +266,8 @@ export function ProductTranslationsTabs({
                 </div>
 
                 <Button
-                  onClick={() => handleSave(lang.code)}
+                  type="button"
+                  onClick={(e) => handleSave(lang.code, e)}
                   disabled={createTranslation.isPending || updateTranslation.isPending}
                 >
                   <Save className="h-4 w-4 mr-2" />
@@ -234,5 +280,7 @@ export function ProductTranslationsTabs({
       </CardContent>
     </Card>
   );
-}
+});
+
+ProductTranslationsTabs.displayName = 'ProductTranslationsTabs';
 

@@ -5,7 +5,7 @@ import { fetchProduct } from '@/lib/api/server';
 import { formatPrice } from '@/lib/utils';
 import { getProductImages, getPrimaryProductImage, getImageUrl } from '@/lib/images';
 import { ProductActions } from '@/components/client/products/product-actions';
-import Image from 'next/image';
+import { ProductImageGallery } from '@/components/client/products/product-image-gallery';
 
 async function getProduct(slug: string) {
   try {
@@ -78,42 +78,11 @@ export default async function ProductPage({
     <div className="container py-8">
       <div className="grid gap-8 lg:grid-cols-2">
         {/* Product Images */}
-        <div className="space-y-4">
-          <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-muted">
-            {primaryImage && primaryImage !== '/placeholder-image.jpg' ? (
-              <Image
-                src={primaryImage}
-                alt={product.name}
-                fill
-                className="object-cover"
-                priority
-                unoptimized
-              />
-            ) : (
-              <div className="flex h-full items-center justify-center">
-                <span className="text-muted-foreground">No Image</span>
-              </div>
-            )}
-          </div>
-          {productImages.length > 1 && (
-            <div className="grid grid-cols-4 gap-4">
-              {productImages.slice(1, 5).map((image, idx) => (
-                <div
-                  key={idx}
-                  className="relative aspect-square overflow-hidden rounded-lg bg-muted"
-                >
-                  <Image
-                    src={image.url}
-                    alt={`${product.name} ${idx + 2}`}
-                    fill
-                    className="object-cover"
-                    unoptimized
-                  />
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+        <ProductImageGallery
+          images={productImages}
+          productName={product.name}
+          primaryImage={primaryImage}
+        />
 
         {/* Product Info */}
         <div className="space-y-6">

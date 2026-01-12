@@ -9,7 +9,8 @@ export interface FetchProductsParams {
   page?: number;
   limit?: number;
   brandId?: string;
-  categoryId?: string;
+  categoryId?: string | string[];
+  categoryIds?: string | string[];
   search?: string;
   featured?: boolean;
 }
@@ -88,7 +89,17 @@ export async function fetchProducts(
   const searchParams = new URLSearchParams();
   
   if (params.brandId) searchParams.append('brandId', params.brandId);
-  if (params.categoryId) searchParams.append('categoryId', params.categoryId);
+  
+  // Support both categoryId (single) and categoryIds (multiple)
+  const categoryIds = params.categoryIds || (params.categoryId ? [params.categoryId] : []);
+  if (categoryIds.length > 0) {
+    categoryIds.forEach(id => {
+      if (id && id !== 'all') {
+        searchParams.append('categoryIds', id);
+      }
+    });
+  }
+  
   if (params.search) searchParams.append('search', params.search);
   if (params.featured) searchParams.append('featured', 'true');
   if (language) searchParams.append('lang', language);

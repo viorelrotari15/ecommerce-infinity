@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
@@ -21,14 +21,12 @@ import { useQueryClient } from '@tanstack/react-query';
 import { productQueryKeys } from '@/lib/api/queries';
 import { X, Plus, Upload, Image as ImageIcon } from 'lucide-react';
 import Image from 'next/image';
-import { ProductTranslationsTabs } from '@/components/admin/product-translations-tabs';
+import { ProductTranslationsTabs, ProductTranslationsTabsRef } from '@/components/admin/product-translations-tabs';
 
 const productSchema = yup.object({
   name: yup.string().required('Product name is required'),
-  slug: yup.string().required('Slug is required'),
   description: yup.string(),
   shortDescription: yup.string(),
-  sku: yup.string().required('SKU is required'),
   brandId: yup.string().required('Brand is required'),
   productTypeId: yup.string().required('Product type is required'),
   categoryIds: yup.array().of(yup.string()).min(1, 'At least one category is required'),
@@ -41,7 +39,6 @@ const productSchema = yup.object({
     .of(
       yup.object({
         name: yup.string().required('Variant name is required'),
-        sku: yup.string().required('Variant SKU is required'),
         price: yup.number().min(0, 'Price must be positive').required('Price is required'),
         stock: yup.number().min(0, 'Stock must be positive').required('Stock is required'),
         isActive: yup.boolean().default(true),
@@ -68,6 +65,8 @@ interface Category {
   id: string;
   name: string;
   slug: string;
+  parentId?: string;
+  children?: Category[];
 }
 
 interface ProductType {
@@ -101,6 +100,7 @@ export default function EditProductPage() {
   const [attributes, setAttributes] = useState<Attribute[]>([]);
   const [uploadedImages, setUploadedImages] = useState<ProductImage[]>([]);
   const [token, setToken] = useState<string | null>(null);
+  const translationsRef = useRef<ProductTranslationsTabsRef>(null);
 
   // Use React Query hooks for brands, categories, and product types
   const { data: brands = [] } = useBrands();
@@ -125,10 +125,12 @@ export default function EditProductPage() {
       isActive: true,
       isFeatured: false,
       categoryIds: [],
-      variants: [{ name: '', sku: '', price: 0, stock: 0, isActive: true }],
+      variants: [{ name: '', price: 0, stock: 0, isActive: true }],
       attributes: [],
     },
   });
+
+  // SKU and slug are auto-generated on the backend, no need to handle them in frontend
 
   const { fields: variantFields, append: appendVariant, remove: removeVariant } = useFieldArray({
     control,
@@ -140,6 +142,77 @@ export default function EditProductPage() {
       control,
       name: 'attributes',
     });
+
+  // Get parent categories (categories with children are parent categories)
+  const parentCategories = (categories as unknown as Category[]).filter((cat) => cat.children && cat.children.length > 0);
+  
+  // Get selected category IDs
+  const selectedCategoryIds = watch('categoryIds') || [];
+  
+  // Helper to find parent category for a subcategory
+  const findParentCategory = (subcategoryId: string) => {
+    return parentCategories.find((cat) => 
+      cat.children?.some((child) => child.id === subcategoryId)
+    ) || null;
+  };
+  
+  // Helper to get all categories and subcategories for display
+  const getAllCategoriesForDisplay = () => {
+    const all: Array<{ id: string; name: string; isSubcategory: boolean; parentName?: string }> = [];
+    parentCategories.forEach(cat => {
+      all.push({ id: cat.id, name: cat.name, isSubcategory: false });
+      if (cat.children) {
+        cat.children.forEach(subcat => {
+          all.push({ 
+            id: subcat.id, 
+            name: subcat.name, 
+            isSubcategory: true,
+            parentName: cat.name
+          });
+        });
+      }
+    });
+    return all;
+  };
+  
+  // Toggle category selection
+  const toggleCategory = (categoryId: string) => {
+    const currentIds = selectedCategoryIds;
+    
+    // Check if it's a parent category
+    const parentCategory = parentCategories.find((cat) => cat.id === categoryId);
+    
+    if (parentCategory) {
+      // It's a parent category
+      if (currentIds.includes(categoryId)) {
+        // Deselecting parent - remove parent and all its subcategories
+        const subcategoryIds = parentCategory.children?.map((child) => child.id).filter((id): id is string => id !== undefined) || [];
+        const newIds = currentIds.filter((id) => {
+          if (!id || id === categoryId) return false;
+          return !subcategoryIds.includes(id);
+        });
+        setValue('categoryIds', newIds);
+      } else {
+        // Selecting parent - add parent only
+        setValue('categoryIds', [...currentIds, categoryId]);
+      }
+    } else {
+      // It's a subcategory
+      const parent = findParentCategory(categoryId);
+      
+      if (currentIds.includes(categoryId)) {
+        // Deselecting subcategory - remove subcategory only
+        setValue('categoryIds', currentIds.filter((id) => id !== categoryId));
+      } else {
+        // Selecting subcategory - add subcategory and parent if not already selected
+        const newIds = [...currentIds, categoryId];
+        if (parent && !currentIds.includes(parent.id)) {
+          newIds.push(parent.id);
+        }
+        setValue('categoryIds', newIds);
+      }
+    }
+  };
 
   const selectedProductTypeId = watch('productTypeId');
 
@@ -196,10 +269,8 @@ export default function EditProductPage() {
         // Set form values
         reset({
           name: product.name,
-          slug: product.slug,
           description: product.description || '',
           shortDescription: product.shortDescription || '',
-          sku: product.sku,
           brandId: product.brandId,
           productTypeId: product.productTypeId,
           categoryIds: product.categories.map((c) => c.categoryId),
@@ -209,7 +280,6 @@ export default function EditProductPage() {
           metaDescription: product.metaDescription || '',
           variants: product.variants.map((v) => ({
             name: v.name || '',
-            sku: v.sku,
             price: typeof v.price === 'string' ? parseFloat(v.price) : v.price,
             stock: v.stock,
             isActive: v.isActive,
@@ -345,13 +415,24 @@ export default function EditProductPage() {
     setError(null);
 
     try {
+      // SKU and slug are auto-generated on backend, don't send them
+      const submitData = {
+        ...data,
+        sku: undefined,
+        slug: undefined,
+        variants: (data.variants || []).map((v) => ({
+          ...v,
+          sku: undefined,
+        })),
+      };
+
       await fetchAPIAuth(`/products/${productId}`, token, {
         method: 'PATCH',
-        body: JSON.stringify(data),
+        body: JSON.stringify(submitData),
       });
 
-      // Redirect to dashboard
-      router.push('/admin/dashboard');
+      // Redirect to products page
+      router.push('/admin/products');
     } catch (err: any) {
       setError(err.message || 'Failed to update product');
     } finally {
@@ -388,7 +469,7 @@ export default function EditProductPage() {
           <Card>
             <CardHeader>
               <CardTitle>Basic Information</CardTitle>
-              <CardDescription>Product name, slug, and SKU</CardDescription>
+              <CardDescription>Product name and details</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
@@ -397,22 +478,6 @@ export default function EditProductPage() {
                 </Label>
                 <Input id="name" {...register('name')} />
                 {errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="slug">
-                  Slug <span className="text-destructive">*</span>
-                </Label>
-                <Input id="slug" {...register('slug')} placeholder="product-name" />
-                {errors.slug && <p className="text-sm text-destructive">{errors.slug.message}</p>}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="sku">
-                  SKU <span className="text-destructive">*</span>
-                </Label>
-                <Input id="sku" {...register('sku')} />
-                {errors.sku && <p className="text-sm text-destructive">{errors.sku.message}</p>}
               </div>
 
               <div className="space-y-2">
@@ -476,29 +541,105 @@ export default function EditProductPage() {
                 )}
               </div>
 
-              <div className="space-y-2">
-                <Label>
-                  Categories <span className="text-destructive">*</span>
-                </Label>
+              <div className="space-y-4">
                 <div className="space-y-2">
-                  {categories.map((category) => (
-                    <div key={category.id} className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        id={`category-${category.id}`}
-                        value={category.id}
-                        {...register('categoryIds')}
-                        className="h-4 w-4"
-                      />
-                      <Label htmlFor={`category-${category.id}`} className="font-normal">
-                        {category.name}
-                      </Label>
+                  <Label>
+                    Categories <span className="text-destructive">*</span>
+                  </Label>
+                  
+                  {/* Selected Categories Display */}
+                  {selectedCategoryIds.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mb-2 p-2 border rounded-md min-h-[40px]">
+                      {selectedCategoryIds.filter((id): id is string => id !== undefined).map((categoryId) => {
+                        const allCategories = getAllCategoriesForDisplay();
+                        const category = allCategories.find((cat) => cat.id === categoryId);
+                        if (!category) return null;
+                        return (
+                          <div
+                            key={categoryId}
+                            className="flex items-center gap-1 px-2 py-1 bg-muted border border-input rounded-md text-sm"
+                          >
+                            <span className="text-foreground">
+                              {category.isSubcategory && category.parentName 
+                                ? `${category.parentName} → ${category.name}`
+                                : category.name}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (categoryId) {
+                                  toggleCategory(categoryId);
+                                }
+                              }}
+                              className="ml-1 hover:bg-destructive/10 rounded p-0.5 transition-colors"
+                            >
+                              <X className="h-3 w-3 text-destructive" />
+                            </button>
+                          </div>
+                        );
+                      })}
                     </div>
-                  ))}
+                  )}
+
+                  {/* Categories and Subcategories with Checkboxes */}
+                  <div className="space-y-2 p-3 border rounded-md max-h-[300px] overflow-y-auto">
+                    {parentCategories.map((category) => {
+                      const isParentSelected = selectedCategoryIds.includes(category.id);
+                      const hasSelectedSubcategories = category.children?.some((child) =>
+                        selectedCategoryIds.includes(child.id)
+                      );
+                      const showSubcategories = isParentSelected || hasSelectedSubcategories;
+                      
+                      return (
+                        <div key={category.id} className="space-y-1">
+                          {/* Parent Category Checkbox */}
+                          <div className="flex items-center space-x-2">
+                            <input
+                              type="checkbox"
+                              id={`category-${category.id}`}
+                              checked={isParentSelected}
+                              onChange={() => toggleCategory(category.id)}
+                              className="h-4 w-4 rounded border-primary text-primary focus:ring-primary"
+                            />
+                            <Label
+                              htmlFor={`category-${category.id}`}
+                              className="text-sm font-medium cursor-pointer"
+                            >
+                              {category.name}
+                            </Label>
+                          </div>
+                          
+                          {/* Subcategories */}
+                          {showSubcategories && category.children && category.children.length > 0 && (
+                            <div className="ml-6 space-y-1">
+                              {category.children.map((subcategory) => (
+                                <div key={subcategory.id} className="flex items-center space-x-2">
+                                  <input
+                                    type="checkbox"
+                                    id={`subcategory-${subcategory.id}`}
+                                    checked={selectedCategoryIds.includes(subcategory.id)}
+                                    onChange={() => toggleCategory(subcategory.id)}
+                                    className="h-4 w-4 rounded border-primary text-primary focus:ring-primary"
+                                  />
+                                  <Label
+                                    htmlFor={`subcategory-${subcategory.id}`}
+                                    className="text-sm text-muted-foreground cursor-pointer"
+                                  >
+                                    {subcategory.name}
+                                  </Label>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {errors.categoryIds && (
+                    <p className="text-sm text-destructive">{errors.categoryIds.message}</p>
+                  )}
                 </div>
-                {errors.categoryIds && (
-                  <p className="text-sm text-destructive">{errors.categoryIds.message}</p>
-                )}
               </div>
             </CardContent>
           </Card>
@@ -523,16 +664,6 @@ export default function EditProductPage() {
           </CardContent>
         </Card>
 
-        {/* Translations */}
-        <ProductTranslationsTabs
-          productId={productId}
-          defaultName={watch('name') || ''}
-          defaultDescription={watch('description') || ''}
-          defaultShortDescription={watch('shortDescription') || ''}
-          defaultMetaTitle={watch('metaTitle') || ''}
-          defaultMetaDescription={watch('metaDescription') || ''}
-        />
-
         {/* Variants */}
         <Card>
           <CardHeader>
@@ -541,22 +672,13 @@ export default function EditProductPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             {variantFields.map((field, index) => (
-              <div key={field.id} className="grid gap-4 rounded-lg border p-4 md:grid-cols-5">
+              <div key={field.id} className="grid gap-4 rounded-lg border p-4 md:grid-cols-4">
                 <div className="space-y-2">
                   <Label>Name</Label>
                   <Input {...register(`variants.${index}.name`)} placeholder="e.g., 50ml" />
                   {errors.variants?.[index]?.name && (
                     <p className="text-sm text-destructive">
                       {errors.variants[index]?.name?.message}
-                    </p>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <Label>SKU</Label>
-                  <Input {...register(`variants.${index}.sku`)} />
-                  {errors.variants?.[index]?.sku && (
-                    <p className="text-sm text-destructive">
-                      {errors.variants[index]?.sku?.message}
                     </p>
                   )}
                 </div>
@@ -602,7 +724,7 @@ export default function EditProductPage() {
             <Button
               type="button"
               variant="outline"
-              onClick={() => appendVariant({ name: '', sku: '', price: 0, stock: 0, isActive: true })}
+              onClick={() => appendVariant({ name: '', price: 0, stock: 0, isActive: true })}
             >
               <Plus className="mr-2 h-4 w-4" />
               Add Variant
@@ -746,6 +868,17 @@ export default function EditProductPage() {
           </CardContent>
         </Card>
 
+        {/* Translations */}
+        <ProductTranslationsTabs
+          ref={translationsRef}
+          productId={productId}
+          defaultName={watch('name') || ''}
+          defaultDescription={watch('description') || ''}
+          defaultShortDescription={watch('shortDescription') || ''}
+          defaultMetaTitle={watch('metaTitle') || ''}
+          defaultMetaDescription={watch('metaDescription') || ''}
+        />
+
         {/* Options */}
         <Card>
           <CardHeader>
@@ -779,7 +912,18 @@ export default function EditProductPage() {
 
         {/* Submit */}
         <div className="flex justify-end gap-4">
-          <Button type="button" variant="outline" onClick={() => router.back()}>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => {
+              // Reset translation changes
+              translationsRef.current?.resetChanges();
+              // Reset form to original values
+              // The form will be reset when we navigate away, but we explicitly reset it here
+              // Navigate back to products page
+              router.push('/admin/products');
+            }}
+          >
             Cancel
           </Button>
           <Button type="submit" disabled={isLoading}>
