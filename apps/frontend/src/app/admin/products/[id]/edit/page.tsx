@@ -449,10 +449,26 @@ export default function EditProductPage() {
         })),
       };
 
-      await fetchAPIAuth(`/products/${productId}`, token, {
+      const updatedProduct = await fetchAPIAuth<{
+        id: string;
+        slug: string;
+      }>(`/products/${productId}`, token, {
         method: 'PATCH',
         body: JSON.stringify(submitData),
       });
+
+      // Invalidate React Query cache to ensure fresh data is shown
+      // Invalidate all product lists
+      queryClient.invalidateQueries({ queryKey: productQueryKeys.lists() });
+      // Invalidate the specific product detail if we have the slug
+      if (updatedProduct?.slug) {
+        queryClient.invalidateQueries({ queryKey: productQueryKeys.detail(updatedProduct.slug) });
+      }
+      // Also invalidate all products queries to be safe
+      queryClient.invalidateQueries({ queryKey: productQueryKeys.all });
+
+      // Refresh Next.js router cache to ensure server-side cache is also invalidated
+      router.refresh();
 
       // Redirect to products page
       router.push('/admin/products');
