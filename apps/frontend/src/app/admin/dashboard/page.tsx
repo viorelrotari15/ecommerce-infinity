@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { isAdmin } from '@/lib/auth';
-import { Languages, FileText, Tag, FolderTree, Package } from 'lucide-react';
+import { Languages, FileText, Tag, FolderTree, Package, List } from 'lucide-react';
 import { useT, translationKeys } from '@/lib/utils/translations';
 
 export default function AdminDashboard() {
@@ -64,6 +64,15 @@ export default function AdminDashboard() {
               Product Types
             </CardTitle>
             <CardDescription>{t(translationKeys.admin.dashboard.manageProductTypes, 'Manage product types')}</CardDescription>
+          </CardHeader>
+        </Card>
+        <Card className="cursor-pointer hover:bg-accent transition-colors" onClick={() => router.push('/admin/attributes')}>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <List className="h-5 w-5" />
+              Attributes
+            </CardTitle>
+            <CardDescription>Manage product attributes and subattributes</CardDescription>
           </CardHeader>
         </Card>
         <Card className="cursor-pointer hover:bg-accent transition-colors" onClick={() => router.push('/admin/languages')}>
