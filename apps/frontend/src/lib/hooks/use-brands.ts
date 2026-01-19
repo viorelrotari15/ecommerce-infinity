@@ -16,7 +16,9 @@ export function useBrands(initialData?: Brand[]) {
       return Array.isArray(data) ? data : data.data || [];
     },
     initialData,
-    staleTime: 60 * 60 * 1000, // 1 hour (brands don't change often)
+    staleTime: 0, // Always consider data stale so it refetches after invalidation
+    refetchOnMount: true, // Refetch when component mounts if data is stale
+    refetchOnWindowFocus: true, // Refetch when window regains focus
   });
 }
 

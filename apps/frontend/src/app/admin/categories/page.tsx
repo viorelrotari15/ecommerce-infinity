@@ -34,6 +34,7 @@ import { useConfirm } from '@/contexts/confirm-dialog-context';
 import { useT, translationKeys } from '@/lib/utils/translations';
 import { apiClient } from '@/lib/api/client';
 import { fetchAPIAuth } from '@/lib/api/client';
+import { revalidateCategories } from '@/app/actions/revalidate';
 import type { Category as CategoryType } from '@/lib/api/server';
 
 interface Category {
@@ -229,7 +230,12 @@ export default function CategoriesPage() {
           },
         }
       );
-      await queryClient.invalidateQueries({ queryKey: categoryQueryKeys.list() });
+      // Invalidate React Query cache
+      await queryClient.invalidateQueries({ queryKey: categoryQueryKeys.all });
+      // Revalidate Next.js server-side cache for categories page
+      await revalidateCategories();
+      // Refresh Next.js router cache to ensure server-side cache is also invalidated
+      router.refresh();
       closeDialog();
       setIsCreating(false);
       toast({
@@ -273,7 +279,12 @@ export default function CategoriesPage() {
           },
         }
       );
-      await queryClient.invalidateQueries({ queryKey: categoryQueryKeys.list() });
+      // Invalidate React Query cache
+      await queryClient.invalidateQueries({ queryKey: categoryQueryKeys.all });
+      // Revalidate Next.js server-side cache for categories page
+      await revalidateCategories();
+      // Refresh Next.js router cache to ensure server-side cache is also invalidated
+      router.refresh();
       closeDialog();
       setIsCreating(false);
       toast({
@@ -311,7 +322,10 @@ export default function CategoriesPage() {
           Authorization: `Bearer ${token}`,
         },
       });
-      await queryClient.invalidateQueries({ queryKey: categoryQueryKeys.list() });
+      // Invalidate React Query cache
+      await queryClient.invalidateQueries({ queryKey: categoryQueryKeys.all });
+      // Refresh Next.js router cache to ensure server-side cache is also invalidated
+      router.refresh();
       toast({
         variant: 'success',
         title: t(translationKeys.common.success, 'Success'),
@@ -344,6 +358,12 @@ export default function CategoriesPage() {
       });
 
       await Promise.all(promises);
+      // Invalidate React Query cache
+      await queryClient.invalidateQueries({ queryKey: categoryQueryKeys.all });
+      // Revalidate Next.js server-side cache for categories page
+      await revalidateCategories();
+      // Refresh Next.js router cache to ensure server-side cache is also invalidated
+      router.refresh();
       closeTranslationDialog();
       setIsCreating(false);
       toast({

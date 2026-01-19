@@ -25,6 +25,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { useConfirm } from '@/contexts/confirm-dialog-context';
 import { useT, translationKeys } from '@/lib/utils/translations';
+import { revalidateBrands } from '@/app/actions/revalidate';
 
 interface Brand {
   id: string;
@@ -101,7 +102,12 @@ export default function BrandsPage() {
           },
         }
       );
-      await queryClient.refetchQueries({ queryKey: brandQueryKeys.list() });
+      // Invalidate React Query cache
+      await queryClient.invalidateQueries({ queryKey: brandQueryKeys.all });
+      // Revalidate Next.js server-side cache for brands page
+      await revalidateBrands();
+      // Refresh Next.js router cache to ensure server-side cache is also invalidated
+      router.refresh();
       closeDialog();
       setIsCreating(false);
       toast({
@@ -145,7 +151,12 @@ export default function BrandsPage() {
           },
         }
       );
-      await queryClient.invalidateQueries({ queryKey: brandQueryKeys.list() });
+      // Invalidate React Query cache
+      await queryClient.invalidateQueries({ queryKey: brandQueryKeys.all });
+      // Revalidate Next.js server-side cache for brands page
+      await revalidateBrands();
+      // Refresh Next.js router cache to ensure server-side cache is also invalidated
+      router.refresh();
       closeDialog();
       setIsCreating(false);
       toast({
@@ -183,7 +194,12 @@ export default function BrandsPage() {
           Authorization: `Bearer ${token}`,
         },
       });
-      await queryClient.refetchQueries({ queryKey: brandQueryKeys.list() });
+      // Invalidate React Query cache
+      await queryClient.invalidateQueries({ queryKey: brandQueryKeys.all });
+      // Revalidate Next.js server-side cache for brands page
+      await revalidateBrands();
+      // Refresh Next.js router cache to ensure server-side cache is also invalidated
+      router.refresh();
       toast({
         variant: 'success',
         title: t(translationKeys.common.success, 'Success'),
