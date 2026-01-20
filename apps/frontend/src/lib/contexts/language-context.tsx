@@ -17,22 +17,27 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const { data: languages = [], isLoading: languagesLoading } = useLanguages();
   const { data: defaultLanguage, isLoading: defaultLoading } = useDefaultLanguage();
 
+  // Filter to active languages only (English is guaranteed to exist in DB)
+  const activeLanguages = React.useMemo(() => {
+    return languages.filter((l) => l.isActive);
+  }, [languages]);
+
   // Initialize language from cookie or use default
   useEffect(() => {
-    if (defaultLanguage) {
-      // Check cookie first
-      const cookieLang = document.cookie
-        .split('; ')
-        .find((row) => row.startsWith('lang='))
-        ?.split('=')[1];
+    const effectiveDefault = defaultLanguage || 'en';
+    
+    // Check cookie first
+    const cookieLang = document.cookie
+      .split('; ')
+      .find((row) => row.startsWith('lang='))
+      ?.split('=')[1];
 
-      if (cookieLang && languages.some((l) => l.code === cookieLang && l.isActive)) {
-        setCurrentLanguageState(cookieLang);
-      } else {
-        setCurrentLanguageState(defaultLanguage);
-      }
+    if (cookieLang && activeLanguages.some((l) => l.code === cookieLang)) {
+      setCurrentLanguageState(cookieLang);
+    } else {
+      setCurrentLanguageState(effectiveDefault);
     }
-  }, [defaultLanguage, languages]);
+  }, [defaultLanguage, activeLanguages]);
 
   const setLanguage = useCallback((lang: string) => {
     setCurrentLanguageState(lang);
@@ -45,7 +50,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const value: LanguageContextType = {
     currentLanguage,
     setLanguage,
-    languages: languages.filter((l) => l.isActive),
+    languages: activeLanguages,
     isLoading: languagesLoading || defaultLoading,
   };
 
