@@ -18,13 +18,17 @@ import {
 import { apiClient } from '@/lib/api/client';
 import { getAuthToken } from '@/lib/auth';
 import { isAdmin } from '@/lib/auth';
-import { useBrands } from '@/lib/hooks/use-brands';
+import { useBrands, useUpsertBrandTranslation } from '@/lib/hooks/use-brands';
 import { brandQueryKeys } from '@/lib/api/queries';
+import { useLanguages } from '@/lib/hooks/use-languages';
+import { fetchAPIAuth } from '@/lib/api/client';
 import { Plus, Edit, Trash2 } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { useConfirm } from '@/contexts/confirm-dialog-context';
 import { useT, translationKeys } from '@/lib/utils/translations';
+import { revalidateBrands } from '@/app/actions/revalidate';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 
 interface Brand {
   id: string;
@@ -37,17 +41,22 @@ export default function BrandsPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { data: brands = [], isLoading } = useBrands();
+  const { data: languages = [] } = useLanguages(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isTranslationDialogOpen, setIsTranslationDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [translationBrandId, setTranslationBrandId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
   });
+  const [translationData, setTranslationData] = useState<Record<string, { name: string; description: string }>>({});
   const [isCreating, setIsCreating] = useState(false);
   const token = getAuthToken();
   const { toast } = useToast();
   const confirm = useConfirm();
   const t = useT();
+  const upsertTranslation = useUpsertBrandTranslation();
 
   useEffect(() => {
     if (!isAdmin()) {
@@ -77,6 +86,90 @@ export default function BrandsPage() {
     setFormData({ name: '', description: '' });
   };
 
+  const openTranslationDialog = async (brandId: string) => {
+    setTranslationBrandId(brandId);
+    // Load existing translations
+    try {
+      if (token) {
+        const translations = await fetchAPIAuth<Array<{ language: string; name: string; description?: string }>>(
+          `/brands/${brandId}/translations`,
+          token,
+        );
+        const translationMap: Record<string, { name: string; description: string }> = {};
+        languages.forEach((lang) => {
+          const existing = translations?.find((t) => t.language === lang.code);
+          translationMap[lang.code] = {
+            name: existing?.name || '',
+            description: existing?.description || '',
+          };
+        });
+        setTranslationData(translationMap);
+      } else {
+        // Initialize with empty strings
+        const translationMap: Record<string, { name: string; description: string }> = {};
+        languages.forEach((lang) => {
+          translationMap[lang.code] = { name: '', description: '' };
+        });
+        setTranslationData(translationMap);
+      }
+    } catch (error) {
+      // Initialize with empty strings on error
+      const translationMap: Record<string, { name: string; description: string }> = {};
+      languages.forEach((lang) => {
+        translationMap[lang.code] = { name: '', description: '' };
+      });
+      setTranslationData(translationMap);
+    }
+    setIsTranslationDialogOpen(true);
+  };
+
+  const closeTranslationDialog = () => {
+    setIsTranslationDialogOpen(false);
+    setTranslationBrandId(null);
+    setTranslationData({});
+  };
+
+  const handleSaveTranslations = async () => {
+    if (!translationBrandId) return;
+
+    try {
+      setIsCreating(true);
+      const promises = languages.map((lang) => {
+        const data = translationData[lang.code];
+        const name = data?.name?.trim();
+        if (!name) return Promise.resolve();
+        return upsertTranslation.mutateAsync({
+          brandId: translationBrandId,
+          language: lang.code,
+          name,
+          description: data?.description?.trim(),
+        });
+      });
+
+      await Promise.all(promises);
+      // Invalidate React Query cache
+      await queryClient.invalidateQueries({ queryKey: brandQueryKeys.all });
+      // Revalidate Next.js server-side cache for brands page
+      await revalidateBrands();
+      // Refresh Next.js router cache to ensure server-side cache is also invalidated
+      router.refresh();
+      closeTranslationDialog();
+      setIsCreating(false);
+      toast({
+        variant: 'success',
+        title: t(translationKeys.common.success, 'Success'),
+        description: 'Translations saved successfully!',
+      });
+    } catch (error: any) {
+      setIsCreating(false);
+      toast({
+        variant: 'destructive',
+        title: t(translationKeys.common.error, 'Error'),
+        description: error.message || t(translationKeys.common.failed, 'Failed'),
+      });
+    }
+  };
+
   const handleCreate = async () => {
     if (!formData.name) {
       toast({
@@ -101,7 +194,12 @@ export default function BrandsPage() {
           },
         }
       );
-      await queryClient.refetchQueries({ queryKey: brandQueryKeys.list() });
+      // Invalidate React Query cache
+      await queryClient.invalidateQueries({ queryKey: brandQueryKeys.all });
+      // Revalidate Next.js server-side cache for brands page
+      await revalidateBrands();
+      // Refresh Next.js router cache to ensure server-side cache is also invalidated
+      router.refresh();
       closeDialog();
       setIsCreating(false);
       toast({
@@ -145,7 +243,12 @@ export default function BrandsPage() {
           },
         }
       );
-      await queryClient.invalidateQueries({ queryKey: brandQueryKeys.list() });
+      // Invalidate React Query cache
+      await queryClient.invalidateQueries({ queryKey: brandQueryKeys.all });
+      // Revalidate Next.js server-side cache for brands page
+      await revalidateBrands();
+      // Refresh Next.js router cache to ensure server-side cache is also invalidated
+      router.refresh();
       closeDialog();
       setIsCreating(false);
       toast({
@@ -183,7 +286,12 @@ export default function BrandsPage() {
           Authorization: `Bearer ${token}`,
         },
       });
-      await queryClient.refetchQueries({ queryKey: brandQueryKeys.list() });
+      // Invalidate React Query cache
+      await queryClient.invalidateQueries({ queryKey: brandQueryKeys.all });
+      // Revalidate Next.js server-side cache for brands page
+      await revalidateBrands();
+      // Refresh Next.js router cache to ensure server-side cache is also invalidated
+      router.refresh();
       toast({
         variant: 'success',
         title: t(translationKeys.common.success, 'Success'),
@@ -238,6 +346,13 @@ export default function BrandsPage() {
                 </p>
               )}
               <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => openTranslationDialog(brand.id)}
+                >
+                  {t(translationKeys.common.translations, 'Translations')}
+                </Button>
                 <Button
                   variant="outline"
                   size="sm"
@@ -317,6 +432,83 @@ export default function BrandsPage() {
                 : editingId
                   ? t(translationKeys.admin.brands.update, 'Update Brand')
                   : t(translationKeys.admin.brands.create, 'Create Brand')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Translation Dialog */}
+      <Dialog open={isTranslationDialogOpen} onOpenChange={setIsTranslationDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Brand Translations</DialogTitle>
+            <DialogDescription>
+              Add translations for this brand in different languages
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <Tabs defaultValue={languages[0]?.code || ''} className="w-full">
+              <TabsList className="grid w-full" style={{ gridTemplateColumns: `repeat(${languages.length}, minmax(0, 1fr))` }}>
+                {languages.map((lang) => (
+                  <TabsTrigger key={lang.code} value={lang.code}>
+                    {lang.name}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+              {languages.map((lang) => (
+                <TabsContent key={lang.code} value={lang.code} className="space-y-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor={`translation-name-${lang.code}`}>
+                      Name ({lang.name})
+                    </Label>
+                    <Input
+                      id={`translation-name-${lang.code}`}
+                      value={translationData[lang.code]?.name || ''}
+                      onChange={(e) =>
+                        setTranslationData({
+                          ...translationData,
+                          [lang.code]: {
+                            ...translationData[lang.code],
+                            name: e.target.value,
+                            description: translationData[lang.code]?.description || '',
+                          },
+                        })
+                      }
+                      placeholder={`Enter name in ${lang.name}`}
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor={`translation-description-${lang.code}`}>
+                      Description ({lang.name}) - Optional
+                    </Label>
+                    <textarea
+                      id={`translation-description-${lang.code}`}
+                      value={translationData[lang.code]?.description || ''}
+                      onChange={(e) =>
+                        setTranslationData({
+                          ...translationData,
+                          [lang.code]: {
+                            ...translationData[lang.code],
+                            name: translationData[lang.code]?.name || '',
+                            description: e.target.value,
+                          },
+                        })
+                      }
+                      placeholder={`Enter description in ${lang.name}`}
+                      rows={3}
+                      className="flex min-h-[60px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    />
+                  </div>
+                </TabsContent>
+              ))}
+            </Tabs>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={closeTranslationDialog}>
+              {t(translationKeys.common.cancel, 'Cancel')}
+            </Button>
+            <Button onClick={handleSaveTranslations} disabled={isCreating}>
+              {isCreating ? 'Saving...' : 'Save Translations'}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -23,6 +23,7 @@
     "prisma:seed": "ts-node prisma/seed.ts",
     "prisma:seed:images": "ts-node -r tsconfig-paths/register prisma/seed-images.ts",
     "create-admin": "ts-node -r tsconfig-paths/register scripts/create-admin.ts",
+    "create-users": "ts-node -r tsconfig-paths/register scripts/create-users.ts",
     "add-languages": "ts-node -r tsconfig-paths/register scripts/add-default-languages.ts"
   },
   "dependencies": {

@@ -21,21 +21,39 @@ export function useTranslations(language?: string) {
 export function useTranslation(language?: string) {
   const { data: translations } = useTranslations(language);
 
-  return (key: string, fallback?: string): string => {
-    if (!translations) return fallback || key;
-
-    const keys = key.split('.');
-    let value: any = translations;
-
-    for (const k of keys) {
-      if (value && typeof value === 'object' && k in value) {
-        value = value[k];
-      } else {
-        return fallback || key;
-      }
+  return (key: string | undefined | null, fallback?: string): string => {
+    // Handle undefined or null key first
+    if (key === undefined || key === null) {
+      return fallback || '';
+    }
+    
+    // Ensure key is a string
+    const keyString = String(key);
+    if (!keyString || keyString.trim() === '') {
+      return fallback || '';
+    }
+    
+    if (!translations) {
+      return fallback || keyString;
     }
 
-    return typeof value === 'string' ? value : fallback || key;
+    try {
+      const keys = keyString.split('.');
+      let value: any = translations;
+
+      for (const k of keys) {
+        if (value && typeof value === 'object' && k in value) {
+          value = value[k];
+        } else {
+          return fallback || keyString;
+        }
+      }
+
+      return typeof value === 'string' ? value : fallback || keyString;
+    } catch (error) {
+      // If anything goes wrong, return fallback or key
+      return fallback || keyString;
+    }
   };
 }
 

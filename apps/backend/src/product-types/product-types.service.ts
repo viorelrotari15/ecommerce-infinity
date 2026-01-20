@@ -1,11 +1,15 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { LanguageHelperService } from '../languages/language-helper.service';
 import { CreateProductTypeDto } from './dto/create-product-type.dto';
 import { UpdateProductTypeDto } from './dto/update-product-type.dto';
 
 @Injectable()
 export class ProductTypesService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private languageHelper: LanguageHelperService,
+  ) {}
 
   /**
    * Generate a URL-friendly slug from text
@@ -45,10 +49,38 @@ export class ProductTypesService {
     }
   }
 
-  async findAll() {
-    return this.prisma.productType.findMany({
+  async findAll(language?: string) {
+    const resolvedLanguage = await this.languageHelper.resolveLanguage(language);
+    const defaultLang = await this.languageHelper.getDefaultLanguage();
+
+    const productTypes = await this.prisma.productType.findMany({
+      include: {
+        translations: true,
+      },
       orderBy: { name: 'asc' },
     });
+
+    // Apply translations
+    const translated = await Promise.all(
+      productTypes.map(async (productType) => {
+        const translation = await this.languageHelper.getTranslationWithFallback(
+          productType.translations || [],
+          resolvedLanguage,
+          defaultLang,
+          (t) => t,
+        );
+
+        if (translation) {
+          productType.name = translation.name || productType.name;
+          productType.description = translation.description || productType.description;
+        }
+
+        delete productType.translations;
+        return productType;
+      }),
+    );
+
+    return translated;
   }
 
   async create(createProductTypeDto: CreateProductTypeDto) {
@@ -147,6 +179,65 @@ export class ProductTypesService {
     }
 
     return productType;
+  }
+
+  async getTranslations(productTypeId: string) {
+    const productType = await this.findById(productTypeId);
+    return this.prisma.productTypeTranslation.findMany({
+      where: { productTypeId },
+      orderBy: { language: 'asc' },
+    });
+  }
+
+  async upsertTranslation(
+    productTypeId: string,
+    language: string,
+    translationData: { name: string; description?: string },
+  ) {
+    // Verify product type exists
+    await this.findById(productTypeId);
+
+    // Verify language exists
+    const lang = await this.prisma.language.findUnique({
+      where: { code: language },
+    });
+
+    if (!lang || !lang.isActive) {
+      throw new BadRequestException(`Language ${language} is not active`);
+    }
+
+    return this.prisma.productTypeTranslation.upsert({
+      where: {
+        productTypeId_language: {
+          productTypeId,
+          language,
+        },
+      },
+      create: {
+        productTypeId,
+        language,
+        name: translationData.name,
+        description: translationData.description,
+      },
+      update: {
+        name: translationData.name,
+        description: translationData.description,
+      },
+    });
+  }
+
+  async deleteTranslation(productTypeId: string, language: string) {
+    // Verify product type exists
+    await this.findById(productTypeId);
+
+    return this.prisma.productTypeTranslation.delete({
+      where: {
+        productTypeId_language: {
+          productTypeId,
+          language,
+        },
+      },
+    });
   }
 }
 

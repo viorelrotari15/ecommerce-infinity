@@ -24,7 +24,7 @@ export default async function CategoriesPage() {
   return (
     <div className="container py-8">
       <CategoriesHeader />
-      <CategoriesList categories={categories} />
+      <CategoriesList initialCategories={categories} />
     </div>
   );
 }

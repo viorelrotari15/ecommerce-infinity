@@ -449,10 +449,26 @@ export default function EditProductPage() {
         })),
       };
 
-      await fetchAPIAuth(`/products/${productId}`, token, {
+      const updatedProduct = await fetchAPIAuth<{
+        id: string;
+        slug: string;
+      }>(`/products/${productId}`, token, {
         method: 'PATCH',
         body: JSON.stringify(submitData),
       });
+
+      // Invalidate React Query cache to ensure fresh data is shown
+      // Invalidate all product lists
+      queryClient.invalidateQueries({ queryKey: productQueryKeys.lists() });
+      // Invalidate the specific product detail if we have the slug
+      if (updatedProduct?.slug) {
+        queryClient.invalidateQueries({ queryKey: productQueryKeys.detail(updatedProduct.slug) });
+      }
+      // Also invalidate all products queries to be safe
+      queryClient.invalidateQueries({ queryKey: productQueryKeys.all });
+
+      // Refresh Next.js router cache to ensure server-side cache is also invalidated
+      router.refresh();
 
       // Redirect to products page
       router.push('/admin/products');
@@ -509,6 +525,16 @@ export default function EditProductPage() {
                   id="shortDescription"
                   {...register('shortDescription')}
                   rows={2}
+                  className="flex min-h-[60px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="description">{t(translationKeys.common.description, 'Description')}</Label>
+                <textarea
+                  id="description"
+                  {...register('description')}
+                  rows={4}
                   className="flex min-h-[60px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                 />
               </div>
@@ -667,25 +693,6 @@ export default function EditProductPage() {
             </CardContent>
           </Card>
         </div>
-
-        {/* Description */}
-        <Card>
-          <CardHeader>
-            <CardTitle>{t(translationKeys.common.description, 'Description')}</CardTitle>
-            <CardDescription>{t(translationKeys.common.description, 'Full product description')}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              <Label htmlFor="description">{t(translationKeys.common.description, 'Description')}</Label>
-              <textarea
-                id="description"
-                {...register('description')}
-                rows={6}
-                className="flex min-h-[120px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-              />
-            </div>
-          </CardContent>
-        </Card>
 
         {/* Variants */}
         <Card>

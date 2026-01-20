@@ -411,6 +411,7 @@ export const translationKeys = {
     productTranslations: 'common.productTranslations',
     manageProductTranslations: 'common.manageProductTranslations',
     translationsEditModeOnly: 'common.translationsEditModeOnly',
+    translations: 'common.translations',
     creating: 'common.creating',
   },
   // User Profile
@@ -836,6 +837,7 @@ export function getEnglishTemplate(): Record<string, string> {
     'common.productTranslations': 'Product Translations',
     'common.manageProductTranslations': 'Manage product translations for different languages',
     'common.translationsEditModeOnly': 'Translations can be added in edit mode only. After creating the product, use the edit page to add translations for different languages.',
+    'common.translations': 'Translations',
     'common.creating': 'Creating...',
     'admin.products.selectBrand': 'Select a brand',
     // User Profile

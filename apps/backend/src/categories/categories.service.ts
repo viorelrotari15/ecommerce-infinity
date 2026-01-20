@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { LanguageHelperService } from '../languages/language-helper.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
+import { CreateCategoryTranslationDto } from './dto/create-category-translation.dto';
 
 @Injectable()
 export class CategoriesService {
@@ -256,6 +257,13 @@ export class CategoriesService {
         throw new NotFoundException(`Parent category with ID ${updateCategoryDto.parentId} not found`);
       }
 
+      // Ensure parent is a top-level category (not a subcategory)
+      if (parent.parentId) {
+        throw new ConflictException(
+          'Cannot create a subcategory of a subcategory. Only top-level categories can have subcategories.',
+        );
+      }
+
       // Check for circular reference: ensure parent is not a descendant
       const isDescendant = await this.isDescendant(id, updateCategoryDto.parentId);
       if (isDescendant) {
@@ -341,6 +349,7 @@ export class CategoriesService {
       include: {
         parent: true,
         children: true,
+        translations: true,
       },
     });
 
@@ -349,6 +358,65 @@ export class CategoriesService {
     }
 
     return category;
+  }
+
+  async getTranslations(categoryId: string) {
+    const category = await this.findById(categoryId);
+    return this.prisma.categoryTranslation.findMany({
+      where: { categoryId },
+      orderBy: { language: 'asc' },
+    });
+  }
+
+  async upsertTranslation(
+    categoryId: string,
+    language: string,
+    translationData: { name: string; description?: string },
+  ) {
+    // Verify category exists
+    await this.findById(categoryId);
+
+    // Verify language exists
+    const lang = await this.prisma.language.findUnique({
+      where: { code: language },
+    });
+
+    if (!lang) {
+      throw new NotFoundException(`Language with code ${language} not found`);
+    }
+
+    return this.prisma.categoryTranslation.upsert({
+      where: {
+        categoryId_language: {
+          categoryId,
+          language,
+        },
+      },
+      create: {
+        categoryId,
+        language,
+        name: translationData.name,
+        description: translationData.description,
+      },
+      update: {
+        name: translationData.name,
+        description: translationData.description,
+      },
+    });
+  }
+
+  async deleteTranslation(categoryId: string, language: string) {
+    // Verify category exists
+    await this.findById(categoryId);
+
+    return this.prisma.categoryTranslation.delete({
+      where: {
+        categoryId_language: {
+          categoryId,
+          language,
+        },
+      },
+    });
   }
 }
 

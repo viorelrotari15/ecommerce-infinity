@@ -3,14 +3,24 @@
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useT, translationKeys } from '@/lib/utils/translations';
+import { useCategories } from '@/lib/hooks/use-categories';
 import type { Category } from '@/lib/api/server';
 
 interface CategoriesListProps {
-  categories: Category[];
+  initialCategories: Category[];
 }
 
-export function CategoriesList({ categories }: CategoriesListProps) {
+export function CategoriesList({ initialCategories }: CategoriesListProps) {
   const t = useT();
+  const { data: categories = initialCategories, isLoading } = useCategories(initialCategories);
+
+  if (isLoading && categories.length === 0) {
+    return (
+      <div className="py-12 text-center">
+        <p className="text-muted-foreground">{t(translationKeys.categories.loading, 'Loading categories...')}</p>
+      </div>
+    );
+  }
 
   if (categories.length === 0) {
     return (
@@ -32,7 +42,7 @@ export function CategoriesList({ categories }: CategoriesListProps) {
               )}
             </CardHeader>
             <CardContent>
-              {category.children.length > 0 && (
+              {category.children && category.children.length > 0 && (
                 <div className="mt-4">
                   <p className="text-sm font-medium mb-2">{t(translationKeys.categories.subcategories, 'Subcategories:')}</p>
                   <div className="flex flex-wrap gap-2">

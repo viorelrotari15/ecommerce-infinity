@@ -35,6 +35,10 @@ export class TranslationsService {
     // Convert flat key-value to nested object
     const result: Record<string, any> = {};
     for (const t of translations) {
+      // Skip if key is null or undefined
+      if (!t.key) {
+        continue;
+      }
       const keys = t.key.split('.');
       let current = result;
       for (let i = 0; i < keys.length - 1; i++) {
