@@ -59,7 +59,18 @@ export class AttributesService {
     const resolvedLanguage = await this.languageHelper.resolveLanguage(language);
     const defaultLang = await this.languageHelper.getDefaultLanguage();
 
-    const where = productTypeId ? { productTypeId } : {};
+    // If productTypeId is provided, return both:
+    // 1. Attributes specific to this product type (productTypeId matches)
+    // 2. Shared attributes (productTypeId is null)
+    // If no productTypeId, return all attributes
+    const where = productTypeId 
+      ? {
+          OR: [
+            { productTypeId },
+            { productTypeId: null },
+          ],
+        }
+      : {};
 
     const attributes = await this.prisma.attribute.findMany({
       where,
