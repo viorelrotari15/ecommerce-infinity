@@ -9,6 +9,8 @@ interface ProductCardProps {
     id: string;
     name: string;
     slug: string;
+    description?: string | null;
+    shortDescription?: string | null;
     images: string[];
     productImages?: Array<{ filepath: string; url?: string; isPrimary?: boolean }>;
     brand: { name: string; slug: string };
@@ -48,9 +50,14 @@ export function ProductCard({ product }: ProductCardProps) {
         </CardHeader>
         <CardContent>
           <CardTitle className="mb-2 line-clamp-2">{product.name}</CardTitle>
-          <CardDescription className="mb-4">
+          <CardDescription className="mb-2">
             {product.brand.name}
           </CardDescription>
+          {product.shortDescription && (
+            <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
+              {product.shortDescription}
+            </p>
+          )}
           <p className="text-lg font-semibold">{minPrice}</p>
         </CardContent>
       </Card>

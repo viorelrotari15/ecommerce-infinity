@@ -20,7 +20,8 @@ export interface ProductsResponse {
     id: string;
     name: string;
     slug: string;
-    description: string;
+    description?: string | null;
+    shortDescription?: string | null;
     images: string[];
     productImages?: Array<{ filepath: string; url?: string; isPrimary?: boolean }>;
     brand: { name: string; slug: string };
@@ -132,9 +133,14 @@ export async function fetchProducts(
 
 /**
  * Fetch a single product by slug
- * Revalidates every 5 minutes
+ * Revalidates every 5 minutes, but cache key includes language
  */
 export async function fetchProduct(slug: string, language?: string): Promise<Product | null> {
+  const searchParams = new URLSearchParams();
+  if (language) {
+    searchParams.append('lang', language);
+  }
+
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
   };
@@ -142,9 +148,16 @@ export async function fetchProduct(slug: string, language?: string): Promise<Pro
     headers['Accept-Language'] = language;
   }
 
-  const response = await fetch(`${API_URL}/api/products/${slug}`, {
-    // Cache for 5 minutes
-    next: { revalidate: 300 },
+  const url = `${API_URL}/api/products/${slug}${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
+  
+  // When language is provided, disable caching to ensure fresh data on language change
+  // When no language is specified, cache for 5 minutes
+  const cacheOptions = language 
+    ? { cache: 'no-store' as const } // No cache when language is specified to ensure language changes work immediately
+    : { next: { revalidate: 300 } }; // Cache for 5 minutes when no language specified
+  
+  const response = await fetch(url, {
+    ...cacheOptions,
     headers,
   });
 
@@ -163,6 +176,11 @@ export async function fetchProduct(slug: string, language?: string): Promise<Pro
  * Cache for 1 hour (categories don't change often)
  */
 export async function fetchCategories(language?: string): Promise<Category[]> {
+  const searchParams = new URLSearchParams();
+  if (language) {
+    searchParams.append('lang', language);
+  }
+
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
   };
@@ -170,8 +188,16 @@ export async function fetchCategories(language?: string): Promise<Category[]> {
     headers['Accept-Language'] = language;
   }
 
-  const response = await fetch(`${API_URL}/api/categories`, {
-    next: { revalidate: 3600 }, // 1 hour
+  const url = `${API_URL}/api/categories${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
+  
+  // When language is provided, disable caching to ensure fresh data on language change
+  // When no language is specified, cache for 1 hour
+  const cacheOptions = language 
+    ? { cache: 'no-store' as const } // No cache when language is specified to ensure language changes work immediately
+    : { next: { revalidate: 3600 } }; // Cache for 1 hour when no language specified
+
+  const response = await fetch(url, {
+    ...cacheOptions,
     headers,
   });
 
@@ -188,6 +214,11 @@ export async function fetchCategories(language?: string): Promise<Category[]> {
  * Cache for 1 hour
  */
 export async function fetchBrands(language?: string): Promise<Brand[]> {
+  const searchParams = new URLSearchParams();
+  if (language) {
+    searchParams.append('lang', language);
+  }
+
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
   };
@@ -195,8 +226,16 @@ export async function fetchBrands(language?: string): Promise<Brand[]> {
     headers['Accept-Language'] = language;
   }
 
-  const response = await fetch(`${API_URL}/api/brands`, {
-    next: { revalidate: 3600 }, // 1 hour
+  const url = `${API_URL}/api/brands${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
+  
+  // When language is provided, disable caching to ensure fresh data on language change
+  // When no language is specified, cache for 1 hour
+  const cacheOptions = language 
+    ? { cache: 'no-store' as const } // No cache when language is specified to ensure language changes work immediately
+    : { next: { revalidate: 3600 } }; // Cache for 1 hour when no language specified
+
+  const response = await fetch(url, {
+    ...cacheOptions,
     headers,
   });
 

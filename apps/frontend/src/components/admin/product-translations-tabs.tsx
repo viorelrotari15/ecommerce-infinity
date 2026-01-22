@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useLanguages } from '@/lib/hooks/use-languages';
 import { useProductTranslations, useCreateProductTranslation, useUpdateProductTranslation } from '@/lib/hooks/use-product-translations';
+import { useToast } from '@/hooks/use-toast';
 import { AlertCircle } from 'lucide-react';
 
 interface ProductTranslationsTabsProps {

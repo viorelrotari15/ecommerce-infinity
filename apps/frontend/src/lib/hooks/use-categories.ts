@@ -5,6 +5,7 @@ import { fetchAPI, fetchAPIAuth } from '@/lib/api/client';
 import { getAuthToken } from '@/lib/auth';
 import { apiClient } from '@/lib/api/client';
 import { categoryQueryKeys } from '@/lib/api/queries';
+import { useLanguage } from '@/lib/contexts/language-context';
 import type { Category } from '@/lib/api/server';
 
 export interface CategoryTranslation {
@@ -21,10 +22,14 @@ export interface CategoryTranslation {
  * Hook for fetching categories
  */
 export function useCategories(initialData?: Category[]) {
+  const { currentLanguage } = useLanguage();
+  
   return useQuery({
-    queryKey: categoryQueryKeys.list(),
+    queryKey: [...categoryQueryKeys.list(), currentLanguage],
     queryFn: async (): Promise<Category[]> => {
-      const data = await fetchAPI<{ data: Category[] } | Category[]>('/categories');
+      // Pass language as query parameter
+      const url = `/categories${currentLanguage ? `?lang=${currentLanguage}` : ''}`;
+      const data = await fetchAPI<{ data: Category[] } | Category[]>(url);
       return Array.isArray(data) ? data : data.data || [];
     },
     initialData,

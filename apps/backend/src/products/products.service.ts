@@ -28,12 +28,25 @@ export class ProductsService {
     );
 
     // Apply translated fields if available
+    // Always apply name (required field)
     if (translation) {
-      product.name = translation.name || product.name;
-      product.description = translation.description || product.description;
-      product.shortDescription = translation.shortDescription || product.shortDescription;
-      product.metaTitle = translation.metaTitle || product.metaTitle;
-      product.metaDescription = translation.metaDescription || product.metaDescription;
+      product.name = translation.name ?? product.name;
+      
+      // For optional fields, apply translation if it exists and is not null
+      // If translation field is null/undefined, keep the original product value
+      // Empty strings are allowed (user might want to clear a field)
+      if (translation.description != null) { // != null checks for both null and undefined
+        product.description = translation.description;
+      }
+      if (translation.shortDescription != null) {
+        product.shortDescription = translation.shortDescription;
+      }
+      if (translation.metaTitle != null) {
+        product.metaTitle = translation.metaTitle;
+      }
+      if (translation.metaDescription != null) {
+        product.metaDescription = translation.metaDescription;
+      }
     }
 
     // Remove translations array from response
@@ -360,6 +373,41 @@ export class ProductsService {
           }
         }
 
+        // Apply translations to productType
+        if (translated.productType?.translations) {
+          const defaultLang = await this.languageHelper.getDefaultLanguage();
+          const productTypeTranslation = await this.languageHelper.getTranslationWithFallback(
+            translated.productType.translations,
+            language,
+            defaultLang,
+            (t) => t,
+          );
+          if (productTypeTranslation) {
+            translated.productType.name = productTypeTranslation.name || translated.productType.name;
+            translated.productType.description = productTypeTranslation.description || translated.productType.description;
+          }
+          delete translated.productType.translations;
+        }
+
+        // Apply translations to attributes
+        if (translated.attributes) {
+          const defaultLang = await this.languageHelper.getDefaultLanguage();
+          for (const pa of translated.attributes) {
+            if (pa.attribute?.translations) {
+              const attrTranslation = await this.languageHelper.getTranslationWithFallback(
+                pa.attribute.translations,
+                language,
+                defaultLang,
+                (t) => t,
+              );
+              if (attrTranslation) {
+                pa.attribute.name = attrTranslation.name || pa.attribute.name;
+              }
+              delete pa.attribute.translations;
+            }
+          }
+        }
+
         return {
           ...translated,
           images: this.convertLegacyImages(product.images),
@@ -469,6 +517,39 @@ export class ProductsService {
       }
     }
 
+    // Apply translations to productType
+    if (translated.productType?.translations) {
+      const productTypeTranslation = await this.languageHelper.getTranslationWithFallback(
+        translated.productType.translations,
+        resolvedLanguage,
+        defaultLang,
+        (t) => t,
+      );
+      if (productTypeTranslation) {
+        translated.productType.name = productTypeTranslation.name || translated.productType.name;
+        translated.productType.description = productTypeTranslation.description || translated.productType.description;
+      }
+      delete translated.productType.translations;
+    }
+
+    // Apply translations to attributes
+    if (translated.attributes) {
+      for (const pa of translated.attributes) {
+        if (pa.attribute?.translations) {
+          const attrTranslation = await this.languageHelper.getTranslationWithFallback(
+            pa.attribute.translations,
+            resolvedLanguage,
+            defaultLang,
+            (t) => t,
+          );
+          if (attrTranslation) {
+            pa.attribute.name = attrTranslation.name || pa.attribute.name;
+          }
+          delete pa.attribute.translations;
+        }
+      }
+    }
+
     // Add URLs to product images and convert legacy images
     const bucket = this.storageService.getBucketName();
     const productWithImageUrls = {
@@ -565,6 +646,39 @@ export class ProductsService {
             pc.category.description = catTranslation.description || pc.category.description;
           }
           delete pc.category.translations;
+        }
+      }
+    }
+
+    // Apply translations to productType
+    if (translated.productType?.translations) {
+      const productTypeTranslation = await this.languageHelper.getTranslationWithFallback(
+        translated.productType.translations,
+        resolvedLanguage,
+        defaultLang,
+        (t) => t,
+      );
+      if (productTypeTranslation) {
+        translated.productType.name = productTypeTranslation.name || translated.productType.name;
+        translated.productType.description = productTypeTranslation.description || translated.productType.description;
+      }
+      delete translated.productType.translations;
+    }
+
+    // Apply translations to attributes
+    if (translated.attributes) {
+      for (const pa of translated.attributes) {
+        if (pa.attribute?.translations) {
+          const attrTranslation = await this.languageHelper.getTranslationWithFallback(
+            pa.attribute.translations,
+            resolvedLanguage,
+            defaultLang,
+            (t) => t,
+          );
+          if (attrTranslation) {
+            pa.attribute.name = attrTranslation.name || pa.attribute.name;
+          }
+          delete pa.attribute.translations;
         }
       }
     }

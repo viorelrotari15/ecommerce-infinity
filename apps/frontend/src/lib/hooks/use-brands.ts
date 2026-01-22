@@ -5,6 +5,7 @@ import { fetchAPI, fetchAPIAuth } from '@/lib/api/client';
 import { getAuthToken } from '@/lib/auth';
 import { apiClient } from '@/lib/api/client';
 import { brandQueryKeys } from '@/lib/api/queries';
+import { useLanguage } from '@/lib/contexts/language-context';
 import type { Brand } from '@/lib/api/server';
 
 export interface BrandTranslation {
@@ -21,10 +22,14 @@ export interface BrandTranslation {
  * Hook for fetching brands
  */
 export function useBrands(initialData?: Brand[]) {
+  const { currentLanguage } = useLanguage();
+  
   return useQuery({
-    queryKey: brandQueryKeys.list(),
+    queryKey: [...brandQueryKeys.list(), currentLanguage],
     queryFn: async (): Promise<Brand[]> => {
-      const data = await fetchAPI<{ data: Brand[] } | Brand[]>('/brands');
+      // Pass language as query parameter
+      const url = `/brands${currentLanguage ? `?lang=${currentLanguage}` : ''}`;
+      const data = await fetchAPI<{ data: Brand[] } | Brand[]>(url);
       return Array.isArray(data) ? data : data.data || [];
     },
     initialData,

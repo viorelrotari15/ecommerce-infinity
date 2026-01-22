@@ -6,10 +6,14 @@ import { formatPrice } from '@/lib/utils';
 import { getProductImages, getPrimaryProductImage, getImageUrl } from '@/lib/images';
 import { ProductActions } from '@/components/client/products/product-actions';
 import { ProductImageGallery } from '@/components/client/products/product-image-gallery';
+import { getServerLanguage } from '@/lib/utils/language';
 
-async function getProduct(slug: string) {
+// Force dynamic rendering to respect language cookie changes
+export const dynamic = 'force-dynamic';
+
+async function getProduct(slug: string, language?: string) {
   try {
-    const product = await fetchProduct(slug);
+    const product = await fetchProduct(slug, language);
     return product;
   } catch (error) {
     console.error('Failed to fetch product:', error);
@@ -22,7 +26,8 @@ export async function generateMetadata({
 }: {
   params: { slug: string };
 }): Promise<Metadata> {
-  const product = await getProduct(params.slug);
+  const language = await getServerLanguage();
+  const product = await getProduct(params.slug, language);
 
   if (!product) {
     return {
@@ -50,7 +55,8 @@ export default async function ProductPage({
 }: {
   params: { slug: string };
 }) {
-  const product = await getProduct(params.slug);
+  const language = await getServerLanguage();
+  const product = await getProduct(params.slug, language);
 
   if (!product) {
     notFound();
