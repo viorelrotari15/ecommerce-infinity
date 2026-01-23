@@ -5,6 +5,7 @@ import { fetchAPI, fetchAPIAuth } from '@/lib/api/client';
 import { getAuthToken } from '@/lib/auth';
 import { apiClient } from '@/lib/api/client';
 import { categoryQueryKeys } from '@/lib/api/queries';
+import { useLanguage } from '@/lib/contexts/language-context';
 import type { Category } from '@/lib/api/server';
 
 export interface CategoryTranslation {
@@ -21,16 +22,20 @@ export interface CategoryTranslation {
  * Hook for fetching categories
  */
 export function useCategories(initialData?: Category[]) {
+  const { currentLanguage } = useLanguage();
+  
   return useQuery({
-    queryKey: categoryQueryKeys.list(),
+    queryKey: [...categoryQueryKeys.list(), currentLanguage],
     queryFn: async (): Promise<Category[]> => {
-      const data = await fetchAPI<{ data: Category[] } | Category[]>('/categories');
+      // Pass language as query parameter
+      const url = `/categories${currentLanguage ? `?lang=${currentLanguage}` : ''}`;
+      const data = await fetchAPI<{ data: Category[] } | Category[]>(url);
       return Array.isArray(data) ? data : data.data || [];
     },
     initialData,
-    staleTime: 0, // Always consider data stale so it refetches after invalidation
-    refetchOnMount: true, // Refetch when component mounts if data is stale
-    refetchOnWindowFocus: true, // Refetch when window regains focus
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes (categories rarely change)
+    refetchOnMount: false, // Don't refetch on mount if data is fresh
+    refetchOnWindowFocus: false, // Don't refetch on window focus (categories rarely change)
   });
 }
 

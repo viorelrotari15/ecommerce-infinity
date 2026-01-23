@@ -37,13 +37,14 @@ export class AttributesController {
   @ApiOperation({ summary: 'Get attributes by product type' })
   findByProductType(@Param('productTypeId') productTypeId: string, @Req() req?: Request) {
     const language = req?.headers[LANGUAGE_HEADER] as string | undefined;
-    return this.attributesService.findByProductType(productTypeId);
+    return this.attributesService.findByProductType(productTypeId, language);
   }
 
   @Get('id/:id')
   @ApiOperation({ summary: 'Get attribute by ID' })
-  findById(@Param('id') id: string) {
-    return this.attributesService.findById(id);
+  findById(@Param('id') id: string, @Req() req?: Request) {
+    const language = req?.headers[LANGUAGE_HEADER] as string | undefined;
+    return this.attributesService.findById(id, language);
   }
 
   @Post()

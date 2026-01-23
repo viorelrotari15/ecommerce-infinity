@@ -8,9 +8,47 @@ export class LanguagesService {
   constructor(private prisma: PrismaService) {}
 
   /**
+   * Ensure English language exists in the database
+   * This is called automatically to guarantee English is always available
+   */
+  private async ensureEnglishExists(): Promise<void> {
+    const englishExists = await this.prisma.language.findUnique({
+      where: { code: 'en' },
+    });
+
+    if (!englishExists) {
+      // Check if there are any languages at all
+      const languageCount = await this.prisma.language.count();
+      const hasDefault = await this.prisma.language.findFirst({
+        where: { isDefault: true },
+      });
+
+      // Create English as default if no languages exist or no default is set
+      await this.prisma.language.create({
+        data: {
+          code: 'en',
+          name: 'English',
+          isDefault: languageCount === 0 || !hasDefault,
+          isActive: true,
+        },
+      });
+    } else if (!englishExists.isActive) {
+      // If English exists but is inactive, activate it
+      await this.prisma.language.update({
+        where: { code: 'en' },
+        data: { isActive: true },
+      });
+    }
+  }
+
+  /**
    * Get all active languages
+   * Ensures English exists in the database before returning
    */
   async findAll(includeInactive = false) {
+    // Ensure English exists in the database
+    await this.ensureEnglishExists();
+
     const where = includeInactive ? {} : { isActive: true };
     return this.prisma.language.findMany({
       where,
@@ -23,14 +61,22 @@ export class LanguagesService {
 
   /**
    * Get default language from DB
+   * Ensures English exists and is set as default if no default is configured
    */
   async getDefaultLanguage(): Promise<string> {
+    // Ensure English exists in the database
+    await this.ensureEnglishExists();
+
     const defaultLang = await this.prisma.language.findFirst({
       where: { isDefault: true, isActive: true },
     });
     
     if (!defaultLang) {
-      // Fallback to 'en' if no default set
+      // If no default is set, set English as default
+      await this.prisma.language.update({
+        where: { code: 'en' },
+        data: { isDefault: true, isActive: true },
+      });
       return 'en';
     }
     
@@ -89,6 +135,16 @@ export class LanguagesService {
   async update(code: string, updateLanguageDto: UpdateLanguageDto) {
     const language = await this.findOne(code);
 
+    // Prevent deactivating English (always required)
+    if (code.toLowerCase() === 'en' && updateLanguageDto.isActive === false) {
+      throw new BadRequestException('Cannot deactivate English language. English is required and must remain active.');
+    }
+
+    // Prevent changing English code
+    if (code.toLowerCase() === 'en' && updateLanguageDto.code && updateLanguageDto.code.toLowerCase() !== 'en') {
+      throw new BadRequestException('Cannot change English language code. English code must remain "en".');
+    }
+
     // If changing code, check if new code exists
     if (updateLanguageDto.code && updateLanguageDto.code !== code) {
       const existing = await this.prisma.language.findUnique({
@@ -125,6 +181,11 @@ export class LanguagesService {
    */
   async remove(code: string) {
     const language = await this.findOne(code);
+
+    // Prevent deleting English (always required)
+    if (code.toLowerCase() === 'en') {
+      throw new BadRequestException('Cannot delete English language. English is required and cannot be removed.');
+    }
 
     // Prevent deleting default language
     if (language.isDefault) {

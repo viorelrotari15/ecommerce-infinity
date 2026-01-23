@@ -4,6 +4,10 @@ import { fetchProducts, fetchCategories, fetchBrands } from '@/lib/api/server';
 import { ProductList } from '@/components/client/products/product-list';
 import { ProductFilters } from '@/components/client/products/product-filters';
 import { ProductsHeader } from '@/components/client/products/products-header';
+import { getServerLanguage } from '@/lib/utils/language';
+
+// Force dynamic rendering to respect language cookie changes
+export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
   title: 'Products',
@@ -15,6 +19,7 @@ export default async function ProductsPage({
 }: {
   searchParams: { [key: string]: string | string[] | undefined };
 }) {
+  const language = await getServerLanguage();
   // Filter out "all" values and undefined/empty values
   const brandId = searchParams.brand && searchParams.brand !== 'all' 
     ? (searchParams.brand as string) 
@@ -42,9 +47,9 @@ export default async function ProductsPage({
       categoryIds,
       search,
       featured,
-    }),
-    fetchCategories(),
-    fetchBrands(),
+    }, language),
+    fetchCategories(language),
+    fetchBrands(language),
   ]);
 
   const filters = {

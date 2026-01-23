@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -21,14 +21,15 @@ import { isAdmin } from '@/lib/auth';
 import { useBrands, useUpsertBrandTranslation } from '@/lib/hooks/use-brands';
 import { brandQueryKeys } from '@/lib/api/queries';
 import { useLanguages } from '@/lib/hooks/use-languages';
-import { fetchAPIAuth } from '@/lib/api/client';
 import { Plus, Edit, Trash2 } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { useConfirm } from '@/contexts/confirm-dialog-context';
 import { useT, translationKeys } from '@/lib/utils/translations';
 import { revalidateBrands } from '@/app/actions/revalidate';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { BrandTranslationsTabs, type BrandTranslationsTabsRef } from '@/components/admin/brand-translations-tabs';
+import { TranslationWarningBadge } from '@/components/admin/translation-warning-badge';
+import { useBrandTranslationStatus } from '@/lib/hooks/use-translation-status';
 
 interface Brand {
   id: string;
@@ -37,25 +38,80 @@ interface Brand {
   description?: string;
 }
 
+// Component for rendering a single brand card with translation status
+function BrandCard({
+  brand,
+  onEditClick,
+  onDeleteClick,
+}: {
+  brand: Brand;
+  onEditClick: () => void;
+  onDeleteClick: () => void;
+}) {
+  const translationStatus = useBrandTranslationStatus(brand.id);
+  const t = useT();
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <CardTitle>{brand.name}</CardTitle>
+          {!translationStatus.hasAllTranslations && (
+            <TranslationWarningBadge
+              missingLanguages={translationStatus.missingLanguages}
+              entityType="brand"
+            />
+          )}
+        </div>
+        <CardDescription>{brand.slug}</CardDescription>
+      </CardHeader>
+      <CardContent>
+        {brand.description && (
+          <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
+            {brand.description}
+          </p>
+        )}
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onEditClick}
+          >
+            <Edit className="h-4 w-4 mr-2" />
+            {t(translationKeys.admin.brands.edit, 'Edit')}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onDeleteClick}
+            className="text-destructive hover:text-destructive"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function BrandsPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { data: brands = [], isLoading } = useBrands();
   const { data: languages = [] } = useLanguages(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [isTranslationDialogOpen, setIsTranslationDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [translationBrandId, setTranslationBrandId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
   });
-  const [translationData, setTranslationData] = useState<Record<string, { name: string; description: string }>>({});
+  const [creationTranslationData, setCreationTranslationData] = useState<Record<string, { name: string; description: string }>>({});
   const [isCreating, setIsCreating] = useState(false);
   const token = getAuthToken();
   const { toast } = useToast();
   const confirm = useConfirm();
   const t = useT();
+  const translationTabsRef = useRef<BrandTranslationsTabsRef>(null);
   const upsertTranslation = useUpsertBrandTranslation();
 
   useEffect(() => {
@@ -86,107 +142,47 @@ export default function BrandsPage() {
     setFormData({ name: '', description: '' });
   };
 
-  const openTranslationDialog = async (brandId: string) => {
-    setTranslationBrandId(brandId);
-    // Load existing translations
-    try {
-      if (token) {
-        const translations = await fetchAPIAuth<Array<{ language: string; name: string; description?: string }>>(
-          `/brands/${brandId}/translations`,
-          token,
-        );
-        const translationMap: Record<string, { name: string; description: string }> = {};
-        languages.forEach((lang) => {
-          const existing = translations?.find((t) => t.language === lang.code);
-          translationMap[lang.code] = {
-            name: existing?.name || '',
-            description: existing?.description || '',
-          };
-        });
-        setTranslationData(translationMap);
-      } else {
-        // Initialize with empty strings
-        const translationMap: Record<string, { name: string; description: string }> = {};
-        languages.forEach((lang) => {
-          translationMap[lang.code] = { name: '', description: '' };
-        });
-        setTranslationData(translationMap);
-      }
-    } catch (error) {
-      // Initialize with empty strings on error
-      const translationMap: Record<string, { name: string; description: string }> = {};
-      languages.forEach((lang) => {
-        translationMap[lang.code] = { name: '', description: '' };
-      });
-      setTranslationData(translationMap);
-    }
-    setIsTranslationDialogOpen(true);
-  };
-
-  const closeTranslationDialog = () => {
-    setIsTranslationDialogOpen(false);
-    setTranslationBrandId(null);
-    setTranslationData({});
-  };
-
-  const handleSaveTranslations = async () => {
-    if (!translationBrandId) return;
-
-    try {
-      setIsCreating(true);
-      const promises = languages.map((lang) => {
-        const data = translationData[lang.code];
-        const name = data?.name?.trim();
-        if (!name) return Promise.resolve();
-        return upsertTranslation.mutateAsync({
-          brandId: translationBrandId,
-          language: lang.code,
-          name,
-          description: data?.description?.trim(),
-        });
-      });
-
-      await Promise.all(promises);
-      // Invalidate React Query cache
-      await queryClient.invalidateQueries({ queryKey: brandQueryKeys.all });
-      // Revalidate Next.js server-side cache for brands page
-      await revalidateBrands();
-      // Refresh Next.js router cache to ensure server-side cache is also invalidated
-      router.refresh();
-      closeTranslationDialog();
-      setIsCreating(false);
-      toast({
-        variant: 'success',
-        title: t(translationKeys.common.success, 'Success'),
-        description: 'Translations saved successfully!',
-      });
-    } catch (error: any) {
-      setIsCreating(false);
-      toast({
-        variant: 'destructive',
-        title: t(translationKeys.common.error, 'Error'),
-        description: error.message || t(translationKeys.common.failed, 'Failed'),
-      });
-    }
-  };
 
   const handleCreate = async () => {
-    if (!formData.name) {
+    // Validate translations - name must be provided in translations
+    if (!translationTabsRef.current) {
       toast({
         variant: 'destructive',
         title: t(translationKeys.common.validationError, 'Validation Error'),
-        description: t(translationKeys.common.fillRequired, 'Please fill in the name field'),
+        description: 'Translation data is required.',
       });
       return;
     }
 
+      const validation = translationTabsRef.current.validateAll();
+      if (!validation.isValid) {
+        toast({
+          variant: 'destructive',
+          title: t(translationKeys.common.validationError, 'Validation Error'),
+          description: 'Please fill in the name field for the default language.',
+        });
+        return;
+      }
+
     try {
       setIsCreating(true);
-      await apiClient.post(
+      const translationData = translationTabsRef.current.getTranslationData();
+      const activeLangs = languages.filter((l) => l.isActive);
+      const defaultLang = languages.find((l) => l.isDefault) || activeLangs[0];
+      
+      // Use the default language's name as the main name, or first available translation
+      const defaultName = translationData[defaultLang.code]?.name?.trim() || 
+                         Object.values(translationData).find(d => d?.name?.trim())?.name?.trim() || 
+                         'Untitled';
+      const defaultDescription = translationData[defaultLang.code]?.description?.trim() || 
+                                 Object.values(translationData).find(d => d?.description?.trim())?.description?.trim() || 
+                                 formData.description;
+
+      const response = await apiClient.post<Brand>(
         '/brands',
         {
-          name: formData.name,
-          description: formData.description || undefined,
+          name: defaultName,
+          description: defaultDescription || undefined,
         },
         {
           headers: {
@@ -194,6 +190,25 @@ export default function BrandsPage() {
           },
         }
       );
+      const newBrand = response.data;
+
+      // Save translations for all languages
+      if (newBrand?.id) {
+        await Promise.all(
+          activeLangs.map(async (lang) => {
+            const data = translationData[lang.code];
+            if (data?.name?.trim()) {
+              return upsertTranslation.mutateAsync({
+                brandId: newBrand.id,
+                language: lang.code,
+                name: data.name,
+                description: data?.description?.trim(),
+              });
+            }
+          })
+        );
+      }
+
       // Invalidate React Query cache
       await queryClient.invalidateQueries({ queryKey: brandQueryKeys.all });
       // Revalidate Next.js server-side cache for brands page
@@ -219,23 +234,39 @@ export default function BrandsPage() {
 
   const handleUpdate = async () => {
     if (!editingId) return;
-    
-    if (!formData.name) {
-      toast({
-        variant: 'destructive',
-        title: t(translationKeys.common.validationError, 'Validation Error'),
-        description: t(translationKeys.common.fillRequired, 'Please fill in the name field'),
-      });
-      return;
+
+    // Validate translations if translation tabs ref is available
+    if (translationTabsRef.current) {
+      const validation = translationTabsRef.current.validateAll();
+      if (!validation.isValid) {
+        toast({
+          variant: 'destructive',
+          title: t(translationKeys.common.validationError, 'Validation Error'),
+          description: 'Please fill in the name field for the default language.',
+        });
+        return;
+      }
     }
 
     try {
       setIsCreating(true);
+      const translationData = translationTabsRef.current?.getTranslationData();
+      const activeLangs = languages.filter((l) => l.isActive);
+      const defaultLang = languages.find((l) => l.isDefault) || activeLangs[0];
+      
+      // Use the default language's name as the main name, or first available translation
+      const defaultName = translationData?.[defaultLang.code]?.name?.trim() || 
+                         (translationData ? Object.values(translationData).find(d => d?.name?.trim())?.name?.trim() : null) || 
+                         formData.name;
+      const defaultDescription = translationData?.[defaultLang.code]?.description?.trim() || 
+                                (translationData ? Object.values(translationData).find(d => d?.description?.trim())?.description?.trim() : null) || 
+                                formData.description;
+
       await apiClient.patch(
         `/brands/${editingId}`,
         {
-          name: formData.name,
-          description: formData.description || undefined,
+          name: defaultName,
+          description: defaultDescription || undefined,
         },
         {
           headers: {
@@ -243,6 +274,24 @@ export default function BrandsPage() {
           },
         }
       );
+
+      // Save translations for all languages
+      if (translationTabsRef.current && translationData) {
+        await Promise.all(
+          activeLangs.map(async (lang) => {
+            const data = translationData[lang.code];
+            if (data?.name?.trim()) {
+              return upsertTranslation.mutateAsync({
+                brandId: editingId,
+                language: lang.code,
+                name: data.name,
+                description: data?.description?.trim(),
+              });
+            }
+          })
+        );
+      }
+
       // Invalidate React Query cache
       await queryClient.invalidateQueries({ queryKey: brandQueryKeys.all });
       // Revalidate Next.js server-side cache for brands page
@@ -334,44 +383,12 @@ export default function BrandsPage() {
       {/* Brands List */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {brands.map((brand) => (
-          <Card key={brand.id}>
-            <CardHeader>
-              <CardTitle>{brand.name}</CardTitle>
-              <CardDescription>{brand.slug}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {brand.description && (
-                <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
-                  {brand.description}
-                </p>
-              )}
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => openTranslationDialog(brand.id)}
-                >
-                  {t(translationKeys.common.translations, 'Translations')}
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => openEditDialog(brand)}
-                >
-                  <Edit className="h-4 w-4 mr-2" />
-                  {t(translationKeys.admin.brands.edit, 'Edit')}
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleDelete(brand.id, brand.name)}
-                  className="text-destructive hover:text-destructive"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+          <BrandCard
+            key={brand.id}
+            brand={brand}
+            onEditClick={() => openEditDialog(brand)}
+            onDeleteClick={() => handleDelete(brand.id, brand.name)}
+          />
         ))}
       </div>
 
@@ -389,7 +406,7 @@ export default function BrandsPage() {
 
       {/* Create/Edit Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingId ? t(translationKeys.admin.brands.editTitle, 'Edit Brand') : t(translationKeys.admin.brands.createTitle, 'Create New Brand')}</DialogTitle>
             <DialogDescription>
@@ -398,22 +415,17 @@ export default function BrandsPage() {
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label htmlFor="name">{t(translationKeys.admin.brands.name, 'Name *')}</Label>
-              <Input
-                id="name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder={t(translationKeys.admin.brands.namePlaceholder, 'Brand name')}
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="description">{t(translationKeys.common.description, 'Description')}</Label>
-              <Textarea
-                id="description"
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder={t(translationKeys.admin.brands.descriptionPlaceholder, 'Brand description')}
-                rows={3}
+              <Label>Translations *</Label>
+              <p className="text-sm text-muted-foreground mb-2">
+                Add translations for all languages. Name is required for the default language only. Other languages will fallback to the default language if missing.
+              </p>
+              <BrandTranslationsTabs
+                ref={translationTabsRef}
+                brandId={editingId || undefined}
+                defaultName={formData.name}
+                defaultDescription={formData.description}
+                creationMode={!editingId}
+                onTranslationDataChange={setCreationTranslationData}
               />
             </div>
           </div>
@@ -437,82 +449,6 @@ export default function BrandsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Translation Dialog */}
-      <Dialog open={isTranslationDialogOpen} onOpenChange={setIsTranslationDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Brand Translations</DialogTitle>
-            <DialogDescription>
-              Add translations for this brand in different languages
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <Tabs defaultValue={languages[0]?.code || ''} className="w-full">
-              <TabsList className="grid w-full" style={{ gridTemplateColumns: `repeat(${languages.length}, minmax(0, 1fr))` }}>
-                {languages.map((lang) => (
-                  <TabsTrigger key={lang.code} value={lang.code}>
-                    {lang.name}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-              {languages.map((lang) => (
-                <TabsContent key={lang.code} value={lang.code} className="space-y-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor={`translation-name-${lang.code}`}>
-                      Name ({lang.name})
-                    </Label>
-                    <Input
-                      id={`translation-name-${lang.code}`}
-                      value={translationData[lang.code]?.name || ''}
-                      onChange={(e) =>
-                        setTranslationData({
-                          ...translationData,
-                          [lang.code]: {
-                            ...translationData[lang.code],
-                            name: e.target.value,
-                            description: translationData[lang.code]?.description || '',
-                          },
-                        })
-                      }
-                      placeholder={`Enter name in ${lang.name}`}
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor={`translation-description-${lang.code}`}>
-                      Description ({lang.name}) - Optional
-                    </Label>
-                    <textarea
-                      id={`translation-description-${lang.code}`}
-                      value={translationData[lang.code]?.description || ''}
-                      onChange={(e) =>
-                        setTranslationData({
-                          ...translationData,
-                          [lang.code]: {
-                            ...translationData[lang.code],
-                            name: translationData[lang.code]?.name || '',
-                            description: e.target.value,
-                          },
-                        })
-                      }
-                      placeholder={`Enter description in ${lang.name}`}
-                      rows={3}
-                      className="flex min-h-[60px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                    />
-                  </div>
-                </TabsContent>
-              ))}
-            </Tabs>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={closeTranslationDialog}>
-              {t(translationKeys.common.cancel, 'Cancel')}
-            </Button>
-            <Button onClick={handleSaveTranslations} disabled={isCreating}>
-              {isCreating ? 'Saving...' : 'Save Translations'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

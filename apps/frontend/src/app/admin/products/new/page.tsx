@@ -16,41 +16,14 @@ import { getProductImageUrl } from '@/lib/images';
 import { useBrands } from '@/lib/hooks/use-brands';
 import { useCategories } from '@/lib/hooks/use-categories';
 import { useProductTypes } from '@/lib/hooks/use-product-types';
+import { useUploadProductImage } from '@/lib/hooks/use-product-images';
+import { useLanguages, useDefaultLanguage } from '@/lib/hooks/use-languages';
+import { ProductTranslationsTabs, ProductTranslationsTabsRef } from '@/components/admin/product-translations-tabs';
 import { X, Plus, Upload, Image as ImageIcon } from 'lucide-react';
 import Image from 'next/image';
 import { useT, translationKeys } from '@/lib/utils/translations';
 
-const productSchema = yup.object({
-  name: yup.string().required('Product name is required'),
-  description: yup.string(),
-  shortDescription: yup.string(),
-  brandId: yup.string().required('Brand is required'),
-  productTypeId: yup.string().required('Product type is required'),
-  categoryIds: yup.array().of(yup.string()).min(1, 'At least one category is required'),
-  isActive: yup.boolean().default(true),
-  isFeatured: yup.boolean().default(false),
-  metaTitle: yup.string(),
-  metaDescription: yup.string(),
-  variants: yup
-    .array()
-    .of(
-      yup.object({
-        name: yup.string().required('Variant name is required'),
-        price: yup.number().min(0, 'Price must be positive').required('Price is required'),
-        stock: yup.number().min(0, 'Stock must be positive').required('Stock is required'),
-        isActive: yup.boolean().default(true),
-      }),
-    )
-    .min(1, 'At least one variant is required'),
-  attributes: yup.array().of(
-    yup.object({
-      attributeId: yup.string().required('Attribute is required'),
-      value: yup.string().required('Value is required'),
-    }),
-  ),
-});
-
-type ProductFormData = yup.InferType<typeof productSchema>;
+// ProductFormData type is defined below in the component
 
 interface Brand {
   id: string;
@@ -76,6 +49,8 @@ interface Attribute {
   id: string;
   name: string;
   slug: string;
+  parentId?: string;
+  subattributes?: Attribute[];
 }
 
 export default function NewProductPage() {
@@ -85,12 +60,50 @@ export default function NewProductPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [attributes, setAttributes] = useState<Attribute[]>([]);
   const [token, setToken] = useState<string | null>(null);
+  const [pendingImages, setPendingImages] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [translationData, setTranslationData] = useState<Record<string, { name: string; description: string; shortDescription: string; metaTitle: string; metaDescription: string }>>({});
   const isSubmittingRef = useRef(false);
+  const translationsRef = useRef<ProductTranslationsTabsRef>(null);
+  const { data: languages = [] } = useLanguages(true);
+  const { data: defaultLanguageCode = 'en' } = useDefaultLanguage();
 
   // Use React Query hooks for brands, categories, and product types
   const { data: brands = [] } = useBrands();
   const { data: categories = [] } = useCategories();
   const { data: productTypes = [] } = useProductTypes();
+
+  // Create schema with translations
+  const productSchema = yup.object({
+    // Name, description, shortDescription, metaTitle, metaDescription come from translations
+    name: yup.string().optional(),
+    description: yup.string().optional(),
+    shortDescription: yup.string().optional(),
+    brandId: yup.string().required(t(translationKeys.admin.products.brandRequired, 'Brand is required')),
+    productTypeId: yup.string().required(t(translationKeys.admin.products.productTypeRequired, 'Product type is required')),
+    categoryIds: yup.array().of(yup.string()).min(1, t(translationKeys.admin.products.categoryRequired, 'At least one category is required')),
+    isActive: yup.boolean().default(false),
+    isFeatured: yup.boolean().default(false),
+    metaTitle: yup.string().optional(),
+    metaDescription: yup.string().optional(),
+    variants: yup
+      .array()
+      .of(
+        yup.object({
+          name: yup.string().required(t(translationKeys.admin.products.variantNameRequired, 'Variant name is required')),
+          price: yup.number().min(0, t(translationKeys.admin.products.pricePositive, 'Price must be positive')).required(t(translationKeys.admin.products.priceRequired, 'Price is required')),
+          stock: yup.number().min(0, t(translationKeys.admin.products.stockPositive, 'Stock must be positive')).required(t(translationKeys.admin.products.stockRequired, 'Stock is required')),
+          isActive: yup.boolean().default(true),
+        }),
+      )
+      .min(1, t(translationKeys.admin.products.variantRequired, 'At least one variant is required')),
+    attributes: yup.array().of(
+      yup.object({
+        attributeId: yup.string().required(t(translationKeys.admin.products.attributeRequired, 'Attribute is required')),
+        value: yup.string().required(t(translationKeys.admin.products.valueRequired, 'Value is required')),
+      }),
+    ),
+  });
 
   const {
     register,
@@ -99,7 +112,7 @@ export default function NewProductPage() {
     formState: { errors },
     watch,
     setValue,
-  } = useForm<ProductFormData>({
+  } = useForm<yup.InferType<typeof productSchema>>({
     resolver: yupResolver(productSchema),
     defaultValues: {
       isActive: false,
@@ -227,7 +240,56 @@ export default function NewProductPage() {
   }, [selectedProductTypeId, token]);
 
 
-  const onSubmit = async (data: ProductFormData) => {
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const newFiles = Array.from(files).slice(0, 5 - pendingImages.length);
+    setPendingImages([...pendingImages, ...newFiles]);
+
+    // Create previews
+    newFiles.forEach((file) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        if (reader.result) {
+          setImagePreviews((prev) => [...prev, reader.result as string]);
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleRemovePendingImage = (index: number) => {
+    setPendingImages((prev) => prev.filter((_, i) => i !== index));
+    setImagePreviews((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const validateTranslations = (): string | null => {
+    const activeLanguages = languages.filter((l) => l.isActive);
+    if (activeLanguages.length === 0) {
+      return t(translationKeys.common.noActiveLanguages, 'No active languages configured');
+    }
+
+    if (!translationsRef.current) {
+      return t(translationKeys.common.translationDataMissing, 'Translation component not initialized');
+    }
+
+    // Validate that all active languages have required translation fields populated
+    const validation = translationsRef.current.validateAll();
+    if (!validation.isValid) {
+      const errorMessages = Object.entries(validation.errors)
+        .map(([lang, errors]) => {
+          const langName = activeLanguages.find((l) => l.code === lang)?.name || lang;
+          return `${langName}: ${errors.join(', ')}`;
+        })
+        .join('; ');
+      return t(translationKeys.admin.products.translationValidationError, `All active languages must have required translation fields (Name, Meta Title, Meta Description) populated. Errors: ${errorMessages}`).replace('{errors}', errorMessages);
+    }
+
+    return null;
+  };
+
+  const onSubmit = async (data: yup.InferType<typeof productSchema>) => {
     // Prevent multiple submissions using ref for immediate check
     if (isSubmittingRef.current || isLoading) {
       return;
@@ -238,18 +300,39 @@ export default function NewProductPage() {
       return;
     }
 
+    // Validate translations before creating product
+    // Note: Translation validation with inline errors is already done in the form's onSubmit wrapper
+    // This check ensures we don't proceed if translations are invalid
+    if (translationsRef.current) {
+      const validation = translationsRef.current.validateAll();
+      if (!validation.isValid) {
+        // Inline errors are already displayed, just prevent submission
+        return;
+      }
+    }
+
     // Set both state and ref to prevent multiple submissions
     isSubmittingRef.current = true;
     setIsLoading(true);
     setError(null);
 
     try {
+      // Get default language translation data for main product fields
+      const translationDataToSave = translationsRef.current?.getTranslationData() || {};
+      const defaultLangData = translationDataToSave[defaultLanguageCode] || {};
+      
       // SKU and slug are auto-generated on backend, don't send them
       const submitData = {
         ...data,
+        // Use default language translation values for main product fields
+        name: defaultLangData.name || '',
+        description: defaultLangData.description || '',
+        shortDescription: defaultLangData.shortDescription || '',
+        metaTitle: defaultLangData.metaTitle || '',
+        metaDescription: defaultLangData.metaDescription || '',
         sku: undefined,
         slug: undefined,
-        variants: (data.variants || []).map((v) => ({
+        variants: (data.variants || []).map((v: { name: string; price: number; stock: number; isActive: boolean }) => ({
           ...v,
           sku: undefined,
         })),
@@ -259,6 +342,59 @@ export default function NewProductPage() {
         method: 'POST',
         body: JSON.stringify(submitData),
       });
+
+      // Upload pending images during creation (right after product is created)
+      if (pendingImages.length > 0 && token) {
+        try {
+          for (let i = 0; i < pendingImages.length; i++) {
+            await uploadImage(product.id, pendingImages[i], token, {
+              isPrimary: i === 0,
+              order: i,
+            });
+          }
+        } catch (imgErr: any) {
+          console.error('Failed to upload images:', imgErr);
+          setError(imgErr.message || 'Product created but failed to upload images. Please upload images in edit mode.');
+          setIsLoading(false);
+          isSubmittingRef.current = false;
+          // Still redirect to edit page so user can retry image upload
+          router.push(`/admin/products/${product.id}/edit`);
+          return;
+        }
+      }
+
+      // Save translations for all active languages
+      if (translationsRef.current && token) {
+        try {
+          const translationDataToSave = translationsRef.current.getTranslationData();
+          const activeLanguages = languages.filter((l) => l.isActive);
+          
+          // Save translations for all active languages - all must have required fields
+          for (const lang of activeLanguages) {
+            const data = translationDataToSave[lang.code];
+            if (data && data.name && data.metaTitle && data.metaDescription) {
+              await fetchAPIAuth(`/products/${product.id}/translations/${lang.code}`, token, {
+                method: 'POST',
+                body: JSON.stringify({
+                  name: data.name,
+                  description: data.description || '',
+                  shortDescription: data.shortDescription || '',
+                  metaTitle: data.metaTitle,
+                  metaDescription: data.metaDescription,
+                }),
+              });
+            } else {
+              throw new Error(t(translationKeys.admin.products.translationDataMissing, `Translation data missing required fields for language: ${lang.name}`).replace('{langName}', lang.name));
+            }
+          }
+        } catch (transErr: any) {
+          console.error('Failed to save translations:', transErr);
+          setError(transErr.message || 'Failed to save translations. Please try again.');
+          setIsLoading(false);
+          isSubmittingRef.current = false;
+          return;
+        }
+      }
 
       // Redirect to edit page automatically
       // Don't reset state/ref here since we're redirecting away
@@ -284,45 +420,36 @@ export default function NewProductPage() {
       )}
 
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6" noValidate>
-        <div className="grid gap-6 md:grid-cols-2">
-          {/* Basic Information */}
+      <form onSubmit={(e) => {
+        e.preventDefault();
+        // Always validate translations first, even if form validation will fail
+        // This ensures inline errors are shown for translations regardless of other validation errors
+        if (translationsRef.current) {
+          translationsRef.current.validateAll();
+        }
+        // Then proceed with normal form validation
+        handleSubmit(onSubmit)(e);
+      }} className="space-y-6" noValidate>
+        {/* Product Basic Information and Translations - Must be first as it contains name, description, and SEO */}
+        {languages.filter((l) => l.isActive).length > 0 && (
           <Card>
             <CardHeader>
-              <CardTitle>{t(translationKeys.common.basicInfo, 'Basic Information')}</CardTitle>
-              <CardDescription>{t(translationKeys.common.productDetails, 'Product name and details')}</CardDescription>
+              <CardTitle>{t(translationKeys.common.productInformationAndTranslations, 'Product Information and Translations')}</CardTitle>
+              <CardDescription>
+                {t(translationKeys.admin.products.translationRequiredBeforeCreation, 'All active languages must have translations with required fields (Name, Meta Title, Meta Description) populated before product can be created.')}
+              </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">
-                  {t(translationKeys.common.name, 'Product Name')} <span className="text-destructive">*</span>
-                </Label>
-                <Input id="name" {...register('name')} />
-                {errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="shortDescription">{t(translationKeys.common.shortDescription, 'Short Description')}</Label>
-                <textarea
-                  id="shortDescription"
-                  {...register('shortDescription')}
-                  rows={2}
-                  className="flex min-h-[60px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="description">{t(translationKeys.common.description, 'Description')}</Label>
-                <textarea
-                  id="description"
-                  {...register('description')}
-                  rows={4}
-                  className="flex min-h-[60px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                />
-              </div>
+            <CardContent>
+              <ProductTranslationsTabs
+                ref={translationsRef}
+                creationMode={true}
+                onTranslationDataChange={setTranslationData}
+              />
             </CardContent>
           </Card>
+        )}
 
+        <div className="grid gap-6 md:grid-cols-2">
           {/* Classification */}
           <Card>
             <CardHeader>
@@ -474,6 +601,108 @@ export default function NewProductPage() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Attributes */}
+          <Card>
+            <CardHeader>
+              <CardTitle>{t(translationKeys.common.attributes, 'Attributes')}</CardTitle>
+              <CardDescription>{t(translationKeys.common.productSpecificAttributes, 'Product-specific attributes')}</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {!selectedProductTypeId ? (
+                <p className="text-sm text-muted-foreground">
+                  {t(translationKeys.admin.products.selectProductTypeForAttributes, 'Please select a product type to see available attributes')}
+                </p>
+              ) : attributes.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  {t(translationKeys.admin.products.noAttributesForProductType, 'No attributes available for the selected product type')}
+                </p>
+              ) : (
+                <>
+                  {attributeFields.map((field, index) => {
+                    const selectedAttributeId = watch(`attributes.${index}.attributeId`);
+                    const selectedAttribute = attributes.find(attr => attr.id === selectedAttributeId);
+                    const subattributes = selectedAttribute?.subattributes || [];
+                    
+                    return (
+                      <div key={field.id} className="grid gap-4 rounded-lg border p-4 md:grid-cols-3">
+                        <div className="space-y-2">
+                          <Label>{t(translationKeys.common.attribute, 'Attribute')}</Label>
+                          <Select
+                            value={selectedAttributeId || ''}
+                            onValueChange={(value) => {
+                              setValue(`attributes.${index}.attributeId`, value);
+                              // Clear value when attribute changes
+                              setValue(`attributes.${index}.value`, '');
+                            }}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder={t(translationKeys.common.selectAttribute, 'Select attribute')} />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {attributes.filter(attr => !attr.parentId).map((attr) => (
+                                <SelectItem key={attr.id} value={attr.id}>
+                                  {attr.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>{t(translationKeys.common.value, 'Value')}</Label>
+                          {selectedAttributeId && subattributes.length > 0 ? (
+                            <Select
+                              value={watch(`attributes.${index}.value`) || ''}
+                              onValueChange={(value) => setValue(`attributes.${index}.value`, value)}
+                            >
+                            <SelectTrigger>
+                              <SelectValue placeholder={t(translationKeys.common.selectValue, 'Select value')} />
+                            </SelectTrigger>
+                              <SelectContent>
+                                {subattributes.map((subattr) => (
+                                  <SelectItem key={subattr.id} value={subattr.name}>
+                                    {subattr.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          ) : selectedAttributeId && subattributes.length === 0 ? (
+                            <p className="text-sm text-muted-foreground">
+                              {t(translationKeys.admin.products.noSubattributesAvailable, 'No subattributes available for this attribute')}
+                            </p>
+                          ) : (
+                            <Input 
+                              {...register(`attributes.${index}.value`)} 
+                              placeholder={t(translationKeys.admin.products.selectAttributeFirst, 'Select attribute first')}
+                              disabled
+                            />
+                          )}
+                        </div>
+                        <div className="flex items-end">
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => removeAttribute(index)}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => appendAttribute({ attributeId: '', value: '' })}
+                  >
+                    <Plus className="mr-2 h-4 w-4" />
+                    {t(translationKeys.common.addAttribute, 'Add Attribute')}
+                  </Button>
+                </>
+              )}
+            </CardContent>
+          </Card>
         </div>
 
         {/* Variants */}
@@ -487,7 +716,7 @@ export default function NewProductPage() {
               <div key={field.id} className="grid gap-4 rounded-lg border p-4 md:grid-cols-4">
                 <div className="space-y-2">
                   <Label>{t(translationKeys.common.name, 'Name')}</Label>
-                  <Input {...register(`variants.${index}.name`)} placeholder="e.g., 50ml" />
+                  <Input {...register(`variants.${index}.name`)} placeholder={t(translationKeys.admin.products.variantNamePlaceholder, 'e.g., 50ml')} />
                   {errors.variants?.[index]?.name && (
                     <p className="text-sm text-destructive">
                       {errors.variants[index]?.name?.message}
@@ -547,107 +776,92 @@ export default function NewProductPage() {
           </CardContent>
         </Card>
 
-        {/* Attributes */}
-        {attributes.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle>{t(translationKeys.common.attributes, 'Attributes')}</CardTitle>
-              <CardDescription>{t(translationKeys.common.productSpecificAttributes, 'Product-specific attributes')}</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {attributeFields.map((field, index) => (
-                <div key={field.id} className="grid gap-4 rounded-lg border p-4 md:grid-cols-3">
-                  <div className="space-y-2">
-                    <Label>{t(translationKeys.common.attribute, 'Attribute')}</Label>
-                    <Select
-                      onValueChange={(value) => setValue(`attributes.${index}.attributeId`, value)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder={t(translationKeys.common.selectAttribute, 'Select attribute')} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {attributes.map((attr) => (
-                          <SelectItem key={attr.id} value={attr.id}>
-                            {attr.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>{t(translationKeys.common.value, 'Value')}</Label>
-                    <Input {...register(`attributes.${index}.value`)} />
-                  </div>
-                  <div className="flex items-end">
-                    <Button
-                      type="button"
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => removeAttribute(index)}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => appendAttribute({ attributeId: '', value: '' })}
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                {t(translationKeys.common.addAttribute, 'Add Attribute')}
-              </Button>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* SEO */}
-        <Card>
-          <CardHeader>
-            <CardTitle>{t(translationKeys.common.seoSettings, 'SEO Settings')}</CardTitle>
-            <CardDescription>{t(translationKeys.common.metaTitleDescription, 'Meta title and description')}</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="metaTitle">{t(translationKeys.common.metaTitle, 'Meta Title')}</Label>
-              <Input id="metaTitle" {...register('metaTitle')} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="metaDescription">{t(translationKeys.common.metaDescription, 'Meta Description')}</Label>
-              <textarea
-                id="metaDescription"
-                {...register('metaDescription')}
-                rows={3}
-                className="flex min-h-[60px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-              />
-            </div>
-          </CardContent>
-        </Card>
-
         {/* Images */}
         <Card>
           <CardHeader>
             <CardTitle>{t(translationKeys.common.productImages, 'Product Images')}</CardTitle>
-            <CardDescription>{t(translationKeys.common.manageProductImages, 'Manage product images')}</CardDescription>
+            <CardDescription>{t(translationKeys.common.manageProductImages, 'Manage product images (up to 5 images)')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              {t(translationKeys.common.imagesEditModeOnly, 'Images can be added in edit mode only. After creating the product, use the edit page to upload images (up to 5 images per product).')}
-            </p>
+            <div className="flex flex-wrap gap-4">
+              {imagePreviews.map((preview, index) => (
+                <div key={index} className="relative">
+                  <div className="relative h-32 w-32 overflow-hidden rounded-lg border">
+                    <Image
+                      src={preview}
+                      alt={`Preview ${index + 1}`}
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="sm"
+                    className="absolute -right-2 -top-2 h-6 w-6 rounded-full p-0"
+                    onClick={() => handleRemovePendingImage(index)}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </div>
+              ))}
+              {pendingImages.length < 5 && (
+                <label className="flex h-32 w-32 cursor-pointer items-center justify-center rounded-lg border-2 border-dashed hover:bg-muted">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    className="hidden"
+                    onChange={handleImageSelect}
+                  />
+                  <Upload className="h-8 w-8 text-muted-foreground" />
+                </label>
+              )}
+            </div>
+            {pendingImages.length === 0 && (
+              <p className="text-sm text-muted-foreground">
+                {t(translationKeys.admin.products.selectImagesToUpload, 'Select images to upload.')}
+              </p>
+            )}
           </CardContent>
         </Card>
 
-        {/* Translations */}
+
+        {/* Options */}
         <Card>
           <CardHeader>
-            <CardTitle>{t(translationKeys.common.productTranslations, 'Product Translations')}</CardTitle>
-            <CardDescription>{t(translationKeys.common.manageProductTranslations, 'Manage product translations for different languages')}</CardDescription>
+            <CardTitle>{t(translationKeys.common.status, 'Options')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              {t(translationKeys.common.translationsEditModeOnly, 'Translations can be added in edit mode only. After creating the product, use the edit page to add translations for different languages.')}
-            </p>
+            <div className="p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-md mb-4">
+              <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                <strong>{t(translationKeys.common.name, 'Note')}:</strong> {t(translationKeys.admin.products.productOptionsNote, 'Product can be set as active or featured on the main page, only in Edit mode after creation.')}
+              </p>
+            </div>
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="isActive"
+                {...register('isActive')}
+                className="h-4 w-4"
+                disabled
+              />
+              <Label htmlFor="isActive" className="font-normal text-muted-foreground">
+                {t(translationKeys.admin.products.productIsActive, 'Product is active')}
+              </Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="isFeatured"
+                {...register('isFeatured')}
+                className="h-4 w-4"
+                disabled
+              />
+              <Label htmlFor="isFeatured" className="font-normal text-muted-foreground">
+                {t(translationKeys.admin.products.featureProduct, 'Feature this product')}
+              </Label>
+            </div>
           </CardContent>
         </Card>
 

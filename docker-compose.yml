@@ -42,6 +42,8 @@ services:
       # Image URL Configuration
       MINIO_PUBLIC_URL: ${MINIO_PUBLIC_URL:-http://localhost:9000}
       NEXT_PUBLIC_CDN_URL: ${NEXT_PUBLIC_CDN_URL:-}
+      # Redis Configuration
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
     ports:
       - "3001:3001"
     volumes:
@@ -51,6 +53,8 @@ services:
       postgres:
         condition: service_healthy
       minio:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     networks:
       - ecommerce-network
@@ -124,9 +128,26 @@ services:
     networks:
       - ecommerce-network
 
+  redis:
+    image: redis:7-alpine
+    container_name: ecommerce-redis
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - ecommerce-network
+    command: redis-server --appendonly yes
+
 volumes:
   postgres_data:
   minio_data:
+  redis_data:
 
 networks:
   ecommerce-network:

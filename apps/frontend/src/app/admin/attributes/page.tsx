@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -21,37 +21,40 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { getAuthToken } from '@/lib/auth';
 import { isAdmin } from '@/lib/auth';
-import { useAttributes, useCreateAttribute, useUpdateAttribute, useDeleteAttribute, useAttributeTranslations, useUpsertAttributeTranslation, type Attribute } from '@/lib/hooks/use-attributes';
+import { useAttributes, useUpdateAttribute, useDeleteAttribute, useAttributeTranslations, useUpsertAttributeTranslation, attributeQueryKeys, type Attribute } from '@/lib/hooks/use-attributes';
+import { apiClient } from '@/lib/api/client';
+import { useQueryClient } from '@tanstack/react-query';
 import { useLanguages } from '@/lib/hooks/use-languages';
 import { Plus, Edit, Trash2, ChevronRight, ChevronDown } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useConfirm } from '@/contexts/confirm-dialog-context';
 import { useT, translationKeys } from '@/lib/utils/translations';
+import { AttributeTranslationsTabs, type AttributeTranslationsTabsRef } from '@/components/admin/attribute-translations-tabs';
+import { TranslationWarningBadge } from '@/components/admin/translation-warning-badge';
+import { useAttributeTranslationStatus } from '@/lib/hooks/use-translation-status';
 
 export default function AttributesPage() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { data: attributes = [], isLoading } = useAttributes();
   const { data: languages = [] } = useLanguages(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [isTranslationDialogOpen, setIsTranslationDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [translationAttributeId, setTranslationAttributeId] = useState<string | null>(null);
   const [expandedAttributes, setExpandedAttributes] = useState<Set<string>>(new Set());
   const [formData, setFormData] = useState({
     name: '',
     parentId: '',
   });
-  const [translationData, setTranslationData] = useState<Record<string, string>>({});
+  const [creationTranslationData, setCreationTranslationData] = useState<Record<string, { name: string }>>({});
   const [isCreating, setIsCreating] = useState(false);
   const token = getAuthToken();
   const { toast } = useToast();
   const confirm = useConfirm();
   const t = useT();
+  const translationTabsRef = useRef<AttributeTranslationsTabsRef>(null);
 
-  const createAttribute = useCreateAttribute();
   const updateAttribute = useUpdateAttribute();
   const deleteAttribute = useDeleteAttribute();
   const upsertTranslation = useUpsertAttributeTranslation();
@@ -99,47 +102,17 @@ export default function AttributesPage() {
     setIsDialogOpen(true);
   };
 
-  const openEditDialog = (attribute: Attribute) => {
+  const openEditDialog = async (attribute: Attribute) => {
     setEditingId(attribute.id);
     setFormData({
       name: attribute.name,
       parentId: attribute.parentId || '',
     });
+    // Invalidate and refetch translations to ensure fresh data
+    queryClient.invalidateQueries({
+      queryKey: attributeQueryKeys.translations(attribute.id),
+    });
     setIsDialogOpen(true);
-  };
-
-  const openTranslationDialog = async (attributeId: string) => {
-    setTranslationAttributeId(attributeId);
-    // Load existing translations
-    try {
-      if (token) {
-        const translations = await fetchAPIAuth<Array<{ language: string; name: string }>>(
-          `/attributes/${attributeId}/translations`,
-          token,
-        );
-        const translationMap: Record<string, string> = {};
-        languages.forEach((lang) => {
-          const existing = translations?.find((t) => t.language === lang.code);
-          translationMap[lang.code] = existing?.name || '';
-        });
-        setTranslationData(translationMap);
-      } else {
-        // Initialize with empty strings
-        const translationMap: Record<string, string> = {};
-        languages.forEach((lang) => {
-          translationMap[lang.code] = '';
-        });
-        setTranslationData(translationMap);
-      }
-    } catch (error) {
-      // Initialize with empty strings on error
-      const translationMap: Record<string, string> = {};
-      languages.forEach((lang) => {
-        translationMap[lang.code] = '';
-      });
-      setTranslationData(translationMap);
-    }
-    setIsTranslationDialogOpen(true);
   };
 
   const closeDialog = () => {
@@ -148,28 +121,74 @@ export default function AttributesPage() {
     setFormData({ name: '', parentId: '' });
   };
 
-  const closeTranslationDialog = () => {
-    setIsTranslationDialogOpen(false);
-    setTranslationAttributeId(null);
-    setTranslationData({});
-  };
-
   const handleCreate = async () => {
-    if (!formData.name) {
+    // Validate translations - name must be provided in translations
+    if (!translationTabsRef.current) {
       toast({
         variant: 'destructive',
         title: t(translationKeys.common.validationError, 'Validation Error'),
-        description: t(translationKeys.common.fillRequired, 'Please fill in the name field'),
+        description: 'Translation data is required.',
+      });
+      return;
+    }
+
+    const validation = translationTabsRef.current.validateAll();
+    if (!validation.isValid) {
+      toast({
+        variant: 'destructive',
+        title: t(translationKeys.common.validationError, 'Validation Error'),
+        description: 'Please fill in the name field for the default language.',
       });
       return;
     }
 
     try {
       setIsCreating(true);
-      await createAttribute.mutateAsync({
-        name: formData.name,
-        parentId: formData.parentId || undefined,
-      });
+      const translationData = translationTabsRef.current.getTranslationData();
+      const activeLangs = languages.filter((l) => l.isActive);
+      const defaultLang = languages.find((l) => l.isDefault) || activeLangs[0];
+      
+      // Use the default language's name as the main name, or first available translation
+      const defaultName = translationData[defaultLang.code]?.name?.trim() || 
+                         Object.values(translationData).find(d => d?.name?.trim())?.name?.trim() || 
+                         'Untitled';
+
+      // Create attribute using apiClient directly (same pattern as categories)
+      const response = await apiClient.post<Attribute>(
+        '/attributes',
+        {
+          name: defaultName,
+          parentId: formData.parentId || undefined,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      const newAttribute = response.data;
+
+      // Save translations for all languages
+      if (newAttribute?.id) {
+        await Promise.all(
+          activeLangs.map(async (lang) => {
+            const data = translationData[lang.code];
+            if (data?.name?.trim()) {
+              return upsertTranslation.mutateAsync({
+                attributeId: newAttribute.id,
+                language: lang.code,
+                name: data.name,
+              });
+            }
+          })
+        );
+      }
+
+      // Invalidate React Query cache (same pattern as categories)
+      await queryClient.invalidateQueries({ queryKey: attributeQueryKeys.all });
+      // Refresh Next.js router cache to ensure server-side cache is also invalidated
+      router.refresh();
+
       closeDialog();
       setIsCreating(false);
       toast({
@@ -190,24 +209,64 @@ export default function AttributesPage() {
   const handleUpdate = async () => {
     if (!editingId) return;
 
-    if (!formData.name) {
-      toast({
-        variant: 'destructive',
-        title: t(translationKeys.common.validationError, 'Validation Error'),
-        description: t(translationKeys.common.fillRequired, 'Please fill in the name field'),
-      });
-      return;
+    // Validate translations if translation tabs ref is available
+    if (translationTabsRef.current) {
+      const validation = translationTabsRef.current.validateAll();
+      if (!validation.isValid) {
+        toast({
+          variant: 'destructive',
+          title: t(translationKeys.common.validationError, 'Validation Error'),
+          description: 'Please fill in the name field for the default language.',
+        });
+        return;
+      }
     }
 
     try {
       setIsCreating(true);
-      await updateAttribute.mutateAsync({
-        id: editingId,
-        data: {
-          name: formData.name,
+      const translationData = translationTabsRef.current?.getTranslationData() || {};
+      const activeLangs = languages.filter((l) => l.isActive);
+      const defaultLang = languages.find((l) => l.isDefault) || activeLangs[0];
+      
+      // Use the default language's name as the main name, or first available translation
+      const defaultName = translationData[defaultLang.code]?.name?.trim() || 
+                         Object.values(translationData).find(d => d?.name?.trim())?.name?.trim() || 
+                         formData.name;
+
+      // Update attribute using apiClient directly (same pattern as categories)
+      await apiClient.patch<Attribute>(
+        `/attributes/${editingId}`,
+        {
+          name: defaultName,
           parentId: formData.parentId || undefined,
         },
-      });
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      // Save translations for all languages
+      if (editingId) {
+        await Promise.all(
+          activeLangs.map(async (lang) => {
+            const data = translationData[lang.code];
+            if (data?.name?.trim()) {
+              return upsertTranslation.mutateAsync({
+                attributeId: editingId,
+                language: lang.code,
+                name: data.name,
+              });
+            }
+          })
+        );
+      }
+
+      // Invalidate React Query cache (same pattern as categories)
+      await queryClient.invalidateQueries({ queryKey: attributeQueryKeys.all });
+      // Refresh Next.js router cache to ensure server-side cache is also invalidated
+      router.refresh();
       closeDialog();
       setIsCreating(false);
       toast({
@@ -255,46 +314,16 @@ export default function AttributesPage() {
     }
   };
 
-  const handleSaveTranslations = async () => {
-    if (!translationAttributeId) return;
 
-    try {
-      setIsCreating(true);
-      const promises = languages.map((lang) => {
-        const name = translationData[lang.code]?.trim();
-        if (!name) return Promise.resolve();
-        return upsertTranslation.mutateAsync({
-          attributeId: translationAttributeId,
-          language: lang.code,
-          name,
-        });
-      });
-
-      await Promise.all(promises);
-      closeTranslationDialog();
-      setIsCreating(false);
-      toast({
-        variant: 'success',
-        title: t(translationKeys.common.success, 'Success'),
-        description: 'Translations saved successfully!',
-      });
-    } catch (error: any) {
-      setIsCreating(false);
-      toast({
-        variant: 'destructive',
-        title: t(translationKeys.common.error, 'Error'),
-        description: error.message || t(translationKeys.common.failed, 'Failed'),
-      });
-    }
-  };
-
-  const renderAttribute = (attribute: Attribute, level: number = 0) => {
+  // Component for rendering a single attribute with translation status
+  const AttributeItem = ({ attribute, level = 0 }: { attribute: Attribute; level?: number }) => {
     const subattributes = getSubattributes(attribute.id);
     const hasSubattributes = subattributes.length > 0;
     const isExpanded = expandedAttributes.has(attribute.id);
+    const translationStatus = useAttributeTranslationStatus(attribute.id);
 
     return (
-      <div key={attribute.id} className="ml-4">
+      <div className="ml-4">
         <Card className="mb-2">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
@@ -314,19 +343,20 @@ export default function AttributesPage() {
                   </Button>
                 )}
                 {!hasSubattributes && <div className="w-6" />}
-                <div className="flex-1">
-                  <div className="font-medium">{attribute.name}</div>
-                  <div className="text-sm text-muted-foreground">{attribute.slug}</div>
+                <div className="flex-1 flex items-center gap-2">
+                  <div>
+                    <div className="font-medium">{attribute.name}</div>
+                    <div className="text-sm text-muted-foreground">{attribute.slug}</div>
+                  </div>
+                  {!translationStatus.hasAllTranslations && (
+                    <TranslationWarningBadge
+                      missingLanguages={translationStatus.missingLanguages}
+                      entityType="attribute"
+                    />
+                  )}
                 </div>
               </div>
               <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => openTranslationDialog(attribute.id)}
-                >
-                  {t(translationKeys.common.translations, 'Translations')}
-                </Button>
                 <Button
                   variant="outline"
                   size="sm"
@@ -349,11 +379,17 @@ export default function AttributesPage() {
         </Card>
         {hasSubattributes && isExpanded && (
           <div className="ml-4">
-            {subattributes.map((subattr) => renderAttribute(subattr, level + 1))}
+            {subattributes.map((subattr) => (
+              <AttributeItem key={subattr.id} attribute={subattr} level={level + 1} />
+            ))}
           </div>
         )}
       </div>
     );
+  };
+
+  const renderAttribute = (attribute: Attribute, level: number = 0) => {
+    return <AttributeItem key={attribute.id} attribute={attribute} level={level} />;
   };
 
   if (isLoading) {
@@ -402,7 +438,7 @@ export default function AttributesPage() {
 
       {/* Create/Edit Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {editingId ? 'Edit Attribute' : 'Create New Attribute'}
@@ -414,15 +450,6 @@ export default function AttributesPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="name">Name *</Label>
-              <Input
-                id="name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="Attribute name"
-              />
-            </div>
             <div className="grid gap-2">
               <Label htmlFor="parentId">Parent Attribute (Optional)</Label>
               <Select
@@ -445,6 +472,19 @@ export default function AttributesPage() {
                 Select a parent attribute to create a subattribute
               </p>
             </div>
+            <div className="grid gap-2">
+              <Label>Translations *</Label>
+              <p className="text-sm text-muted-foreground mb-2">
+                Add translations for all languages. Name is required for the default language only. Other languages will fallback to the default language if missing.
+              </p>
+              <AttributeTranslationsTabs
+                ref={translationTabsRef}
+                attributeId={editingId || undefined}
+                defaultName={formData.name}
+                creationMode={!editingId}
+                onTranslationDataChange={setCreationTranslationData}
+              />
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={closeDialog}>
@@ -463,56 +503,6 @@ export default function AttributesPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Translation Dialog */}
-      <Dialog open={isTranslationDialogOpen} onOpenChange={setIsTranslationDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Attribute Translations</DialogTitle>
-            <DialogDescription>
-              Add translations for this attribute in different languages
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <Tabs defaultValue={languages[0]?.code || ''} className="w-full">
-              <TabsList className="grid w-full" style={{ gridTemplateColumns: `repeat(${languages.length}, minmax(0, 1fr))` }}>
-                {languages.map((lang) => (
-                  <TabsTrigger key={lang.code} value={lang.code}>
-                    {lang.name}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-              {languages.map((lang) => (
-                <TabsContent key={lang.code} value={lang.code} className="space-y-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor={`translation-${lang.code}`}>
-                      Name ({lang.name})
-                    </Label>
-                    <Input
-                      id={`translation-${lang.code}`}
-                      value={translationData[lang.code] || ''}
-                      onChange={(e) =>
-                        setTranslationData({
-                          ...translationData,
-                          [lang.code]: e.target.value,
-                        })
-                      }
-                      placeholder={`Enter name in ${lang.name}`}
-                    />
-                  </div>
-                </TabsContent>
-              ))}
-            </Tabs>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={closeTranslationDialog}>
-              {t(translationKeys.common.cancel, 'Cancel')}
-            </Button>
-            <Button onClick={handleSaveTranslations} disabled={isCreating}>
-              {isCreating ? 'Saving...' : 'Save Translations'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

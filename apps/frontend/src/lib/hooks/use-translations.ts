@@ -1,18 +1,64 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../api/client';
+import {
+  getCachedTranslations,
+  setCachedTranslations,
+  clearCachedTranslations,
+} from '../utils/translation-cache';
 
 export type Translations = Record<string, any>;
 
 export function useTranslations(language?: string) {
+  const effectiveLanguage = language || 'en';
+  const queryClient = useQueryClient();
+  
   return useQuery({
-    queryKey: ['translations', language],
+    queryKey: ['translations', effectiveLanguage],
     queryFn: async () => {
-      const url = language ? `/translations?lang=${language}` : '/translations';
+      // Try to get from browser cache first
+      const cached = getCachedTranslations(effectiveLanguage);
+      
+      // Always fetch fresh data in background if cache exists
+      if (cached) {
+        // Fetch fresh data in background
+        const url = `/translations?lang=${effectiveLanguage}`;
+        apiClient.get<Translations>(url)
+          .then((response) => {
+            // Update browser cache
+            setCachedTranslations(effectiveLanguage, response.data);
+            // Update React Query cache
+            queryClient.setQueryData(['translations', effectiveLanguage], response.data);
+          })
+          .catch((error) => {
+            console.error('Failed to refresh translations:', error);
+            // Keep using cached data if fetch fails
+          });
+        
+        // Return cached data immediately
+        return cached;
+      }
+      
+      // No cache, fetch from API
+      const url = `/translations?lang=${effectiveLanguage}`;
       const response = await apiClient.get<Translations>(url);
+      
+      // Save to browser cache
+      setCachedTranslations(effectiveLanguage, response.data);
+      
       return response.data;
     },
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes in React Query
+    gcTime: 24 * 60 * 60 * 1000, // Keep in memory for 24 hours
+    // Use cached data as initial data for instant loading
+    initialData: () => getCachedTranslations(effectiveLanguage) || undefined,
   });
+}
+
+/**
+ * Clear translations cache for a language
+ */
+export function clearTranslationsCache(language: string): void {
+  clearCachedTranslations(language);
 }
 
 /**
