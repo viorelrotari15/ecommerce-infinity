@@ -23,38 +23,7 @@ import { X, Plus, Upload, Image as ImageIcon } from 'lucide-react';
 import Image from 'next/image';
 import { useT, translationKeys } from '@/lib/utils/translations';
 
-const productSchema = yup.object({
-  // Name, description, shortDescription, metaTitle, metaDescription come from translations
-  name: yup.string().optional(),
-  description: yup.string().optional(),
-  shortDescription: yup.string().optional(),
-  brandId: yup.string().required('Brand is required'),
-  productTypeId: yup.string().required('Product type is required'),
-  categoryIds: yup.array().of(yup.string()).min(1, 'At least one category is required'),
-  isActive: yup.boolean().default(false),
-  isFeatured: yup.boolean().default(false),
-  metaTitle: yup.string().optional(),
-  metaDescription: yup.string().optional(),
-  variants: yup
-    .array()
-    .of(
-      yup.object({
-        name: yup.string().required('Variant name is required'),
-        price: yup.number().min(0, 'Price must be positive').required('Price is required'),
-        stock: yup.number().min(0, 'Stock must be positive').required('Stock is required'),
-        isActive: yup.boolean().default(true),
-      }),
-    )
-    .min(1, 'At least one variant is required'),
-  attributes: yup.array().of(
-    yup.object({
-      attributeId: yup.string().required('Attribute is required'),
-      value: yup.string().required('Value is required'),
-    }),
-  ),
-});
-
-type ProductFormData = yup.InferType<typeof productSchema>;
+// ProductFormData type is defined below in the component
 
 interface Brand {
   id: string;
@@ -104,6 +73,38 @@ export default function NewProductPage() {
   const { data: categories = [] } = useCategories();
   const { data: productTypes = [] } = useProductTypes();
 
+  // Create schema with translations
+  const productSchema = yup.object({
+    // Name, description, shortDescription, metaTitle, metaDescription come from translations
+    name: yup.string().optional(),
+    description: yup.string().optional(),
+    shortDescription: yup.string().optional(),
+    brandId: yup.string().required(t(translationKeys.admin.products.brandRequired, 'Brand is required')),
+    productTypeId: yup.string().required(t(translationKeys.admin.products.productTypeRequired, 'Product type is required')),
+    categoryIds: yup.array().of(yup.string()).min(1, t(translationKeys.admin.products.categoryRequired, 'At least one category is required')),
+    isActive: yup.boolean().default(false),
+    isFeatured: yup.boolean().default(false),
+    metaTitle: yup.string().optional(),
+    metaDescription: yup.string().optional(),
+    variants: yup
+      .array()
+      .of(
+        yup.object({
+          name: yup.string().required(t(translationKeys.admin.products.variantNameRequired, 'Variant name is required')),
+          price: yup.number().min(0, t(translationKeys.admin.products.pricePositive, 'Price must be positive')).required(t(translationKeys.admin.products.priceRequired, 'Price is required')),
+          stock: yup.number().min(0, t(translationKeys.admin.products.stockPositive, 'Stock must be positive')).required(t(translationKeys.admin.products.stockRequired, 'Stock is required')),
+          isActive: yup.boolean().default(true),
+        }),
+      )
+      .min(1, t(translationKeys.admin.products.variantRequired, 'At least one variant is required')),
+    attributes: yup.array().of(
+      yup.object({
+        attributeId: yup.string().required(t(translationKeys.admin.products.attributeRequired, 'Attribute is required')),
+        value: yup.string().required(t(translationKeys.admin.products.valueRequired, 'Value is required')),
+      }),
+    ),
+  });
+
   const {
     register,
     handleSubmit,
@@ -111,7 +112,7 @@ export default function NewProductPage() {
     formState: { errors },
     watch,
     setValue,
-  } = useForm<ProductFormData>({
+  } = useForm<yup.InferType<typeof productSchema>>({
     resolver: yupResolver(productSchema),
     defaultValues: {
       isActive: false,
@@ -266,11 +267,11 @@ export default function NewProductPage() {
   const validateTranslations = (): string | null => {
     const activeLanguages = languages.filter((l) => l.isActive);
     if (activeLanguages.length === 0) {
-      return 'No active languages configured';
+      return t(translationKeys.common.noActiveLanguages, 'No active languages configured');
     }
 
     if (!translationsRef.current) {
-      return 'Translation component not initialized';
+      return t(translationKeys.common.translationDataMissing, 'Translation component not initialized');
     }
 
     // Validate that all active languages have required translation fields populated
@@ -282,13 +283,13 @@ export default function NewProductPage() {
           return `${langName}: ${errors.join(', ')}`;
         })
         .join('; ');
-      return `All active languages must have required translation fields (Name, Meta Title, Meta Description) populated. Errors: ${errorMessages}`;
+      return t(translationKeys.admin.products.translationValidationError, `All active languages must have required translation fields (Name, Meta Title, Meta Description) populated. Errors: ${errorMessages}`).replace('{errors}', errorMessages);
     }
 
     return null;
   };
 
-  const onSubmit = async (data: ProductFormData) => {
+  const onSubmit = async (data: yup.InferType<typeof productSchema>) => {
     // Prevent multiple submissions using ref for immediate check
     if (isSubmittingRef.current || isLoading) {
       return;
@@ -331,7 +332,7 @@ export default function NewProductPage() {
         metaDescription: defaultLangData.metaDescription || '',
         sku: undefined,
         slug: undefined,
-        variants: (data.variants || []).map((v) => ({
+        variants: (data.variants || []).map((v: { name: string; price: number; stock: number; isActive: boolean }) => ({
           ...v,
           sku: undefined,
         })),
@@ -383,7 +384,7 @@ export default function NewProductPage() {
                 }),
               });
             } else {
-              throw new Error(`Translation data missing required fields for language: ${lang.name}`);
+              throw new Error(t(translationKeys.admin.products.translationDataMissing, `Translation data missing required fields for language: ${lang.name}`).replace('{langName}', lang.name));
             }
           }
         } catch (transErr: any) {
@@ -433,9 +434,9 @@ export default function NewProductPage() {
         {languages.filter((l) => l.isActive).length > 0 && (
           <Card>
             <CardHeader>
-              <CardTitle>Product Information and Translations</CardTitle>
+              <CardTitle>{t(translationKeys.common.productInformationAndTranslations, 'Product Information and Translations')}</CardTitle>
               <CardDescription>
-                {t(translationKeys.common.manageProductTranslations, 'All active languages must have translations with required fields (Name, Meta Title, Meta Description) populated before product can be created.')}
+                {t(translationKeys.admin.products.translationRequiredBeforeCreation, 'All active languages must have translations with required fields (Name, Meta Title, Meta Description) populated before product can be created.')}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -610,11 +611,11 @@ export default function NewProductPage() {
             <CardContent className="space-y-4">
               {!selectedProductTypeId ? (
                 <p className="text-sm text-muted-foreground">
-                  Please select a product type to see available attributes
+                  {t(translationKeys.admin.products.selectProductTypeForAttributes, 'Please select a product type to see available attributes')}
                 </p>
               ) : attributes.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
-                  No attributes available for the selected product type
+                  {t(translationKeys.admin.products.noAttributesForProductType, 'No attributes available for the selected product type')}
                 </p>
               ) : (
                 <>
@@ -654,9 +655,9 @@ export default function NewProductPage() {
                               value={watch(`attributes.${index}.value`) || ''}
                               onValueChange={(value) => setValue(`attributes.${index}.value`, value)}
                             >
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select value" />
-                              </SelectTrigger>
+                            <SelectTrigger>
+                              <SelectValue placeholder={t(translationKeys.common.selectValue, 'Select value')} />
+                            </SelectTrigger>
                               <SelectContent>
                                 {subattributes.map((subattr) => (
                                   <SelectItem key={subattr.id} value={subattr.name}>
@@ -667,12 +668,12 @@ export default function NewProductPage() {
                             </Select>
                           ) : selectedAttributeId && subattributes.length === 0 ? (
                             <p className="text-sm text-muted-foreground">
-                              No subattributes available for this attribute
+                              {t(translationKeys.admin.products.noSubattributesAvailable, 'No subattributes available for this attribute')}
                             </p>
                           ) : (
                             <Input 
                               {...register(`attributes.${index}.value`)} 
-                              placeholder="Select attribute first"
+                              placeholder={t(translationKeys.admin.products.selectAttributeFirst, 'Select attribute first')}
                               disabled
                             />
                           )}
@@ -715,7 +716,7 @@ export default function NewProductPage() {
               <div key={field.id} className="grid gap-4 rounded-lg border p-4 md:grid-cols-4">
                 <div className="space-y-2">
                   <Label>{t(translationKeys.common.name, 'Name')}</Label>
-                  <Input {...register(`variants.${index}.name`)} placeholder="e.g., 50ml" />
+                  <Input {...register(`variants.${index}.name`)} placeholder={t(translationKeys.admin.products.variantNamePlaceholder, 'e.g., 50ml')} />
                   {errors.variants?.[index]?.name && (
                     <p className="text-sm text-destructive">
                       {errors.variants[index]?.name?.message}
@@ -819,7 +820,7 @@ export default function NewProductPage() {
             </div>
             {pendingImages.length === 0 && (
               <p className="text-sm text-muted-foreground">
-                Select images to upload.
+                {t(translationKeys.admin.products.selectImagesToUpload, 'Select images to upload.')}
               </p>
             )}
           </CardContent>
@@ -834,7 +835,7 @@ export default function NewProductPage() {
           <CardContent className="space-y-4">
             <div className="p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-md mb-4">
               <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                <strong>Note:</strong> Product can be set as active or featured on the main page, only in Edit mode after creation.
+                <strong>{t(translationKeys.common.name, 'Note')}:</strong> {t(translationKeys.admin.products.productOptionsNote, 'Product can be set as active or featured on the main page, only in Edit mode after creation.')}
               </p>
             </div>
             <div className="flex items-center space-x-2">

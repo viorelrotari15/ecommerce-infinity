@@ -10,6 +10,7 @@ import { useLanguages } from '@/lib/hooks/use-languages';
 import { useBrandTranslations, useUpsertBrandTranslation } from '@/lib/hooks/use-brands';
 import { useToast } from '@/hooks/use-toast';
 import { AlertCircle } from 'lucide-react';
+import { useT, translationKeys } from '@/lib/utils/translations';
 
 interface BrandTranslationsTabsProps {
   brandId?: string;
@@ -36,6 +37,7 @@ export const BrandTranslationsTabs = forwardRef<BrandTranslationsTabsRef, BrandT
   const { data: translations = [] } = useBrandTranslations(brandId || '');
   const upsertTranslation = useUpsertBrandTranslation();
   const { toast } = useToast();
+  const t = useT();
 
   const [translationData, setTranslationData] = useState<
     Record<string, { name: string; description: string }>
@@ -167,8 +169,8 @@ export const BrandTranslationsTabs = forwardRef<BrandTranslationsTabsRef, BrandT
     const errorMessages: string[] = [];
     
     if (!data.name || data.name.trim() === '') {
-      errors.name = 'Brand name is required';
-      errorMessages.push('Brand name is required');
+      errors.name = t(translationKeys.admin.brands.nameRequired, 'Brand name is required');
+      errorMessages.push(t(translationKeys.admin.brands.nameRequired, 'Brand name is required'));
     }
     
     return { 
@@ -193,7 +195,7 @@ export const BrandTranslationsTabs = forwardRef<BrandTranslationsTabsRef, BrandT
       if (!defaultLang) {
         return {
           isValid: false,
-          errors: { general: ['No default language configured'] },
+          errors: { general: [t(translationKeys.common.noDefaultLanguage, 'No default language configured')] },
         };
       }
 
@@ -205,8 +207,8 @@ export const BrandTranslationsTabs = forwardRef<BrandTranslationsTabsRef, BrandT
           allErrors[defaultLang.code] = validation.errorMessages;
         }
       } else {
-        allFieldErrors[defaultLang.code] = { name: 'Translation data is missing' };
-        allErrors[defaultLang.code] = ['Translation data is missing'];
+        allFieldErrors[defaultLang.code] = { name: t(translationKeys.common.translationDataMissing, 'Translation data is missing') };
+        allErrors[defaultLang.code] = [t(translationKeys.common.translationDataMissing, 'Translation data is missing')];
       }
       
       // Set field errors so they display in the UI
@@ -237,7 +239,7 @@ export const BrandTranslationsTabs = forwardRef<BrandTranslationsTabsRef, BrandT
   if (activeLanguages.length === 0) {
     return (
       <div className="text-sm text-muted-foreground">
-        No active languages configured
+        {t(translationKeys.common.noActiveLanguages, 'No active languages configured')}
       </div>
     );
   }
@@ -254,7 +256,7 @@ export const BrandTranslationsTabs = forwardRef<BrandTranslationsTabsRef, BrandT
                 {lang.name}
                 {lang.isDefault && <span className="ml-1 text-xs">★</span>}
                 {!hasTranslation && (
-                  <span className="ml-1 text-xs text-muted-foreground">(missing)</span>
+                  <span className="ml-1 text-xs text-muted-foreground">{t(translationKeys.common.missing, '(missing)')}</span>
                 )}
                 {hasErrors && (
                   <span className="ml-1 text-xs text-destructive">⚠</span>
@@ -271,7 +273,7 @@ export const BrandTranslationsTabs = forwardRef<BrandTranslationsTabsRef, BrandT
               <AlertCircle className="h-5 w-5 text-destructive flex-shrink-0 mt-0.5" />
               <div className="flex-1">
                 <p className="text-sm font-medium text-destructive mb-1">
-                  Required fields are missing in the following languages:
+                  {t(translationKeys.common.requiredFieldsMissing, 'Required fields are missing in the following languages:')}
                 </p>
                 <ul className="text-sm text-destructive/90 space-y-1">
                   {Object.entries(fieldErrors).map(([langCode, errors]) => {
@@ -282,7 +284,7 @@ export const BrandTranslationsTabs = forwardRef<BrandTranslationsTabsRef, BrandT
                       <li key={langCode} className="flex items-center gap-2">
                         <span className="font-medium">{langName}:</span>
                         <span>{errorFields.map(field => {
-                          if (field === 'name') return 'Brand Name';
+                          if (field === 'name') return t(translationKeys.admin.brands.name, 'Brand Name');
                           return field;
                         }).join(', ')}</span>
                         <button
@@ -290,7 +292,7 @@ export const BrandTranslationsTabs = forwardRef<BrandTranslationsTabsRef, BrandT
                           className="ml-auto text-xs text-destructive hover:underline"
                           onClick={() => setActiveTab(langCode)}
                         >
-                          Go to {langName}
+                          {t(translationKeys.common.goToLanguage, 'Go to {langName}').replace('{langName}', langName)}
                         </button>
                       </li>
                     );
@@ -305,13 +307,13 @@ export const BrandTranslationsTabs = forwardRef<BrandTranslationsTabsRef, BrandT
           <TabsContent key={lang.code} value={lang.code} className="space-y-6 mt-4">
             <Card>
               <CardHeader>
-                <CardTitle>Basic Information</CardTitle>
-                <CardDescription>Brand name and description in {lang.name}</CardDescription>
+                <CardTitle>{t(translationKeys.common.basicInfo, 'Basic Information')}</CardTitle>
+                <CardDescription>{t(translationKeys.admin.brands.nameAndDescriptionInLanguage, 'Brand name and description in {langName}').replace('{langName}', lang.name)}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor={`name-${lang.code}`}>
-                    Brand Name <span className="text-destructive">*</span>
+                    {t(translationKeys.admin.brands.name, 'Brand Name')} <span className="text-destructive">*</span>
                   </Label>
                   <Input
                     id={`name-${lang.code}`}
@@ -333,7 +335,7 @@ export const BrandTranslationsTabs = forwardRef<BrandTranslationsTabsRef, BrandT
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor={`description-${lang.code}`}>Description</Label>
+                  <Label htmlFor={`description-${lang.code}`}>{t(translationKeys.common.description, 'Description')}</Label>
                   <Textarea
                     id={`description-${lang.code}`}
                     value={translationData[lang.code]?.description || ''}

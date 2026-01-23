@@ -33,9 +33,9 @@ export function useCategories(initialData?: Category[]) {
       return Array.isArray(data) ? data : data.data || [];
     },
     initialData,
-    staleTime: 0, // Always consider data stale so it refetches after invalidation
-    refetchOnMount: true, // Refetch when component mounts if data is stale
-    refetchOnWindowFocus: true, // Refetch when window regains focus
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes (categories rarely change)
+    refetchOnMount: false, // Don't refetch on mount if data is fresh
+    refetchOnWindowFocus: false, // Don't refetch on window focus (categories rarely change)
   });
 }
 

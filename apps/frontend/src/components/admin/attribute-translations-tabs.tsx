@@ -30,7 +30,7 @@ export const AttributeTranslationsTabs = forwardRef<AttributeTranslationsTabsRef
   onTranslationDataChange,
 }, ref) => {
   const { data: languages = [] } = useLanguages(true);
-  const { data: translations = [] } = useAttributeTranslations(attributeId || '');
+  const { data: translations = [], isLoading: isLoadingTranslations, refetch: refetchTranslations } = useAttributeTranslations(attributeId || '');
   const upsertTranslation = useUpsertAttributeTranslation();
   const { toast } = useToast();
 
@@ -71,11 +71,13 @@ export const AttributeTranslationsTabs = forwardRef<AttributeTranslationsTabsRef
     const translationsKey = translations.map(t => `${t.language}:${t.name}`).sort().join(',');
 
     // Only update if languages or translations actually changed
+    // Also update when translations finish loading (to handle initial load after creation)
     const shouldUpdate = !hasInitializedRef.current || 
       prevLanguagesRef.current !== languagesKey ||
-      prevTranslationsRef.current !== translationsKey;
+      prevTranslationsRef.current !== translationsKey ||
+      (isLoadingTranslations === false && prevTranslationsRef.current === '' && translations.length > 0);
 
-    if (!shouldUpdate) return;
+    if (!shouldUpdate && !isLoadingTranslations) return;
 
     const defaultLang = languages.find((l) => l.isDefault);
     const data: Record<string, { name: string }> = {};
@@ -113,7 +115,7 @@ export const AttributeTranslationsTabs = forwardRef<AttributeTranslationsTabsRef
     if (creationMode && onTranslationDataChangeRef.current && wasFirstInit) {
       onTranslationDataChangeRef.current(data);
     }
-  }, [translations, languages, defaultName, creationMode]);
+  }, [translations, languages, defaultName, creationMode, isLoadingTranslations]);
 
   // Helper function to update translation data and notify parent in creation mode
   const updateTranslationData = (updates: Record<string, any>) => {

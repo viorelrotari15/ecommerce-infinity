@@ -299,6 +299,7 @@ model UiTranslation {
 
   @@unique([key, language])
   @@index([language])
+  @@index([language, key]) // Composite index for translation lookups
   @@map("ui_translations")
 }
 
@@ -319,6 +320,7 @@ model ProductTranslation {
   @@unique([productId, language])
   @@index([productId])
   @@index([language])
+  @@index([productId, language]) // Composite index for product translation lookups
   @@map("product_translations")
 }
 
@@ -336,6 +338,7 @@ model CategoryTranslation {
   @@unique([categoryId, language])
   @@index([categoryId])
   @@index([language])
+  @@index([categoryId, language]) // Composite index for category translation lookups
   @@map("category_translations")
 }
 
@@ -353,6 +356,7 @@ model BrandTranslation {
   @@unique([brandId, language])
   @@index([brandId])
   @@index([language])
+  @@index([brandId, language]) // Composite index for brand translation lookups
   @@map("brand_translations")
 }
 
@@ -370,6 +374,7 @@ model ProductTypeTranslation {
   @@unique([productTypeId, language])
   @@index([productTypeId])
   @@index([language])
+  @@index([productTypeId, language]) // Composite index for product type translation lookups
   @@map("product_type_translations")
 }
 
@@ -386,6 +391,7 @@ model AttributeTranslation {
   @@unique([attributeId, language])
   @@index([attributeId])
   @@index([language])
+  @@index([attributeId, language]) // Composite index for attribute translation lookups
   @@map("attribute_translations")
 }
 

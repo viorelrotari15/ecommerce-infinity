@@ -318,6 +318,12 @@ export class ProductsService {
               attribute: {
                 include: {
                   translations: true,
+                  subattributes: {
+                    include: {
+                      translations: true,
+                    },
+                    orderBy: { name: 'asc' },
+                  },
                 },
               },
             },
@@ -405,6 +411,24 @@ export class ProductsService {
               }
               delete pa.attribute.translations;
             }
+            
+            // Apply translations to subattributes
+            if (pa.attribute?.subattributes) {
+              for (const subattr of pa.attribute.subattributes) {
+                if (subattr.translations) {
+                  const subTranslation = await this.languageHelper.getTranslationWithFallback(
+                    subattr.translations,
+                    language,
+                    defaultLang,
+                    (t) => t,
+                  );
+                  if (subTranslation) {
+                    subattr.name = subTranslation.name || subattr.name;
+                  }
+                  delete subattr.translations;
+                }
+              }
+            }
           }
         }
 
@@ -464,6 +488,12 @@ export class ProductsService {
             attribute: {
               include: {
                 translations: true,
+                subattributes: {
+                  include: {
+                    translations: true,
+                  },
+                  orderBy: { name: 'asc' },
+                },
               },
             },
           },
@@ -546,6 +576,24 @@ export class ProductsService {
             pa.attribute.name = attrTranslation.name || pa.attribute.name;
           }
           delete pa.attribute.translations;
+        }
+        
+        // Apply translations to subattributes
+        if (pa.attribute?.subattributes) {
+          for (const subattr of pa.attribute.subattributes) {
+            if (subattr.translations) {
+              const subTranslation = await this.languageHelper.getTranslationWithFallback(
+                subattr.translations,
+                resolvedLanguage,
+                defaultLang,
+                (t) => t,
+              );
+              if (subTranslation) {
+                subattr.name = subTranslation.name || subattr.name;
+              }
+              delete subattr.translations;
+            }
+          }
         }
       }
     }
@@ -679,6 +727,24 @@ export class ProductsService {
             pa.attribute.name = attrTranslation.name || pa.attribute.name;
           }
           delete pa.attribute.translations;
+        }
+        
+        // Apply translations to subattributes
+        if (pa.attribute?.subattributes) {
+          for (const subattr of pa.attribute.subattributes) {
+            if (subattr.translations) {
+              const subTranslation = await this.languageHelper.getTranslationWithFallback(
+                subattr.translations,
+                resolvedLanguage,
+                defaultLang,
+                (t) => t,
+              );
+              if (subTranslation) {
+                subattr.name = subTranslation.name || subattr.name;
+              }
+              delete subattr.translations;
+            }
+          }
         }
       }
     }

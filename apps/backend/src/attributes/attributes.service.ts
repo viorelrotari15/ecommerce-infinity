@@ -126,11 +126,14 @@ export class AttributesService {
     return translated;
   }
 
-  async findByProductType(productTypeId: string) {
-    return this.findAll(productTypeId);
+  async findByProductType(productTypeId: string, language?: string) {
+    return this.findAll(productTypeId, language);
   }
 
-  async findById(id: string) {
+  async findById(id: string, language?: string) {
+    const resolvedLanguage = await this.languageHelper.resolveLanguage(language);
+    const defaultLang = await this.languageHelper.getDefaultLanguage();
+
     const attribute = await this.prisma.attribute.findUnique({
       where: { id },
       include: {
@@ -148,6 +151,36 @@ export class AttributesService {
 
     if (!attribute) {
       throw new NotFoundException(`Attribute with ID ${id} not found`);
+    }
+
+    // Apply translations
+    const translation = await this.languageHelper.getTranslationWithFallback(
+      attribute.translations || [],
+      resolvedLanguage,
+      defaultLang,
+      (t) => t,
+    );
+
+    if (translation) {
+      attribute.name = translation.name || attribute.name;
+    }
+
+    delete attribute.translations;
+
+    // Apply translations to subattributes
+    if (attribute.subattributes) {
+      for (const subattr of attribute.subattributes) {
+        const subTranslation = await this.languageHelper.getTranslationWithFallback(
+          subattr.translations || [],
+          resolvedLanguage,
+          defaultLang,
+          (t) => t,
+        );
+        if (subTranslation) {
+          subattr.name = subTranslation.name || subattr.name;
+        }
+        delete subattr.translations;
+      }
     }
 
     return attribute;

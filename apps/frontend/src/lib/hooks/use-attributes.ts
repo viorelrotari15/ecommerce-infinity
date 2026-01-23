@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchAPI, fetchAPIAuth } from '@/lib/api/client';
 import { getAuthToken } from '@/lib/auth';
 import { apiClient } from '@/lib/api/client';
+import { useLanguage } from '@/lib/contexts/language-context';
 
 export interface Attribute {
   id: string;
@@ -44,10 +45,12 @@ export const attributeQueryKeys = {
  * Hook for fetching attributes
  */
 export function useAttributes(initialData?: Attribute[]) {
+  const { currentLanguage } = useLanguage();
+  
   return useQuery({
-    queryKey: attributeQueryKeys.list(),
+    queryKey: [...attributeQueryKeys.list(), currentLanguage],
     queryFn: async (): Promise<Attribute[]> => {
-      const data = await fetchAPI<Attribute[]>('/attributes');
+      const data = await fetchAPI<Attribute[]>(`/attributes?lang=${currentLanguage}`);
       return Array.isArray(data) ? data : [];
     },
     initialData,
@@ -59,10 +62,12 @@ export function useAttributes(initialData?: Attribute[]) {
  * Hook for fetching a single attribute by ID
  */
 export function useAttribute(id: string) {
+  const { currentLanguage } = useLanguage();
+  
   return useQuery({
-    queryKey: attributeQueryKeys.detail(id),
+    queryKey: [...attributeQueryKeys.detail(id), currentLanguage],
     queryFn: async (): Promise<Attribute> => {
-      return fetchAPI<Attribute>(`/attributes/id/${id}`);
+      return fetchAPI<Attribute>(`/attributes/id/${id}?lang=${currentLanguage}`);
     },
     enabled: !!id,
   });
@@ -187,9 +192,11 @@ export function useUpsertAttributeTranslation() {
       );
     },
     onSuccess: (_, variables) => {
+      // Invalidate translations query (same pattern as categories)
       queryClient.invalidateQueries({
         queryKey: attributeQueryKeys.translations(variables.attributeId),
       });
+      // Also invalidate attributes list to update the UI
       queryClient.invalidateQueries({ queryKey: attributeQueryKeys.all });
     },
   });

@@ -574,7 +574,7 @@ export default function EditProductPage() {
         {languages.filter((l) => l.isActive).length > 0 && (
           <Card>
             <CardHeader>
-              <CardTitle>Product Information and Translations</CardTitle>
+              <CardTitle>{t(translationKeys.common.productInformationAndTranslations, 'Product Information and Translations')}</CardTitle>
               <CardDescription>
                 {t(translationKeys.common.manageProductTranslations, 'Manage translations for this product in different languages. All active languages must have required fields populated.')}
               </CardDescription>
@@ -750,11 +750,11 @@ export default function EditProductPage() {
             <CardContent className="space-y-4">
               {!selectedProductTypeId ? (
                 <p className="text-sm text-muted-foreground">
-                  Please select a product type to see available attributes
+                  {t(translationKeys.admin.products.selectProductTypeForAttributes, 'Please select a product type to see available attributes')}
                 </p>
               ) : attributes.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
-                  No attributes available for the selected product type
+                  {t(translationKeys.admin.products.noAttributesForProductType, 'No attributes available for the selected product type')}
                 </p>
               ) : (
                 <>
@@ -794,9 +794,9 @@ export default function EditProductPage() {
                               value={watch(`attributes.${index}.value`) || ''}
                               onValueChange={(value) => setValue(`attributes.${index}.value`, value)}
                             >
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select value" />
-                              </SelectTrigger>
+                            <SelectTrigger>
+                              <SelectValue placeholder={t(translationKeys.common.selectValue, 'Select value')} />
+                            </SelectTrigger>
                               <SelectContent>
                                 {subattributes.map((subattr) => (
                                   <SelectItem key={subattr.id} value={subattr.name}>
@@ -807,12 +807,12 @@ export default function EditProductPage() {
                             </Select>
                           ) : selectedAttributeId && subattributes.length === 0 ? (
                             <p className="text-sm text-muted-foreground">
-                              No subattributes available for this attribute
+                              {t(translationKeys.admin.products.noSubattributesAvailable, 'No subattributes available for this attribute')}
                             </p>
                           ) : (
                             <Input 
                               {...register(`attributes.${index}.value`)} 
-                              placeholder="Select attribute first"
+                              placeholder={t(translationKeys.admin.products.selectAttributeFirst, 'Select attribute first')}
                               disabled
                             />
                           )}
@@ -855,7 +855,7 @@ export default function EditProductPage() {
               <div key={field.id} className="grid gap-4 rounded-lg border p-4 md:grid-cols-4">
                 <div className="space-y-2">
                   <Label>{t(translationKeys.common.name, 'Name')}</Label>
-                  <Input {...register(`variants.${index}.name`)} placeholder="e.g., 50ml" />
+                  <Input {...register(`variants.${index}.name`)} placeholder={t(translationKeys.admin.products.variantNamePlaceholder, 'e.g., 50ml')} />
                   {errors.variants?.[index]?.name && (
                     <p className="text-sm text-destructive">
                       {errors.variants[index]?.name?.message}

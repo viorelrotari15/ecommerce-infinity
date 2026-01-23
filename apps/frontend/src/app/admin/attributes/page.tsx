@@ -23,7 +23,9 @@ import {
 } from '@/components/ui/select';
 import { getAuthToken } from '@/lib/auth';
 import { isAdmin } from '@/lib/auth';
-import { useAttributes, useCreateAttribute, useUpdateAttribute, useDeleteAttribute, useAttributeTranslations, useUpsertAttributeTranslation, type Attribute } from '@/lib/hooks/use-attributes';
+import { useAttributes, useUpdateAttribute, useDeleteAttribute, useAttributeTranslations, useUpsertAttributeTranslation, attributeQueryKeys, type Attribute } from '@/lib/hooks/use-attributes';
+import { apiClient } from '@/lib/api/client';
+import { useQueryClient } from '@tanstack/react-query';
 import { useLanguages } from '@/lib/hooks/use-languages';
 import { Plus, Edit, Trash2, ChevronRight, ChevronDown } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -35,6 +37,7 @@ import { useAttributeTranslationStatus } from '@/lib/hooks/use-translation-statu
 
 export default function AttributesPage() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { data: attributes = [], isLoading } = useAttributes();
   const { data: languages = [] } = useLanguages(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -52,7 +55,6 @@ export default function AttributesPage() {
   const t = useT();
   const translationTabsRef = useRef<AttributeTranslationsTabsRef>(null);
 
-  const createAttribute = useCreateAttribute();
   const updateAttribute = useUpdateAttribute();
   const deleteAttribute = useDeleteAttribute();
   const upsertTranslation = useUpsertAttributeTranslation();
@@ -106,6 +108,10 @@ export default function AttributesPage() {
       name: attribute.name,
       parentId: attribute.parentId || '',
     });
+    // Invalidate and refetch translations to ensure fresh data
+    queryClient.invalidateQueries({
+      queryKey: attributeQueryKeys.translations(attribute.id),
+    });
     setIsDialogOpen(true);
   };
 
@@ -147,10 +153,20 @@ export default function AttributesPage() {
                          Object.values(translationData).find(d => d?.name?.trim())?.name?.trim() || 
                          'Untitled';
 
-      const newAttribute = await createAttribute.mutateAsync({
-        name: defaultName,
-        parentId: formData.parentId || undefined,
-      });
+      // Create attribute using apiClient directly (same pattern as categories)
+      const response = await apiClient.post<Attribute>(
+        '/attributes',
+        {
+          name: defaultName,
+          parentId: formData.parentId || undefined,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      const newAttribute = response.data;
 
       // Save translations for all languages
       if (newAttribute?.id) {
@@ -167,6 +183,11 @@ export default function AttributesPage() {
           })
         );
       }
+
+      // Invalidate React Query cache (same pattern as categories)
+      await queryClient.invalidateQueries({ queryKey: attributeQueryKeys.all });
+      // Refresh Next.js router cache to ensure server-side cache is also invalidated
+      router.refresh();
 
       closeDialog();
       setIsCreating(false);
@@ -203,25 +224,31 @@ export default function AttributesPage() {
 
     try {
       setIsCreating(true);
-      const translationData = translationTabsRef.current?.getTranslationData();
+      const translationData = translationTabsRef.current?.getTranslationData() || {};
       const activeLangs = languages.filter((l) => l.isActive);
       const defaultLang = languages.find((l) => l.isDefault) || activeLangs[0];
       
       // Use the default language's name as the main name, or first available translation
-      const defaultName = translationData?.[defaultLang.code]?.name?.trim() || 
-                         (translationData ? Object.values(translationData).find(d => d?.name?.trim())?.name?.trim() : null) || 
+      const defaultName = translationData[defaultLang.code]?.name?.trim() || 
+                         Object.values(translationData).find(d => d?.name?.trim())?.name?.trim() || 
                          formData.name;
 
-      await updateAttribute.mutateAsync({
-        id: editingId,
-        data: {
+      // Update attribute using apiClient directly (same pattern as categories)
+      await apiClient.patch<Attribute>(
+        `/attributes/${editingId}`,
+        {
           name: defaultName,
           parentId: formData.parentId || undefined,
         },
-      });
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
 
       // Save translations for all languages
-      if (translationTabsRef.current && translationData) {
+      if (editingId) {
         await Promise.all(
           activeLangs.map(async (lang) => {
             const data = translationData[lang.code];
@@ -236,6 +263,10 @@ export default function AttributesPage() {
         );
       }
 
+      // Invalidate React Query cache (same pattern as categories)
+      await queryClient.invalidateQueries({ queryKey: attributeQueryKeys.all });
+      // Refresh Next.js router cache to ensure server-side cache is also invalidated
+      router.refresh();
       closeDialog();
       setIsCreating(false);
       toast({

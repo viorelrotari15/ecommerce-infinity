@@ -57,7 +57,15 @@ export interface Product {
     isActive: boolean;
   }>;
   attributes: Array<{
-    attribute: { name: string; slug: string };
+    attribute: { 
+      name: string; 
+      slug: string;
+      subattributes?: Array<{
+        id: string;
+        name: string;
+        slug: string;
+      }>;
+    };
     value: string;
   }>;
   metaTitle: string | null;
