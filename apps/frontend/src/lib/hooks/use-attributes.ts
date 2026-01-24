@@ -10,15 +10,9 @@ export interface Attribute {
   id: string;
   name: string;
   slug: string;
-  productTypeId: string;
   parentId?: string;
   parent?: Attribute;
   subattributes?: Attribute[];
-  productType?: {
-    id: string;
-    name: string;
-    slug: string;
-  };
   createdAt?: string;
   updatedAt?: string;
 }

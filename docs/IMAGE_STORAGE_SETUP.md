@@ -153,7 +153,6 @@ Body: {
   slug: string
   sku: string
   brandId: string
-  productTypeId: string
   categoryIds: string[]
   variants: Array<{name, sku, price, stock}>
   // ... other fields

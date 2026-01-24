@@ -57,15 +57,6 @@ export default function AdminDashboard() {
             <CardDescription>{t(translationKeys.admin.dashboard.manageCategories, 'Manage product categories')}</CardDescription>
           </CardHeader>
         </Card>
-        <Card className="cursor-pointer hover:bg-accent transition-colors" onClick={() => router.push('/admin/product-types')}>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Package className="h-5 w-5" />
-              Product Types
-            </CardTitle>
-            <CardDescription>{t(translationKeys.admin.dashboard.manageProductTypes, 'Manage product types')}</CardDescription>
-          </CardHeader>
-        </Card>
         <Card className="cursor-pointer hover:bg-accent transition-colors" onClick={() => router.push('/admin/attributes')}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">

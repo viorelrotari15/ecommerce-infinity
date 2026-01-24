@@ -30,6 +30,9 @@ import { revalidateBrands } from '@/app/actions/revalidate';
 import { BrandTranslationsTabs, type BrandTranslationsTabsRef } from '@/components/admin/brand-translations-tabs';
 import { TranslationWarningBadge } from '@/components/admin/translation-warning-badge';
 import { useBrandTranslationStatus } from '@/lib/hooks/use-translation-status';
+import { ItemsPerPageControl } from '@/components/ui/items-per-page-control';
+import { PaginationControls } from '@/components/ui/pagination-controls';
+import { useSearchParams } from 'next/navigation';
 
 interface Brand {
   id: string;
@@ -96,6 +99,7 @@ function BrandCard({
 
 export default function BrandsPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const queryClient = useQueryClient();
   const { data: brands = [], isLoading } = useBrands();
   const { data: languages = [] } = useLanguages(true);
@@ -113,6 +117,14 @@ export default function BrandsPage() {
   const t = useT();
   const translationTabsRef = useRef<BrandTranslationsTabsRef>(null);
   const upsertTranslation = useUpsertBrandTranslation();
+
+  const page = Number(searchParams.get('page')) || 1;
+  const limit = Number(searchParams.get('limit')) || 20;
+
+  const totalPages = Math.ceil(brands.length / limit);
+  const startIndex = (page - 1) * limit;
+  const endIndex = startIndex + limit;
+  const paginatedBrands = brands.slice(startIndex, endIndex);
 
   useEffect(() => {
     if (!isAdmin()) {
@@ -380,19 +392,14 @@ export default function BrandsPage() {
         </Button>
       </div>
 
-      {/* Brands List */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {brands.map((brand) => (
-          <BrandCard
-            key={brand.id}
-            brand={brand}
-            onEditClick={() => openEditDialog(brand)}
-            onDeleteClick={() => handleDelete(brand.id, brand.name)}
-          />
-        ))}
-      </div>
+      {/* Items Per Page Control */}
+      <ItemsPerPageControl
+        limit={limit}
+        baseUrl="/admin/brands"
+      />
 
-      {brands.length === 0 && (
+      {/* Brands List */}
+      {brands.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center">
             <p className="text-muted-foreground mb-4">{t(translationKeys.admin.brands.noBrandsFound, 'No brands found.')}</p>
@@ -402,6 +409,27 @@ export default function BrandsPage() {
             </Button>
           </CardContent>
         </Card>
+      ) : (
+        <>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {paginatedBrands.map((brand) => (
+              <BrandCard
+                key={brand.id}
+                brand={brand}
+                onEditClick={() => openEditDialog(brand)}
+                onDeleteClick={() => handleDelete(brand.id, brand.name)}
+              />
+            ))}
+          </div>
+          {totalPages > 1 && (
+            <PaginationControls
+              currentPage={page}
+              totalPages={totalPages}
+              limit={limit}
+              baseUrl="/admin/brands"
+            />
+          )}
+        </>
       )}
 
       {/* Create/Edit Dialog */}

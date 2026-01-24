@@ -37,6 +37,9 @@ import type { Category as CategoryType } from '@/lib/api/server';
 import { CategoryTranslationsTabs, type CategoryTranslationsTabsRef } from '@/components/admin/category-translations-tabs';
 import { TranslationWarningBadge } from '@/components/admin/translation-warning-badge';
 import { useCategoryTranslationStatus } from '@/lib/hooks/use-translation-status';
+import { ItemsPerPageControl } from '@/components/ui/items-per-page-control';
+import { PaginationControls } from '@/components/ui/pagination-controls';
+import { useSearchParams } from 'next/navigation';
 
 interface Category {
   id: string;
@@ -49,6 +52,7 @@ interface Category {
 
 export default function CategoriesPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const queryClient = useQueryClient();
   const { data: categories = [], isLoading } = useCategories();
   const { data: languages = [] } = useLanguages(true);
@@ -68,6 +72,9 @@ export default function CategoriesPage() {
   const translationTabsRef = useRef<CategoryTranslationsTabsRef>(null);
 
   const upsertTranslation = useUpsertCategoryTranslation();
+
+  const page = Number(searchParams.get('page')) || 1;
+  const limit = Number(searchParams.get('limit')) || 20;
 
   useEffect(() => {
     if (!isAdmin()) {
@@ -114,6 +121,12 @@ export default function CategoriesPage() {
 
   // Filter categories to show only top-level (no parent)
   const topLevelCategories = flatCategories.filter((cat) => !cat.parentId);
+
+  // Paginate top-level categories
+  const totalPages = Math.ceil(topLevelCategories.length / limit);
+  const startIndex = (page - 1) * limit;
+  const endIndex = startIndex + limit;
+  const paginatedTopLevelCategories = topLevelCategories.slice(startIndex, endIndex);
   
   // Get subcategories for a given category
   const getSubcategories = (categoryId: string): Category[] => {
@@ -470,6 +483,12 @@ export default function CategoriesPage() {
         </Button>
       </div>
 
+      {/* Items Per Page Control */}
+      <ItemsPerPageControl
+        limit={limit}
+        baseUrl="/admin/categories"
+      />
+
       {/* Categories List */}
       {topLevelCategories.length === 0 ? (
         <Card>
@@ -482,9 +501,19 @@ export default function CategoriesPage() {
           </CardContent>
         </Card>
       ) : (
-        <div>
-          {topLevelCategories.map((category) => renderCategory(category))}
-        </div>
+        <>
+          <div>
+            {paginatedTopLevelCategories.map((category) => renderCategory(category))}
+          </div>
+          {totalPages > 1 && (
+            <PaginationControls
+              currentPage={page}
+              totalPages={totalPages}
+              limit={limit}
+              baseUrl="/admin/categories"
+            />
+          )}
+        </>
       )}
 
       {/* Create/Edit Dialog */}

@@ -7,7 +7,6 @@ import { UsersModule } from './users/users.module';
 import { BrandsModule } from './brands/brands.module';
 import { CategoriesModule } from './categories/categories.module';
 import { ProductsModule } from './products/products.module';
-import { ProductTypesModule } from './product-types/product-types.module';
 import { AttributesModule } from './attributes/attributes.module';
 import { OrdersModule } from './orders/orders.module';
 import { PaymentsModule } from './payments/payments.module';
@@ -30,7 +29,6 @@ import { RedisModule } from './redis/redis.module';
     BrandsModule,
     CategoriesModule,
     ProductsModule,
-    ProductTypesModule,
     AttributesModule,
     OrdersModule,
     PaymentsModule,

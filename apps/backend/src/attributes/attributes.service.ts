@@ -55,25 +55,11 @@ export class AttributesService {
     }
   }
 
-  async findAll(productTypeId?: string, language?: string) {
+  async findAll(language?: string) {
     const resolvedLanguage = await this.languageHelper.resolveLanguage(language);
     const defaultLang = await this.languageHelper.getDefaultLanguage();
 
-    // If productTypeId is provided, return both:
-    // 1. Attributes specific to this product type (productTypeId matches)
-    // 2. Shared attributes (productTypeId is null)
-    // If no productTypeId, return all attributes
-    const where = productTypeId 
-      ? {
-          OR: [
-            { productTypeId },
-            { productTypeId: null },
-          ],
-        }
-      : {};
-
     const attributes = await this.prisma.attribute.findMany({
-      where,
       include: {
         translations: true,
         subattributes: {
@@ -126,10 +112,6 @@ export class AttributesService {
     return translated;
   }
 
-  async findByProductType(productTypeId: string, language?: string) {
-    return this.findAll(productTypeId, language);
-  }
-
   async findById(id: string, language?: string) {
     const resolvedLanguage = await this.languageHelper.resolveLanguage(language);
     const defaultLang = await this.languageHelper.getDefaultLanguage();
@@ -145,7 +127,6 @@ export class AttributesService {
           orderBy: { name: 'asc' },
         },
         parent: true,
-        productType: true,
       },
     });
 
@@ -187,19 +168,6 @@ export class AttributesService {
   }
 
   async create(createAttributeDto: CreateAttributeDto) {
-    // Verify product type exists if provided
-    if (createAttributeDto.productTypeId) {
-      const productType = await this.prisma.productType.findUnique({
-        where: { id: createAttributeDto.productTypeId },
-      });
-
-      if (!productType) {
-        throw new NotFoundException(
-          `Product type with ID ${createAttributeDto.productTypeId} not found`,
-        );
-      }
-    }
-
     // If parentId is provided, verify parent exists
     if (createAttributeDto.parentId) {
       const parent = await this.prisma.attribute.findUnique({
@@ -228,13 +196,11 @@ export class AttributesService {
       data: {
         name: createAttributeDto.name,
         slug,
-        productTypeId: createAttributeDto.productTypeId || null,
         parentId: createAttributeDto.parentId,
       },
       include: {
         subattributes: true,
         parent: true,
-        productType: true,
       },
     });
   }
@@ -304,7 +270,6 @@ export class AttributesService {
       include: {
         subattributes: true,
         parent: true,
-        productType: true,
       },
     });
   }

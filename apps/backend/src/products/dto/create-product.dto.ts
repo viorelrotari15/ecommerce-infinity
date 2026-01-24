@@ -67,10 +67,6 @@ export class CreateProductDto {
   @IsNotEmpty()
   brandId: string;
 
-  @IsString()
-  @IsNotEmpty()
-  productTypeId: string;
-
   @IsArray()
   @IsString({ each: true })
   @IsNotEmpty({ each: true })

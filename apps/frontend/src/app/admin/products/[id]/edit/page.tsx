@@ -16,7 +16,6 @@ import { isAdmin, getAuthToken } from '@/lib/auth';
 import { useUploadProductImage, useDeleteProductImage } from '@/lib/hooks/use-product-images';
 import { useCategories } from '@/lib/hooks/use-categories';
 import { useBrands } from '@/lib/hooks/use-brands';
-import { useProductTypes } from '@/lib/hooks/use-product-types';
 import { useQueryClient } from '@tanstack/react-query';
 import { productQueryKeys } from '@/lib/api/queries';
 import { X, Plus, Upload, Image as ImageIcon } from 'lucide-react';
@@ -30,7 +29,6 @@ type ProductFormData = {
   description?: string;
   shortDescription?: string;
   brandId: string;
-  productTypeId: string;
   categoryIds: string[];
   isActive: boolean;
   isFeatured: boolean;
@@ -62,11 +60,6 @@ interface Category {
   children?: Category[];
 }
 
-interface ProductType {
-  id: string;
-  name: string;
-  slug: string;
-}
 
 interface Attribute {
   id: string;
@@ -106,7 +99,6 @@ export default function EditProductPage() {
     description: yup.string().optional(),
     shortDescription: yup.string().optional(),
     brandId: yup.string().required(t(translationKeys.admin.products.brandRequired, 'Brand is required')),
-    productTypeId: yup.string().required(t(translationKeys.admin.products.productTypeRequired, 'Product type is required')),
     categoryIds: yup.array().of(yup.string().required()).min(1, t(translationKeys.admin.products.categoryRequired, 'At least one category is required')).required(),
     isActive: yup.boolean().default(true),
     isFeatured: yup.boolean().default(false),
@@ -135,7 +127,6 @@ export default function EditProductPage() {
   // Use React Query hooks for brands, categories, and product types
   const { data: brands = [] } = useBrands();
   const { data: categories = [] } = useCategories();
-  const { data: productTypes = [] } = useProductTypes();
 
   // Use React Query hooks for image operations
   const uploadImageMutation = useUploadProductImage(productId);
@@ -244,8 +235,6 @@ export default function EditProductPage() {
     }
   };
 
-  const selectedProductTypeId = watch('productTypeId');
-
   useEffect(() => {
     // Check authentication and admin status
     if (!isAdmin()) {
@@ -269,7 +258,6 @@ export default function EditProductPage() {
       shortDescription: string;
       sku: string;
       brandId: string;
-      productTypeId: string;
       isActive: boolean;
       isFeatured: boolean;
       metaTitle: string;
@@ -302,7 +290,6 @@ export default function EditProductPage() {
           description: product.description || '',
           shortDescription: product.shortDescription || '',
           brandId: product.brandId,
-          productTypeId: product.productTypeId,
           categoryIds: product.categories.map((c) => c.categoryId),
           isActive: product.isActive,
           isFeatured: product.isFeatured,
@@ -341,15 +328,15 @@ export default function EditProductPage() {
   }, [productId, router, reset]);
 
   useEffect(() => {
-    // Fetch attributes when product type changes
-    if (selectedProductTypeId && token) {
-      fetchAPIAuth<Attribute[]>(`/attributes/product-type/${selectedProductTypeId}`, token)
+    // Fetch all attributes
+    if (token) {
+      fetchAPIAuth<Attribute[]>('/attributes', token)
         .then((data) => setAttributes(data))
         .catch(() => setAttributes([]));
     } else {
       setAttributes([]);
     }
-  }, [selectedProductTypeId, token]);
+  }, [token]);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -461,8 +448,9 @@ export default function EditProductPage() {
       const defaultLangData = translationDataToSave[defaultLanguageCode] || {};
       
       // SKU and slug are auto-generated on backend, don't send them
+      const { productTypeId, ...dataWithoutProductType } = data;
       const submitData = {
-        ...data,
+        ...dataWithoutProductType,
         // Use default language translation values for main product fields
         name: defaultLangData.name || data.name || '',
         description: defaultLangData.description || data.description || '',
@@ -617,27 +605,6 @@ export default function EditProductPage() {
                 )}
               </div>
 
-              <div className="space-y-2">
-                <Label>
-                  {t(translationKeys.common.productType, 'Product Type')} <span className="text-destructive">*</span>
-                </Label>
-                <Select onValueChange={(value) => setValue('productTypeId', value)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder={t(translationKeys.admin.products.selectProductType, 'Select product type')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {productTypes.map((type) => (
-                      <SelectItem key={type.id} value={type.id}>
-                        {type.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {errors.productTypeId && (
-                  <p className="text-sm text-destructive">{errors.productTypeId.message}</p>
-                )}
-              </div>
-
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label>
@@ -748,13 +715,9 @@ export default function EditProductPage() {
               <CardDescription>{t(translationKeys.common.productSpecificAttributes, 'Product-specific attributes')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {!selectedProductTypeId ? (
+              {attributes.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
-                  {t(translationKeys.admin.products.selectProductTypeForAttributes, 'Please select a product type to see available attributes')}
-                </p>
-              ) : attributes.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  {t(translationKeys.admin.products.noAttributesForProductType, 'No attributes available for the selected product type')}
+                  {t(translationKeys.admin.products.noAttributes, 'No attributes available')}
                 </p>
               ) : (
                 <>

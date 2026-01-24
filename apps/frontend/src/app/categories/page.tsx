@@ -2,6 +2,7 @@ import { Metadata } from 'next';
 import { fetchCategories } from '@/lib/api/server';
 import { CategoriesHeader } from '@/components/client/categories/categories-header';
 import { CategoriesList } from '@/components/client/categories/categories-list';
+import { CategoriesControls } from '@/components/client/categories/categories-controls';
 import { getServerLanguage } from '@/lib/utils/language';
 
 // Force dynamic rendering to respect language cookie changes
@@ -29,6 +30,7 @@ export default async function CategoriesPage() {
   return (
     <div className="container py-8">
       <CategoriesHeader />
+      <CategoriesControls />
       <CategoriesList initialCategories={categories} />
     </div>
   );

@@ -30,7 +30,7 @@ export function ProductCard({ product }: ProductCardProps) {
     : '/placeholder-image.jpg';
 
   return (
-    <Link href={`/products/${product.slug}`}>
+    <Link href={`/products/${product.slug}`} className="block h-full">
       <Card className="h-full transition-shadow hover:shadow-lg">
         <CardHeader>
           <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-muted">
