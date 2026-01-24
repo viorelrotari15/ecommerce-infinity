@@ -426,6 +426,11 @@ export const translationKeys = {
     goToLanguage: 'common.goToLanguage',
     selectValue: 'common.selectValue',
     productInformationAndTranslations: 'common.productInformationAndTranslations',
+    itemsPerPage: 'common.itemsPerPage',
+    previousPage: 'common.previousPage',
+    nextPage: 'common.nextPage',
+    page: 'common.page',
+    of: 'common.of',
   },
   // User Profile
   profile: {
@@ -831,6 +836,11 @@ export function getEnglishTemplate(): Record<string, string> {
     'common.goToLanguage': 'Go to {langName}',
     'common.selectValue': 'Select value',
     'common.productInformationAndTranslations': 'Product Information and Translations',
+    'common.itemsPerPage': 'Items per page',
+    'common.previousPage': 'Previous page',
+    'common.nextPage': 'Next page',
+    'common.page': 'Page',
+    'common.of': 'of',
     'admin.products.selectBrand': 'Select a brand',
     'admin.products.noAttributes': 'No attributes available',
     'admin.products.noSubattributesAvailable': 'No subattributes available for this attribute',

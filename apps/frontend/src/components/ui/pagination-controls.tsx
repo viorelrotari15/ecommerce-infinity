@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useT, translationKeys } from '@/lib/utils/translations';
 
 interface PaginationControlsProps {
   currentPage: number;
@@ -21,6 +22,7 @@ export function PaginationControls({
   preserveParams = [],
 }: PaginationControlsProps) {
   const searchParams = useSearchParams();
+  const t = useT();
 
   const buildPageUrl = (page: number) => {
     const params = new URLSearchParams();
@@ -92,12 +94,12 @@ export function PaginationControls({
       {/* Previous Button */}
       {prevPage ? (
         <Link href={buildPageUrl(prevPage)}>
-          <Button variant="outline" size="icon" aria-label="Previous page">
+          <Button variant="outline" size="icon" aria-label={t(translationKeys.common.previousPage, 'Previous page')}>
             <ChevronLeft className="h-4 w-4" />
           </Button>
         </Link>
       ) : (
-        <Button variant="outline" size="icon" disabled aria-label="Previous page">
+        <Button variant="outline" size="icon" disabled aria-label={t(translationKeys.common.previousPage, 'Previous page')}>
           <ChevronLeft className="h-4 w-4" />
         </Button>
       )}
@@ -130,12 +132,12 @@ export function PaginationControls({
       {/* Next Button */}
       {nextPage ? (
         <Link href={buildPageUrl(nextPage)}>
-          <Button variant="outline" size="icon" aria-label="Next page">
+          <Button variant="outline" size="icon" aria-label={t(translationKeys.common.nextPage, 'Next page')}>
             <ChevronRight className="h-4 w-4" />
           </Button>
         </Link>
       ) : (
-        <Button variant="outline" size="icon" disabled aria-label="Next page">
+        <Button variant="outline" size="icon" disabled aria-label={t(translationKeys.common.nextPage, 'Next page')}>
           <ChevronRight className="h-4 w-4" />
         </Button>
       )}
