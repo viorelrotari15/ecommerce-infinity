@@ -114,60 +114,31 @@ async function main() {
     },
   });
 
-  // Create Product Type: Perfume
-  const perfumeType = await prisma.productType.upsert({
-    where: { slug: 'perfume' },
-    update: {},
-    create: {
-      name: 'Perfume',
-      slug: 'perfume',
-      description: 'Fragrance products',
-    },
-  });
-
-  // Create Attributes for Perfume
+  // Create Attributes
   const volumeAttr = await prisma.attribute.upsert({
-    where: {
-      slug_productTypeId: {
-        slug: 'volume',
-        productTypeId: perfumeType.id,
-      },
-    },
+    where: { slug: 'volume' },
     update: {},
     create: {
       name: 'Volume',
       slug: 'volume',
-      productTypeId: perfumeType.id,
     },
   });
 
   const genderAttr = await prisma.attribute.upsert({
-    where: {
-      slug_productTypeId: {
-        slug: 'gender',
-        productTypeId: perfumeType.id,
-      },
-    },
+    where: { slug: 'gender' },
     update: {},
     create: {
       name: 'Gender',
       slug: 'gender',
-      productTypeId: perfumeType.id,
     },
   });
 
   const concentrationAttr = await prisma.attribute.upsert({
-    where: {
-      slug_productTypeId: {
-        slug: 'concentration',
-        productTypeId: perfumeType.id,
-      },
-    },
+    where: { slug: 'concentration' },
     update: {},
     create: {
       name: 'Concentration',
       slug: 'concentration',
-      productTypeId: perfumeType.id,
     },
   });
 
@@ -253,7 +224,6 @@ async function main() {
       shortDescription: 'Timeless classic fragrance',
       sku: 'ELG-CLS-001',
       brandId: createdBrands[0].id,
-      productTypeId: perfumeType.id,
       images: ['/images/products/elegance-classic-1.jpg'],
       isFeatured: true,
       metaTitle: 'Elegance Classic Perfume',
@@ -275,7 +245,6 @@ async function main() {
       shortDescription: 'Vibrant and fresh fragrance',
       sku: 'AUR-FRS-001',
       brandId: createdBrands[1].id,
-      productTypeId: perfumeType.id,
       images: ['/images/products/aurora-fresh-1.jpg'],
       isFeatured: true,
       metaTitle: 'Aurora Fresh Perfume',
@@ -298,7 +267,6 @@ async function main() {
       shortDescription: 'Bold and mysterious fragrance',
       sku: 'NOR-MYS-001',
       brandId: createdBrands[2].id,
-      productTypeId: perfumeType.id,
       images: ['/images/products/noir-mystique-1.jpg'],
       isFeatured: true,
       metaTitle: 'Noir Mystique Perfume',
@@ -320,7 +288,6 @@ async function main() {
       shortDescription: 'Delicate floral fragrance',
       sku: 'ELG-ROS-001',
       brandId: createdBrands[0].id,
-      productTypeId: perfumeType.id,
       images: ['/images/products/elegance-rose-1.jpg'],
       isFeatured: false,
       metaTitle: 'Elegance Rose Perfume',
@@ -342,7 +309,6 @@ async function main() {
       shortDescription: 'Energetic sport fragrance',
       sku: 'AUR-SPT-001',
       brandId: createdBrands[1].id,
-      productTypeId: perfumeType.id,
       images: ['/images/products/aurora-sport-1.jpg'],
       isFeatured: false,
       metaTitle: 'Aurora Sport Perfume',

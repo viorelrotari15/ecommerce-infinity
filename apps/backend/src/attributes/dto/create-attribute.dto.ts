@@ -6,11 +6,6 @@ export class CreateAttributeDto {
   @IsString()
   name: string;
 
-  @ApiPropertyOptional({ description: 'Product type ID (optional - attributes can be shared across product types)' })
-  @IsOptional()
-  @IsUUID()
-  productTypeId?: string;
-
   @ApiPropertyOptional({ description: 'Parent attribute ID (for subattributes)' })
   @IsOptional()
   @IsUUID()

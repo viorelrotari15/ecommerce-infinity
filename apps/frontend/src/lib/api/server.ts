@@ -47,7 +47,6 @@ export interface Product {
   isActive?: boolean;
   isFeatured?: boolean;
   brand: { name: string; slug: string };
-  productType: { name: string };
   categories: Array<{ category: { name: string; slug: string } }>;
   variants: Array<{
     id: string;
@@ -218,6 +217,52 @@ export async function fetchCategories(language?: string): Promise<Category[]> {
 }
 
 /**
+ * Fetch a single category by slug
+ * Revalidates every 5 minutes, but cache key includes language
+ */
+export interface CategoryDetail extends Category {
+  parentId?: string | null;
+  parent?: { id: string; name: string; slug: string } | null;
+  children?: Array<{ id: string; name: string; slug: string }>;
+}
+
+export async function fetchCategory(slug: string, language?: string): Promise<CategoryDetail | null> {
+  const searchParams = new URLSearchParams();
+  if (language) {
+    searchParams.append('lang', language);
+  }
+
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+  if (language) {
+    headers['Accept-Language'] = language;
+  }
+
+  const url = `${API_URL}/api/categories/${slug}${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
+  
+  // When language is provided, disable caching to ensure fresh data on language change
+  // When no language is specified, cache for 5 minutes
+  const cacheOptions = language 
+    ? { cache: 'no-store' as const } // No cache when language is specified to ensure language changes work immediately
+    : { next: { revalidate: 300 } }; // Cache for 5 minutes when no language specified
+  
+  const response = await fetch(url, {
+    ...cacheOptions,
+    headers,
+  });
+
+  if (!response.ok) {
+    if (response.status === 404) {
+      return null;
+    }
+    throw new Error(`Failed to fetch category: ${response.statusText}`);
+  }
+
+  return response.json();
+}
+
+/**
  * Fetch brands
  * Cache for 1 hour
  */
@@ -253,6 +298,46 @@ export async function fetchBrands(language?: string): Promise<Brand[]> {
 
   const data = await response.json();
   return data.data || data;
+}
+
+/**
+ * Fetch a single brand by slug
+ * Revalidates every 5 minutes, but cache key includes language
+ */
+export async function fetchBrand(slug: string, language?: string): Promise<Brand | null> {
+  const searchParams = new URLSearchParams();
+  if (language) {
+    searchParams.append('lang', language);
+  }
+
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+  if (language) {
+    headers['Accept-Language'] = language;
+  }
+
+  const url = `${API_URL}/api/brands/${slug}${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
+  
+  // When language is provided, disable caching to ensure fresh data on language change
+  // When no language is specified, cache for 5 minutes
+  const cacheOptions = language 
+    ? { cache: 'no-store' as const } // No cache when language is specified to ensure language changes work immediately
+    : { next: { revalidate: 300 } }; // Cache for 5 minutes when no language specified
+  
+  const response = await fetch(url, {
+    ...cacheOptions,
+    headers,
+  });
+
+  if (!response.ok) {
+    if (response.status === 404) {
+      return null;
+    }
+    throw new Error(`Failed to fetch brand: ${response.statusText}`);
+  }
+
+  return response.json();
 }
 
 /**

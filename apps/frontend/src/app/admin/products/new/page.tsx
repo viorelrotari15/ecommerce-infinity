@@ -15,7 +15,6 @@ import { fetchAPI, fetchAPIAuth, uploadImage } from '@/lib/api';
 import { getProductImageUrl } from '@/lib/images';
 import { useBrands } from '@/lib/hooks/use-brands';
 import { useCategories } from '@/lib/hooks/use-categories';
-import { useProductTypes } from '@/lib/hooks/use-product-types';
 import { useUploadProductImage } from '@/lib/hooks/use-product-images';
 import { useLanguages, useDefaultLanguage } from '@/lib/hooks/use-languages';
 import { ProductTranslationsTabs, ProductTranslationsTabsRef } from '@/components/admin/product-translations-tabs';
@@ -37,12 +36,6 @@ interface Category {
   slug: string;
   parentId?: string;
   children?: Category[];
-}
-
-interface ProductType {
-  id: string;
-  name: string;
-  slug: string;
 }
 
 interface Attribute {
@@ -68,10 +61,9 @@ export default function NewProductPage() {
   const { data: languages = [] } = useLanguages(true);
   const { data: defaultLanguageCode = 'en' } = useDefaultLanguage();
 
-  // Use React Query hooks for brands, categories, and product types
+  // Use React Query hooks for brands and categories
   const { data: brands = [] } = useBrands();
   const { data: categories = [] } = useCategories();
-  const { data: productTypes = [] } = useProductTypes();
 
   // Create schema with translations
   const productSchema = yup.object({
@@ -80,7 +72,6 @@ export default function NewProductPage() {
     description: yup.string().optional(),
     shortDescription: yup.string().optional(),
     brandId: yup.string().required(t(translationKeys.admin.products.brandRequired, 'Brand is required')),
-    productTypeId: yup.string().required(t(translationKeys.admin.products.productTypeRequired, 'Product type is required')),
     categoryIds: yup.array().of(yup.string()).min(1, t(translationKeys.admin.products.categoryRequired, 'At least one category is required')),
     isActive: yup.boolean().default(false),
     isFeatured: yup.boolean().default(false),
@@ -205,8 +196,6 @@ export default function NewProductPage() {
     }
   };
 
-  const selectedProductTypeId = watch('productTypeId');
-
   useEffect(() => {
     // Get token from localStorage
     const storedToken = localStorage.getItem('token');
@@ -225,19 +214,19 @@ export default function NewProductPage() {
         return;
       }
     }
-    // Brands, categories, and product types are now fetched via React Query hooks
+    // Brands and categories are now fetched via React Query hooks
   }, [router]);
 
   useEffect(() => {
-    // Fetch attributes when product type changes
-    if (selectedProductTypeId && token) {
-      fetchAPIAuth<Attribute[]>(`/attributes/product-type/${selectedProductTypeId}`, token)
+    // Fetch all attributes
+    if (token) {
+      fetchAPIAuth<Attribute[]>('/attributes', token)
         .then((data) => setAttributes(data))
         .catch(() => setAttributes([]));
     } else {
       setAttributes([]);
     }
-  }, [selectedProductTypeId, token]);
+  }, [token]);
 
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -322,8 +311,9 @@ export default function NewProductPage() {
       const defaultLangData = translationDataToSave[defaultLanguageCode] || {};
       
       // SKU and slug are auto-generated on backend, don't send them
+      const { productTypeId, ...dataWithoutProductType } = data;
       const submitData = {
-        ...data,
+        ...dataWithoutProductType,
         // Use default language translation values for main product fields
         name: defaultLangData.name || '',
         description: defaultLangData.description || '',
@@ -478,27 +468,6 @@ export default function NewProductPage() {
                 )}
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="productTypeId">
-                  {t(translationKeys.common.productType, 'Product Type')} <span className="text-destructive">*</span>
-                </Label>
-                <Select onValueChange={(value) => setValue('productTypeId', value)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder={t(translationKeys.admin.productTypes.namePlaceholder, 'Select a product type')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {productTypes.map((type) => (
-                      <SelectItem key={type.id} value={type.id}>
-                        {type.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {errors.productTypeId && (
-                  <p className="text-sm text-destructive">{errors.productTypeId.message}</p>
-                )}
-              </div>
-
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label>
@@ -609,13 +578,9 @@ export default function NewProductPage() {
               <CardDescription>{t(translationKeys.common.productSpecificAttributes, 'Product-specific attributes')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {!selectedProductTypeId ? (
+              {attributes.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
-                  {t(translationKeys.admin.products.selectProductTypeForAttributes, 'Please select a product type to see available attributes')}
-                </p>
-              ) : attributes.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  {t(translationKeys.admin.products.noAttributesForProductType, 'No attributes available for the selected product type')}
+                  {t(translationKeys.admin.products.noAttributes, 'No attributes available')}
                 </p>
               ) : (
                 <>

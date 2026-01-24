@@ -95,12 +95,11 @@ export class ProductsService {
   /**
    * Generate a unique SKU for a product
    */
-  private async generateProductSku(brandId: string, productTypeId: string): Promise<string> {
+  private async generateProductSku(brandId: string): Promise<string> {
     const brand = await this.prisma.brand.findUnique({ where: { id: brandId } });
-    const productType = await this.prisma.productType.findUnique({ where: { id: productTypeId } });
 
-    if (!brand || !productType) {
-      throw new BadRequestException('Brand or product type not found');
+    if (!brand) {
+      throw new BadRequestException('Brand not found');
     }
 
     // Get brand code (first 3 letters, uppercase, remove spaces)
@@ -110,19 +109,11 @@ export class ProductsService {
       .replace(/\s/g, '')
       .replace(/[^\w]/g, '');
 
-    // Get product type code (first 3 letters, uppercase, remove spaces)
-    const typeCode = productType.name
-      .substring(0, 3)
-      .toUpperCase()
-      .replace(/\s/g, '')
-      .replace(/[^\w]/g, '');
-
-    // Find the highest sequence number for this brand+type combination
+    // Find the highest sequence number for this brand
     const existingProducts = await this.prisma.product.findMany({
       where: {
         brandId,
-        productTypeId,
-        sku: { startsWith: `${brandCode}-${typeCode}-` },
+        sku: { startsWith: `${brandCode}-` },
       },
       orderBy: { sku: 'desc' },
       take: 1,
@@ -131,13 +122,14 @@ export class ProductsService {
     let sequence = 1;
     if (existingProducts.length > 0) {
       const lastSku = existingProducts[0].sku;
+      // Match pattern: BRAND-#### or BRAND-XXXX-####
       const match = lastSku.match(/-(\d+)$/);
       if (match) {
         sequence = parseInt(match[1], 10) + 1;
       }
     }
 
-    const generatedSku = `${brandCode}-${typeCode}-${sequence.toString().padStart(4, '0')}`;
+    const generatedSku = `${brandCode}-${sequence.toString().padStart(4, '0')}`;
 
     // Verify it's unique (in case of race condition)
     const existing = await this.prisma.product.findUnique({
@@ -146,7 +138,7 @@ export class ProductsService {
 
     if (existing) {
       // If collision, increment and try again
-      return `${brandCode}-${typeCode}-${(sequence + 1).toString().padStart(4, '0')}`;
+      return `${brandCode}-${(sequence + 1).toString().padStart(4, '0')}`;
     }
 
     return generatedSku;
@@ -295,11 +287,6 @@ export class ProductsService {
               translations: true,
             },
           },
-          productType: {
-            include: {
-              translations: true,
-            },
-          },
           categories: {
             include: {
               category: {
@@ -379,22 +366,6 @@ export class ProductsService {
           }
         }
 
-        // Apply translations to productType
-        if (translated.productType?.translations) {
-          const defaultLang = await this.languageHelper.getDefaultLanguage();
-          const productTypeTranslation = await this.languageHelper.getTranslationWithFallback(
-            translated.productType.translations,
-            language,
-            defaultLang,
-            (t) => t,
-          );
-          if (productTypeTranslation) {
-            translated.productType.name = productTypeTranslation.name || translated.productType.name;
-            translated.productType.description = productTypeTranslation.description || translated.productType.description;
-          }
-          delete translated.productType.translations;
-        }
-
         // Apply translations to attributes
         if (translated.attributes) {
           const defaultLang = await this.languageHelper.getDefaultLanguage();
@@ -461,11 +432,6 @@ export class ProductsService {
       where: { slug },
       include: {
         brand: {
-          include: {
-            translations: true,
-          },
-        },
-        productType: {
           include: {
             translations: true,
           },
@@ -547,21 +513,6 @@ export class ProductsService {
       }
     }
 
-    // Apply translations to productType
-    if (translated.productType?.translations) {
-      const productTypeTranslation = await this.languageHelper.getTranslationWithFallback(
-        translated.productType.translations,
-        resolvedLanguage,
-        defaultLang,
-        (t) => t,
-      );
-      if (productTypeTranslation) {
-        translated.productType.name = productTypeTranslation.name || translated.productType.name;
-        translated.productType.description = productTypeTranslation.description || translated.productType.description;
-      }
-      delete translated.productType.translations;
-    }
-
     // Apply translations to attributes
     if (translated.attributes) {
       for (const pa of translated.attributes) {
@@ -619,11 +570,6 @@ export class ProductsService {
       where: { id },
       include: {
         brand: {
-          include: {
-            translations: true,
-          },
-        },
-        productType: {
           include: {
             translations: true,
           },
@@ -698,21 +644,6 @@ export class ProductsService {
       }
     }
 
-    // Apply translations to productType
-    if (translated.productType?.translations) {
-      const productTypeTranslation = await this.languageHelper.getTranslationWithFallback(
-        translated.productType.translations,
-        resolvedLanguage,
-        defaultLang,
-        (t) => t,
-      );
-      if (productTypeTranslation) {
-        translated.productType.name = productTypeTranslation.name || translated.productType.name;
-        translated.productType.description = productTypeTranslation.description || translated.productType.description;
-      }
-      delete translated.productType.translations;
-    }
-
     // Apply translations to attributes
     if (translated.attributes) {
       for (const pa of translated.attributes) {
@@ -772,16 +703,6 @@ export class ProductsService {
       throw new NotFoundException(`Brand with ID ${createProductDto.brandId} not found`);
     }
 
-    // Verify product type exists
-    const productType = await this.prisma.productType.findUnique({
-      where: { id: createProductDto.productTypeId },
-    });
-    if (!productType) {
-      throw new NotFoundException(
-        `Product type with ID ${createProductDto.productTypeId} not found`,
-      );
-    }
-
     // Verify categories exist
     const categories = await this.prisma.category.findMany({
       where: { id: { in: createProductDto.categoryIds } },
@@ -791,7 +712,7 @@ export class ProductsService {
     }
 
     // Always auto-generate SKU (ignore any user input)
-    const productSku = await this.generateProductSku(createProductDto.brandId, createProductDto.productTypeId);
+    const productSku = await this.generateProductSku(createProductDto.brandId);
 
     // Always auto-generate slug from product name (ignore any user input)
     const baseSlug = this.slugify(createProductDto.name);
@@ -840,7 +761,6 @@ export class ProductsService {
       },
       include: {
         brand: true,
-        productType: true,
         categories: {
           include: {
             category: true,
@@ -891,25 +811,11 @@ export class ProductsService {
       }
     }
 
-    // If updating product type, verify it exists
-    if (updateProductDto.productTypeId) {
-      const productType = await this.prisma.productType.findUnique({
-        where: { id: updateProductDto.productTypeId },
-      });
-      if (!productType) {
-        throw new NotFoundException(
-          `Product type with ID ${updateProductDto.productTypeId} not found`,
-        );
-      }
-    }
-
     // Always auto-generate SKU (ignore any user input)
-    // Only regenerate if brand or product type changed, otherwise keep existing
+    // Only regenerate if brand changed, otherwise keep existing
     let productSku = product.sku;
     if (updateProductDto.brandId && updateProductDto.brandId !== product.brandId) {
-      productSku = await this.generateProductSku(updateProductDto.brandId, product.productTypeId);
-    } else if (updateProductDto.productTypeId && updateProductDto.productTypeId !== product.productTypeId) {
-      productSku = await this.generateProductSku(product.brandId, updateProductDto.productTypeId);
+      productSku = await this.generateProductSku(updateProductDto.brandId);
     }
 
     // Always auto-generate slug from product name (ignore any user input)
@@ -972,7 +878,6 @@ export class ProductsService {
       },
       include: {
         brand: true,
-        productType: true,
         categories: {
           include: {
             category: true,

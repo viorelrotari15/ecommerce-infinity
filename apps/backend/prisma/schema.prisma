@@ -85,26 +85,10 @@ model Category {
   @@map("categories")
 }
 
-model ProductType {
-  id          String    @id @default(uuid())
-  name        String    @unique
-  slug        String    @unique
-  description String?   @db.Text
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  products    Product[]
-  attributes  Attribute[]
-  translations ProductTypeTranslation[]
-
-  @@map("product_types")
-}
-
 model Attribute {
   id           String            @id @default(uuid())
   name         String
   slug         String            @unique
-  productTypeId String?          // Optional - attributes can be shared across product types
-  productType  ProductType?      @relation(fields: [productTypeId], references: [id], onDelete: SetNull)
   parentId     String?           // For subattributes
   parent       Attribute?        @relation("AttributeSubattributes", fields: [parentId], references: [id], onDelete: Cascade)
   subattributes Attribute[]      @relation("AttributeSubattributes")
@@ -125,8 +109,6 @@ model Product {
   sku           String            @unique
   brandId       String
   brand         Brand             @relation(fields: [brandId], references: [id])
-  productTypeId String
-  productType   ProductType       @relation(fields: [productTypeId], references: [id])
   images        String[]          @default([]) // Legacy field, kept for backward compatibility
   productImages ProductImage[]    // New relation to ProductImage model
   isActive      Boolean           @default(true)
@@ -358,24 +340,6 @@ model BrandTranslation {
   @@index([language])
   @@index([brandId, language]) // Composite index for brand translation lookups
   @@map("brand_translations")
-}
-
-// ProductType Translations
-model ProductTypeTranslation {
-  id          String      @id @default(uuid())
-  productTypeId String
-  productType ProductType @relation(fields: [productTypeId], references: [id], onDelete: Cascade)
-  language    String
-  name        String
-  description String?     @db.Text
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-
-  @@unique([productTypeId, language])
-  @@index([productTypeId])
-  @@index([language])
-  @@index([productTypeId, language]) // Composite index for product type translation lookups
-  @@map("product_type_translations")
 }
 
 // Attribute Translations

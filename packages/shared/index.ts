@@ -47,7 +47,6 @@ export interface Product {
   shortDescription?: string;
   sku: string;
   brandId: string;
-  productTypeId: string;
   images: string[];
   isActive: boolean;
   isFeatured: boolean;

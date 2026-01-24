@@ -28,16 +28,9 @@ export class AttributesController {
 
   @Get()
   @ApiOperation({ summary: 'Get all attributes' })
-  findAll(@Query('productTypeId') productTypeId?: string, @Req() req?: Request) {
+  findAll(@Req() req?: Request) {
     const language = req?.headers[LANGUAGE_HEADER] as string | undefined;
-    return this.attributesService.findAll(productTypeId, language);
-  }
-
-  @Get('product-type/:productTypeId')
-  @ApiOperation({ summary: 'Get attributes by product type' })
-  findByProductType(@Param('productTypeId') productTypeId: string, @Req() req?: Request) {
-    const language = req?.headers[LANGUAGE_HEADER] as string | undefined;
-    return this.attributesService.findByProductType(productTypeId, language);
+    return this.attributesService.findAll(language);
   }
 
   @Get('id/:id')

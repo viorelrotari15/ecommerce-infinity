@@ -123,10 +123,9 @@ export TOKEN="your-token-here"
 Create a product first (images need a product ID):
 
 ```bash
-# Get brands, categories, and product types
+# Get brands and categories
 curl http://localhost:3001/api/brands
 curl http://localhost:3001/api/categories
-curl http://localhost:3001/api/product-types
 
 # Create a product
 curl -X POST http://localhost:3001/api/products \
@@ -139,7 +138,6 @@ curl -X POST http://localhost:3001/api/products \
     "description": "Test product description",
     "shortDescription": "Test",
     "brandId": "<brand-id-from-above>",
-    "productTypeId": "<product-type-id-from-above>",
     "categoryIds": ["<category-id-from-above>"],
     "variants": [{
       "name": "50ml",

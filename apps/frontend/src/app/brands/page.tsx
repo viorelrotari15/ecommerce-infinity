@@ -2,6 +2,7 @@ import { Metadata } from 'next';
 import { fetchBrands } from '@/lib/api/server';
 import { BrandsHeader } from '@/components/client/brands/brands-header';
 import { BrandsList } from '@/components/client/brands/brands-list';
+import { BrandsControls } from '@/components/client/brands/brands-controls';
 import { getServerLanguage } from '@/lib/utils/language';
 
 // Force dynamic rendering to respect language cookie changes
@@ -29,6 +30,7 @@ export default async function BrandsPage() {
   return (
     <div className="container py-8">
       <BrandsHeader />
+      <BrandsControls />
       <BrandsList initialBrands={brands} />
     </div>
   );
