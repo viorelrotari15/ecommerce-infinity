@@ -1,7 +1,7 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { fetchAPIAuth } from '@/lib/api/client';
+import { apiService } from '@/lib/api/client';
 import { getAuthToken } from '@/lib/auth';
 
 export interface OrderItem {
@@ -36,12 +36,22 @@ export interface Order {
   subtotal: string;
   tax: string;
   shipping: string;
+  guestEmail?: string | null;
   shippingAddress: any;
   billingAddress: any;
   createdAt: string;
   updatedAt: string;
   items: OrderItem[];
   payment: Payment | null;
+}
+
+export interface AdminOrder extends Order {
+  user?: {
+    id: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+  } | null;
 }
 
 /**
@@ -54,10 +64,24 @@ export function useUserOrders() {
     queryKey: ['user', 'orders'],
     queryFn: async (): Promise<Order[]> => {
       if (!token) throw new Error('Not authenticated');
-      return fetchAPIAuth<Order[]>('/orders', token);
+      return apiService.get<Order[]>('/orders');
     },
     enabled: !!token,
     staleTime: 2 * 60 * 1000, // 2 minutes
+  });
+}
+
+export function useAdminOrders() {
+  const token = getAuthToken();
+
+  return useQuery({
+    queryKey: ['admin', 'orders'],
+    queryFn: async (): Promise<AdminOrder[]> => {
+      if (!token) throw new Error('Not authenticated');
+      return apiService.get<AdminOrder[]>('/orders/admin');
+    },
+    enabled: !!token,
+    staleTime: 60 * 1000,
   });
 }
 

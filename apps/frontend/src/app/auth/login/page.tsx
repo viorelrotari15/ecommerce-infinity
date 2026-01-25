@@ -72,7 +72,7 @@ export default function LoginPage() {
 
       // Merge local cart with server cart
       try {
-        const serverCart = await getCart(response.access_token);
+        const serverCart = await getCart();
         mergeWithLocal(serverCart.items);
         // Get merged items and sync back to server
         const mergedItems = useCartStore.getState().items;
@@ -81,8 +81,7 @@ export default function LoginPage() {
             mergedItems.map((item) => ({
               variantId: item.id,
               quantity: item.quantity,
-            })),
-            response.access_token,
+            }))
           );
         }
       } catch (cartError) {

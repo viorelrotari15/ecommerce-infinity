@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { apiClient } from '../api/client';
+import { apiService } from '../api/client';
 
 export interface Language {
   code: string;
@@ -19,10 +19,9 @@ export function useLanguages(includeInactive = false) {
     queryKey: ['languages', includeInactive],
     queryFn: async () => {
       try {
-        const response = await apiClient.get<Language[]>(
+        return apiService.get<Language[]>(
           `/languages${includeInactive ? '?includeInactive=true' : ''}`,
         );
-        return response.data;
       } catch (error) {
         console.error('Error fetching languages:', error);
         // Return empty array on error instead of throwing
@@ -39,8 +38,8 @@ export function useDefaultLanguage() {
     queryKey: ['languages', 'default'],
     queryFn: async () => {
       try {
-        const response = await apiClient.get<{ code: string }>('/languages/default');
-        return response.data.code;
+        const response = await apiService.get<{ code: string }>('/languages/default');
+        return response.code;
       } catch (error) {
         console.error('Error fetching default language:', error);
         // Fallback to 'en' if API fails (English is guaranteed to exist in DB)

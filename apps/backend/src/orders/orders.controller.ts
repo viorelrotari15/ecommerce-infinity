@@ -3,6 +3,8 @@ import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
 
 @ApiTags('orders')
 @Controller('orders')
@@ -21,6 +23,15 @@ export class OrdersController {
   @ApiOperation({ summary: 'Get user orders' })
   findByUser(@Request() req) {
     return this.ordersService.findByUser(req.user.id);
+  }
+
+  @Get('admin')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get all orders (Admin)' })
+  findAll() {
+    return this.ordersService.findAll();
   }
 
   @Get(':id')

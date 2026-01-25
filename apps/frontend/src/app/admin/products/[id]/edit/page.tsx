@@ -10,7 +10,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { fetchAPI, fetchAPIAuth } from '@/lib/api';
+import { fetchAPIAuth } from '@/lib/api';
+import { apiService } from '@/lib/api/client';
 import { getProductImageUrl } from '@/lib/images';
 import { isAdmin, getAuthToken } from '@/lib/auth';
 import { useUploadProductImage, useDeleteProductImage } from '@/lib/hooks/use-product-images';
@@ -250,7 +251,7 @@ export default function EditProductPage() {
     setToken(storedToken);
 
     // Load product data
-    fetchAPIAuth<{
+    apiService.get<{
       id: string;
       name: string;
       slug: string;
@@ -282,7 +283,7 @@ export default function EditProductPage() {
         isPrimary: boolean;
         order: number;
       }>;
-    }>(`/products/id/${productId}`, storedToken)
+    }>(`/products/id/${productId}`)
       .then((product) => {
         // Set form values
         reset({
@@ -359,7 +360,7 @@ export default function EditProductPage() {
       
       // Refetch product data once after all uploads to get the complete updated list
       // This ensures the images are immediately visible and in sync with the server
-      const productResponse = await fetchAPIAuth<{
+      const productResponse = await apiService.get<{
         productImages: Array<{
           id: string;
           filepath: string;
@@ -367,7 +368,7 @@ export default function EditProductPage() {
           isPrimary: boolean;
           order: number;
         }>;
-      }>(`/products/id/${productId}`, token);
+      }>(`/products/id/${productId}`);
       
       setUploadedImages(
         productResponse.productImages.map((img) => ({
@@ -395,7 +396,7 @@ export default function EditProductPage() {
       setUploadedImages(uploadedImages.filter((img) => img.id !== imageId));
       
       // Refetch product data to get updated images list
-      const productResponse = await fetchAPIAuth<{
+      const productResponse = await apiService.get<{
         productImages: Array<{
           id: string;
           filepath: string;
@@ -403,7 +404,7 @@ export default function EditProductPage() {
           isPrimary: boolean;
           order: number;
         }>;
-      }>(`/products/id/${productId}`, token);
+      }>(`/products/id/${productId}`);
       
       setUploadedImages(
         productResponse.productImages.map((img) => ({

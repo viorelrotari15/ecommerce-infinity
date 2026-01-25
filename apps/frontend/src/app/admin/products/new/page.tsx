@@ -11,7 +11,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 // Textarea component - using native textarea for now
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { fetchAPI, fetchAPIAuth, uploadImage } from '@/lib/api';
+import { fetchAPIAuth, uploadImage } from '@/lib/api';
+import { apiService } from '@/lib/api/client';
 import { getProductImageUrl } from '@/lib/images';
 import { useBrands } from '@/lib/hooks/use-brands';
 import { useCategories } from '@/lib/hooks/use-categories';
@@ -328,10 +329,7 @@ export default function NewProductPage() {
         })),
       };
 
-      const product = await fetchAPIAuth<{ id: string }>('/products', token, {
-        method: 'POST',
-        body: JSON.stringify(submitData),
-      });
+      const product = await apiService.post<{ id: string }>('/products', submitData);
 
       // Upload pending images during creation (right after product is created)
       if (pendingImages.length > 0 && token) {

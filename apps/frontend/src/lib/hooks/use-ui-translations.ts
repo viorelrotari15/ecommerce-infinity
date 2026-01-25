@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiClient } from '../api/client';
+import { apiService } from '../api/client';
 import { getAuthToken } from '../auth';
 
 export interface UiTranslation {
@@ -27,12 +27,7 @@ export function useUiTranslations() {
   return useQuery({
     queryKey: ['ui-translations', 'all'],
     queryFn: async () => {
-      const response = await apiClient.get<UiTranslation[]>('/translations/all', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      return response.data;
+      return apiService.get<UiTranslation[]>('/translations/all');
     },
     enabled: !!token,
   });
@@ -44,12 +39,7 @@ export function useTranslationKeys() {
   return useQuery({
     queryKey: ['ui-translations', 'keys'],
     queryFn: async () => {
-      const response = await apiClient.get<string[]>('/translations/keys', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      return response.data;
+      return apiService.get<string[]>('/translations/keys');
     },
     enabled: !!token,
   });
@@ -61,11 +51,7 @@ export function useCreateTranslation() {
 
   return useMutation({
     mutationFn: async (data: CreateTranslationDto) => {
-      return apiClient.post('/translations', data, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      return apiService.post('/translations', data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ui-translations'] });
@@ -80,11 +66,7 @@ export function useUpdateTranslation() {
 
   return useMutation({
     mutationFn: async ({ key, language, value }: { key: string; language: string; value: string }) => {
-      return apiClient.patch(`/translations/${key}/${language}`, { value }, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      return apiService.patch(`/translations/${key}/${language}`, { value });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ui-translations'] });
@@ -99,11 +81,7 @@ export function useBulkUpdateTranslations() {
 
   return useMutation({
     mutationFn: async (data: BulkTranslationsDto) => {
-      return apiClient.post('/translations/bulk', data, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      return apiService.post('/translations/bulk', data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ui-translations'] });
@@ -118,11 +96,7 @@ export function useDeleteTranslation() {
 
   return useMutation({
     mutationFn: async ({ key, language }: { key: string; language: string }) => {
-      return apiClient.delete(`/translations/${key}/${language}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      return apiService.delete(`/translations/${key}/${language}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ui-translations'] });

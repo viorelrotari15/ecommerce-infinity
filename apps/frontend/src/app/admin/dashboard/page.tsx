@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { isAdmin } from '@/lib/auth';
-import { Languages, FileText, Tag, FolderTree, Package, List } from 'lucide-react';
+import { Languages, FileText, Tag, FolderTree, Package, List, Receipt, Truck, Percent } from 'lucide-react';
 import { useT, translationKeys } from '@/lib/utils/translations';
 
 export default function AdminDashboard() {
@@ -82,6 +82,33 @@ export default function AdminDashboard() {
               UI Translations
             </CardTitle>
             <CardDescription>{t(translationKeys.admin.dashboard.manageTranslations, 'Manage interface text translations')}</CardDescription>
+          </CardHeader>
+        </Card>
+        <Card className="cursor-pointer hover:bg-accent transition-colors" onClick={() => router.push('/admin/orders')}>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Receipt className="h-5 w-5" />
+              {t(translationKeys.admin.dashboard.ordersTitle, 'Orders')}
+            </CardTitle>
+            <CardDescription>{t(translationKeys.admin.dashboard.manageOrders, 'Review customer orders')}</CardDescription>
+          </CardHeader>
+        </Card>
+        <Card className="cursor-pointer hover:bg-accent transition-colors" onClick={() => router.push('/admin/tax-rates')}>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Percent className="h-5 w-5" />
+              {t(translationKeys.admin.dashboard.taxRatesTitle, 'Tax Rates')}
+            </CardTitle>
+            <CardDescription>{t(translationKeys.admin.dashboard.manageTaxRates, 'Configure VAT rates')}</CardDescription>
+          </CardHeader>
+        </Card>
+        <Card className="cursor-pointer hover:bg-accent transition-colors" onClick={() => router.push('/admin/shipping')}>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Truck className="h-5 w-5" />
+              {t(translationKeys.admin.dashboard.shippingTitle, 'Shipping')}
+            </CardTitle>
+            <CardDescription>{t(translationKeys.admin.dashboard.manageShipping, 'Configure shipping methods')}</CardDescription>
           </CardHeader>
         </Card>
       </div>

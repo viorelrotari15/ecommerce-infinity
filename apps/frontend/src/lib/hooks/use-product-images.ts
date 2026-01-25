@@ -34,12 +34,10 @@ export function useUploadProductImage(productId: string) {
  */
 export function useDeleteProductImage() {
   const queryClient = useQueryClient();
-  const token = getAuthToken();
 
   return useMutation({
     mutationFn: async (imageId: string) => {
-      if (!token) throw new Error('Not authenticated');
-      return deleteImage(imageId, token);
+      return deleteImage(imageId);
     },
     onSuccess: () => {
       // Invalidate all product queries to refetch with updated images
@@ -54,12 +52,10 @@ export function useDeleteProductImage() {
  */
 export function useSetPrimaryImage() {
   const queryClient = useQueryClient();
-  const token = getAuthToken();
 
   return useMutation({
     mutationFn: async (imageId: string) => {
-      if (!token) throw new Error('Not authenticated');
-      return setPrimaryImage(imageId, token);
+      return setPrimaryImage(imageId);
     },
     onSuccess: () => {
       // Invalidate all product queries to refetch with updated primary image

@@ -37,6 +37,75 @@ enum PaymentMethod {
   BANK_TRANSFER
 }
 
+model Region {
+  id        String   @id @default(uuid())
+  code      String   @unique // DE, MD, IT
+  name      String
+  currency  String   @default("EUR")
+  isDefault Boolean  @default(false)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  taxRates        TaxRate[]
+  shippingMethods ShippingMethod[]
+  orders          Order[]
+
+  @@map("regions")
+}
+
+model TaxRate {
+  id         String   @id @default(uuid())
+  regionId   String
+  region     Region   @relation(fields: [regionId], references: [id], onDelete: Cascade)
+  name       String
+  rate       Decimal  @db.Decimal(5, 4) // 0.1900 = 19%
+  categoryId String?  // Optional: apply to specific category
+  category   Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  isDefault  Boolean  @default(false)
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([regionId])
+  @@index([categoryId])
+  @@map("tax_rates")
+}
+
+model ShippingMethod {
+  id        String   @id @default(uuid())
+  regionId  String
+  region    Region   @relation(fields: [regionId], references: [id], onDelete: Cascade)
+  code      String
+  name      String
+  carrier   String
+  isExpress Boolean  @default(false)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  rules  ShippingRule[]
+  orders Order[]
+
+  @@unique([regionId, code])
+  @@map("shipping_methods")
+}
+
+model ShippingRule {
+  id              String   @id @default(uuid())
+  shippingMethodId String
+  shippingMethod   ShippingMethod @relation(fields: [shippingMethodId], references: [id], onDelete: Cascade)
+  minSubtotal     Decimal  @db.Decimal(10, 2)
+  maxSubtotal     Decimal? @db.Decimal(10, 2)
+  price           Decimal  @db.Decimal(10, 2)
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([shippingMethodId])
+  @@map("shipping_rules")
+}
+
 model User {
   id        String   @id @default(uuid())
   email     String   @unique
@@ -81,6 +150,7 @@ model Category {
   updatedAt   DateTime   @updatedAt
   products    ProductCategory[]
   translations CategoryTranslation[]
+  taxRates    TaxRate[]
 
   @@map("categories")
 }
@@ -188,8 +258,13 @@ model ProductVariant {
 
 model Order {
   id            String        @id @default(uuid())
-  userId        String
-  user          User          @relation(fields: [userId], references: [id])
+  userId        String?
+  user          User?         @relation(fields: [userId], references: [id])
+  guestEmail    String?
+  regionId      String?
+  region        Region?       @relation(fields: [regionId], references: [id], onDelete: SetNull)
+  shippingMethodId String?
+  shippingMethod ShippingMethod? @relation(fields: [shippingMethodId], references: [id], onDelete: SetNull)
   status        OrderStatus   @default(PENDING)
   total         Decimal       @db.Decimal(10, 2)
   subtotal      Decimal       @db.Decimal(10, 2)
