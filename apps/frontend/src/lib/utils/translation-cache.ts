@@ -21,6 +21,10 @@ function getCacheKey(language: string): string {
   return `${CACHE_PREFIX}${language}`;
 }
 
+function canUseStorage(): boolean {
+  return typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';
+}
+
 /**
  * Check if cached data is still valid
  */
@@ -41,6 +45,7 @@ function isCacheValid(cached: CachedTranslation | null): boolean {
  */
 export function getCachedTranslations(language: string): Record<string, any> | null {
   try {
+    if (!canUseStorage()) return null;
     const cacheKey = getCacheKey(language);
     const cachedStr = localStorage.getItem(cacheKey);
     
@@ -66,6 +71,7 @@ export function getCachedTranslations(language: string): Record<string, any> | n
  */
 export function setCachedTranslations(language: string, data: Record<string, any>): void {
   try {
+    if (!canUseStorage()) return;
     const cacheKey = getCacheKey(language);
     const cached: CachedTranslation = {
       data,
@@ -103,6 +109,7 @@ export function setCachedTranslations(language: string, data: Record<string, any
  */
 export function clearCachedTranslations(language: string): void {
   try {
+    if (!canUseStorage()) return;
     const cacheKey = getCacheKey(language);
     localStorage.removeItem(cacheKey);
   } catch (error) {
@@ -115,6 +122,7 @@ export function clearCachedTranslations(language: string): void {
  */
 export function clearAllTranslationCaches(): void {
   try {
+    if (!canUseStorage()) return;
     const keys = Object.keys(localStorage);
     keys.forEach((key) => {
       if (key.startsWith(CACHE_PREFIX)) {
@@ -131,6 +139,7 @@ export function clearAllTranslationCaches(): void {
  */
 function clearOldCaches(): void {
   try {
+    if (!canUseStorage()) return;
     const keys = Object.keys(localStorage);
     const caches: Array<{ key: string; timestamp: number }> = [];
     
@@ -172,6 +181,9 @@ export function getCacheStats(): {
   newestCache: number | null;
 } {
   try {
+    if (!canUseStorage()) {
+      return { languages: [], totalSize: 0, oldestCache: null, newestCache: null };
+    }
     const keys = Object.keys(localStorage);
     const languages: string[] = [];
     let oldestCache: number | null = null;
