@@ -15,8 +15,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { apiClient } from '@/lib/api/client';
-import { getAuthToken } from '@/lib/auth';
+import { apiService } from '@/lib/api/client';
 import { isAdmin } from '@/lib/auth';
 import { useProductTypes, productTypeQueryKeys } from '@/lib/hooks/use-product-types';
 import { Plus, Edit, Trash2 } from 'lucide-react';
@@ -43,7 +42,6 @@ export default function ProductTypesPage() {
     description: '',
   });
   const [isCreating, setIsCreating] = useState(false);
-  const token = getAuthToken();
   const { toast } = useToast();
   const confirm = useConfirm();
   const t = useT();
@@ -88,18 +86,10 @@ export default function ProductTypesPage() {
 
     try {
       setIsCreating(true);
-      await apiClient.post(
-        '/product-types',
-        {
-          name: formData.name,
-          description: formData.description || undefined,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      await apiService.post('/product-types', {
+        name: formData.name,
+        description: formData.description || undefined,
+      });
       await queryClient.refetchQueries({ queryKey: productTypeQueryKeys.list() });
       closeDialog();
       setIsCreating(false);
@@ -132,18 +122,10 @@ export default function ProductTypesPage() {
 
     try {
       setIsCreating(true);
-      await apiClient.patch(
-        `/product-types/${editingId}`,
-        {
-          name: formData.name,
-          description: formData.description || undefined,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      await apiService.patch(`/product-types/${editingId}`, {
+        name: formData.name,
+        description: formData.description || undefined,
+      });
       await queryClient.invalidateQueries({ queryKey: productTypeQueryKeys.list() });
       closeDialog();
       setIsCreating(false);
@@ -177,11 +159,7 @@ export default function ProductTypesPage() {
     }
 
     try {
-      await apiClient.delete(`/product-types/${id}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      await apiService.delete(`/product-types/${id}`);
       await queryClient.refetchQueries({ queryKey: productTypeQueryKeys.list() });
       toast({
         variant: 'success',

@@ -11,7 +11,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 // Textarea component - using native textarea for now
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { fetchAPI, fetchAPIAuth, uploadImage } from '@/lib/api';
+import { fetchAPI, uploadImage } from '@/lib/api';
+import { apiService } from '@/lib/api/client';
 import { getProductImageUrl } from '@/lib/images';
 import { useBrands } from '@/lib/hooks/use-brands';
 import { useCategories } from '@/lib/hooks/use-categories';
@@ -217,14 +218,14 @@ export default function NewProductPage() {
 
   useEffect(() => {
     // Fetch attributes when product type changes
-    if (selectedProductTypeId && token) {
-      fetchAPIAuth<Attribute[]>(`/attributes/product-type/${selectedProductTypeId}`, token)
+    if (selectedProductTypeId) {
+      apiService.get<Attribute[]>(`/attributes/product-type/${selectedProductTypeId}`)
         .then((data) => setAttributes(data))
         .catch(() => setAttributes([]));
     } else {
       setAttributes([]);
     }
-  }, [selectedProductTypeId, token]);
+  }, [selectedProductTypeId]);
 
 
   const onSubmit = async (data: ProductFormData) => {
@@ -255,10 +256,7 @@ export default function NewProductPage() {
         })),
       };
 
-      const product = await fetchAPIAuth<{ id: string }>('/products', token, {
-        method: 'POST',
-        body: JSON.stringify(submitData),
-      });
+      const product = await apiService.post<{ id: string }>('/products', submitData);
 
       // Redirect to edit page automatically
       // Don't reset state/ref here since we're redirecting away

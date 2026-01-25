@@ -22,8 +22,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { apiClient } from '@/lib/api/client';
-import { getAuthToken } from '@/lib/auth';
+import { apiService } from '@/lib/api/client';
 import { isAdmin } from '@/lib/auth';
 import { useCategories } from '@/lib/hooks/use-categories';
 import { categoryQueryKeys } from '@/lib/api/queries';
@@ -55,7 +54,6 @@ export default function CategoriesPage() {
     parentId: '',
   });
   const [isCreating, setIsCreating] = useState(false);
-  const token = getAuthToken();
   const { toast } = useToast();
   const confirm = useConfirm();
   const t = useT();
@@ -118,19 +116,11 @@ export default function CategoriesPage() {
 
     try {
       setIsCreating(true);
-      await apiClient.post(
-        '/categories',
-        {
-          name: formData.name,
-          description: formData.description || undefined,
-          parentId: formData.parentId || undefined,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      await apiService.post('/categories', {
+        name: formData.name,
+        description: formData.description || undefined,
+        parentId: formData.parentId || undefined,
+      });
       await queryClient.refetchQueries({ queryKey: categoryQueryKeys.list() });
       closeDialog();
       setIsCreating(false);
@@ -163,19 +153,11 @@ export default function CategoriesPage() {
 
     try {
       setIsCreating(true);
-      await apiClient.patch(
-        `/categories/${editingId}`,
-        {
-          name: formData.name,
-          description: formData.description || undefined,
-          parentId: formData.parentId || undefined,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      await apiService.patch(`/categories/${editingId}`, {
+        name: formData.name,
+        description: formData.description || undefined,
+        parentId: formData.parentId || undefined,
+      });
       await queryClient.invalidateQueries({ queryKey: categoryQueryKeys.list() });
       closeDialog();
       setIsCreating(false);
@@ -209,11 +191,7 @@ export default function CategoriesPage() {
     }
 
     try {
-      await apiClient.delete(`/categories/${id}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      await apiService.delete(`/categories/${id}`);
       await queryClient.refetchQueries({ queryKey: categoryQueryKeys.list() });
       toast({
         variant: 'success',

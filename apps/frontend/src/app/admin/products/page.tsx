@@ -26,6 +26,7 @@ import { useConfirm } from '@/contexts/confirm-dialog-context';
 import { useToast } from '@/hooks/use-toast';
 import { MultiSelectCategory } from '@/components/ui/multi-select-category';
 import { useT, translationKeys } from '@/lib/utils/translations';
+import { apiService } from '@/lib/api/client';
 
 interface Product {
   id: string;
@@ -218,22 +219,8 @@ export default function ProductsPage() {
   };
 
   const handleReactivate = async (productId: string) => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      toast({
-        variant: 'destructive',
-        title: t(translationKeys.common.error, 'Error'),
-        description: t(translationKeys.common.notAuthenticated, 'Not authenticated'),
-      });
-      return;
-    }
-
     try {
-      const { fetchAPIAuth } = await import('@/lib/api/client');
-      await fetchAPIAuth(`/products/${productId}`, token, {
-        method: 'PATCH',
-        body: JSON.stringify({ isActive: true }),
-      });
+      await apiService.patch(`/products/${productId}`, { isActive: true });
       toast({
         variant: 'success',
         title: t(translationKeys.common.success, 'Success'),

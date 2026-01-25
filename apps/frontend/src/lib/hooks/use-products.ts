@@ -1,7 +1,7 @@
 'use client';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { fetchAPI, fetchAPIAuth } from '@/lib/api/client';
+import { fetchAPI, apiService } from '@/lib/api/client';
 import { getAuthToken } from '@/lib/auth';
 import { productQueryKeys, ProductFilters } from '@/lib/api/queries';
 import type { Product, ProductsResponse } from '@/lib/api/server';
@@ -142,10 +142,7 @@ export function useCreateProduct() {
   return useMutation({
     mutationFn: async (data: CreateProductDto) => {
       if (!token) throw new Error('Not authenticated');
-      return fetchAPIAuth<Product>('/products', token, {
-        method: 'POST',
-        body: JSON.stringify(data),
-      });
+      return apiService.post<Product>('/products', data);
     },
     onSuccess: () => {
       // Invalidate and refetch products list
@@ -164,10 +161,7 @@ export function useUpdateProduct(productId: string) {
   return useMutation({
     mutationFn: async (data: UpdateProductDto) => {
       if (!token) throw new Error('Not authenticated');
-      return fetchAPIAuth<Product>(`/products/${productId}`, token, {
-        method: 'PATCH',
-        body: JSON.stringify(data),
-      });
+      return apiService.patch<Product>(`/products/${productId}`, data);
     },
     onSuccess: (data) => {
       // Update the specific product in cache
@@ -188,9 +182,7 @@ export function useDeleteProduct() {
   return useMutation({
     mutationFn: async (productId: string) => {
       if (!token) throw new Error('Not authenticated');
-      return fetchAPIAuth(`/products/${productId}`, token, {
-        method: 'DELETE',
-      });
+      return apiService.delete(`/products/${productId}`);
     },
     onSuccess: () => {
       // Invalidate all product queries

@@ -114,6 +114,116 @@ async function main() {
     },
   });
 
+  // Seed Regions, Tax Rates, and Shipping
+  const germany = await prisma.region.upsert({
+    where: { code: 'DE' },
+    update: {
+      name: 'Germany',
+      currency: 'EUR',
+      isDefault: true,
+      isActive: true,
+    },
+    create: {
+      code: 'DE',
+      name: 'Germany',
+      currency: 'EUR',
+      isDefault: true,
+      isActive: true,
+    },
+  });
+
+  const defaultTaxRate = await prisma.taxRate.findFirst({
+    where: { regionId: germany.id, isDefault: true },
+  });
+
+  if (defaultTaxRate) {
+    await prisma.taxRate.update({
+      where: { id: defaultTaxRate.id },
+      data: {
+        name: 'VAT 19%',
+        rate: 0.19,
+        isDefault: true,
+        isActive: true,
+      },
+    });
+  } else {
+    await prisma.taxRate.create({
+      data: {
+        regionId: germany.id,
+        name: 'VAT 19%',
+        rate: 0.19,
+        isDefault: true,
+        isActive: true,
+      },
+    });
+  }
+
+  const standardMethod = await prisma.shippingMethod.upsert({
+    where: { regionId_code: { regionId: germany.id, code: 'standard' } },
+    update: {
+      name: 'Standard Delivery',
+      carrier: 'DHL',
+      isExpress: false,
+      isActive: true,
+    },
+    create: {
+      regionId: germany.id,
+      code: 'standard',
+      name: 'Standard Delivery',
+      carrier: 'DHL',
+      isExpress: false,
+      isActive: true,
+    },
+  });
+
+  const expressMethod = await prisma.shippingMethod.upsert({
+    where: { regionId_code: { regionId: germany.id, code: 'dhl_express' } },
+    update: {
+      name: 'DHL Express',
+      carrier: 'DHL',
+      isExpress: true,
+      isActive: true,
+    },
+    create: {
+      regionId: germany.id,
+      code: 'dhl_express',
+      name: 'DHL Express',
+      carrier: 'DHL',
+      isExpress: true,
+      isActive: true,
+    },
+  });
+
+  await prisma.shippingRule.deleteMany({
+    where: { shippingMethodId: { in: [standardMethod.id, expressMethod.id] } },
+  });
+
+  await prisma.shippingRule.createMany({
+    data: [
+      {
+        shippingMethodId: standardMethod.id,
+        minSubtotal: 0,
+        maxSubtotal: 99.99,
+        price: 4.99,
+        isActive: true,
+      },
+      {
+        shippingMethodId: standardMethod.id,
+        minSubtotal: 100,
+        maxSubtotal: null,
+        price: 0,
+        isActive: true,
+      },
+      {
+        shippingMethodId: expressMethod.id,
+        minSubtotal: 0,
+        maxSubtotal: null,
+        price: 14.99,
+        isActive: true,
+      },
+    ],
+  });
+
   // Create Product Type: Perfume
   const perfumeType = await prisma.productType.upsert({
     where: { slug: 'perfume' },

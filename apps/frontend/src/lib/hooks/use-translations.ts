@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { apiClient } from '../api/client';
+import { apiService } from '../api/client';
 
 export type Translations = Record<string, any>;
 
@@ -8,8 +8,7 @@ export function useTranslations(language?: string) {
     queryKey: ['translations', language],
     queryFn: async () => {
       const url = language ? `/translations?lang=${language}` : '/translations';
-      const response = await apiClient.get<Translations>(url);
-      return response.data;
+      return apiService.get<Translations>(url);
     },
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   });

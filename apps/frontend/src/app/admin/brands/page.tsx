@@ -15,8 +15,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { apiClient } from '@/lib/api/client';
-import { getAuthToken } from '@/lib/auth';
+import { apiService } from '@/lib/api/client';
 import { isAdmin } from '@/lib/auth';
 import { useBrands } from '@/lib/hooks/use-brands';
 import { brandQueryKeys } from '@/lib/api/queries';
@@ -44,7 +43,6 @@ export default function BrandsPage() {
     description: '',
   });
   const [isCreating, setIsCreating] = useState(false);
-  const token = getAuthToken();
   const { toast } = useToast();
   const confirm = useConfirm();
   const t = useT();
@@ -89,18 +87,10 @@ export default function BrandsPage() {
 
     try {
       setIsCreating(true);
-      await apiClient.post(
-        '/brands',
-        {
-          name: formData.name,
-          description: formData.description || undefined,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      await apiService.post('/brands', {
+        name: formData.name,
+        description: formData.description || undefined,
+      });
       await queryClient.refetchQueries({ queryKey: brandQueryKeys.list() });
       closeDialog();
       setIsCreating(false);
@@ -133,18 +123,10 @@ export default function BrandsPage() {
 
     try {
       setIsCreating(true);
-      await apiClient.patch(
-        `/brands/${editingId}`,
-        {
-          name: formData.name,
-          description: formData.description || undefined,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      await apiService.patch(`/brands/${editingId}`, {
+        name: formData.name,
+        description: formData.description || undefined,
+      });
       await queryClient.invalidateQueries({ queryKey: brandQueryKeys.list() });
       closeDialog();
       setIsCreating(false);
@@ -178,11 +160,7 @@ export default function BrandsPage() {
     }
 
     try {
-      await apiClient.delete(`/brands/${id}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      await apiService.delete(`/brands/${id}`);
       await queryClient.refetchQueries({ queryKey: brandQueryKeys.list() });
       toast({
         variant: 'success',

@@ -1,7 +1,7 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { fetchAPIAuth } from '@/lib/api/client';
+import { apiService } from '@/lib/api/client';
 import { getAuthToken } from '@/lib/auth';
 
 export interface UserProfile {
@@ -25,7 +25,7 @@ export function useUserProfile() {
     queryKey: ['user', 'profile'],
     queryFn: async (): Promise<UserProfile> => {
       if (!token) throw new Error('Not authenticated');
-      return fetchAPIAuth<UserProfile>('/auth/profile', token);
+      return apiService.get<UserProfile>('/auth/profile');
     },
     enabled: !!token,
     staleTime: 5 * 60 * 1000, // 5 minutes

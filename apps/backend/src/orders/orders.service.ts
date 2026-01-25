@@ -1,51 +1,83 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateOrderDto } from './dto/create-order.dto';
+import { ShippingCalculatorService } from '../pricing/shipping-calculator.service';
+import { TaxCalculatorService } from '../pricing/tax-calculator.service';
 
 @Injectable()
 export class OrdersService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private taxCalculator: TaxCalculatorService,
+    private shippingCalculator: ShippingCalculatorService,
+  ) {}
+
+  private async buildLineItems(items: { variantId: string; quantity: number }[]) {
+    const variantIds = items.map((item) => item.variantId);
+    const variants = await this.prisma.productVariant.findMany({
+      where: { id: { in: variantIds } },
+      include: {
+        product: {
+          include: {
+            categories: {
+              select: { categoryId: true },
+            },
+          },
+        },
+      },
+    });
+
+    const variantMap = new Map(variants.map((variant) => [variant.id, variant]));
+    return items.map((item) => {
+      const variant = variantMap.get(item.variantId);
+      if (!variant) {
+        throw new NotFoundException(`Variant ${item.variantId} not found`);
+      }
+      if (item.quantity > variant.stock) {
+        throw new BadRequestException(`Insufficient stock for variant ${item.variantId}`);
+      }
+      return {
+        variant,
+        quantity: item.quantity,
+        price: Number(variant.price),
+        categoryIds: variant.product.categories.map((category) => category.categoryId),
+      };
+    });
+  }
 
   async create(userId: string, createOrderDto: CreateOrderDto) {
-    // Calculate totals
-    const items = await Promise.all(
-      createOrderDto.items.map(async (item) => {
-        const variant = await this.prisma.productVariant.findUnique({
-          where: { id: item.variantId },
-          include: { product: true },
-        });
-        if (!variant) {
-          throw new NotFoundException(`Variant ${item.variantId} not found`);
-        }
-        return {
-          variant,
-          quantity: item.quantity,
-          price: variant.price,
-        };
-      }),
-    );
+    const region = await this.taxCalculator.resolveRegion(createOrderDto.regionCode);
+    const lineItems = await this.buildLineItems(createOrderDto.items);
 
-    const subtotal = items.reduce(
-      (sum, item) => sum + Number(item.price) * item.quantity,
-      0,
-    );
-    const tax = subtotal * 0.1; // 10% tax
-    const shipping = createOrderDto.shipping || 0;
-    const total = subtotal + tax + shipping;
+    const subtotal = lineItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    const taxRates = await this.taxCalculator.getActiveTaxRates(region.id);
+    const tax = this.taxCalculator.calculateIncludedTax(lineItems, taxRates);
+
+    let shipping = 0;
+    if (createOrderDto.shippingMethodId) {
+      shipping = await this.shippingCalculator.calculateShipping(
+        createOrderDto.shippingMethodId,
+        subtotal,
+      );
+    } else if (createOrderDto.shipping) {
+      shipping = createOrderDto.shipping;
+    }
 
     // Create order
     const order = await this.prisma.order.create({
       data: {
         userId,
+        regionId: region.id,
+        shippingMethodId: createOrderDto.shippingMethodId,
         status: 'PENDING',
         subtotal,
         tax,
         shipping,
-        total,
+        total: subtotal + shipping,
         shippingAddress: createOrderDto.shippingAddress,
         billingAddress: createOrderDto.billingAddress,
         items: {
-          create: items.map((item) => ({
+          create: lineItems.map((item) => ({
             productVariantId: item.variant.id,
             quantity: item.quantity,
             price: item.price,
@@ -82,6 +114,30 @@ export class OrdersService {
           },
         },
         payment: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async findAll() {
+    return this.prisma.order.findMany({
+      include: {
+        items: {
+          include: {
+            productVariant: {
+              include: { product: true },
+            },
+          },
+        },
+        payment: true,
+        user: {
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
       },
       orderBy: { createdAt: 'desc' },
     });

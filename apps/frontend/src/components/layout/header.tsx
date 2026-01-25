@@ -73,22 +73,6 @@ export function Header() {
             >
               {t(translationKeys.header.menu.brands, 'Brands')}
             </Link>
-            {mounted && isUserAdmin && (
-              <>
-                <Link
-                  href="/admin/dashboard"
-                  className="text-sm font-medium transition-colors  hover:underline"
-                >
-                  {t(translationKeys.header.menu.dashboard, 'Dashboard')}
-                </Link>
-                <Link
-                  href="/admin/products/new"
-                  className="text-sm font-medium transition-colors  hover:underline"
-                >
-                  {t(translationKeys.header.menu.newProduct, 'New Product')}
-                </Link>
-              </>
-            )}
           </nav>
         </div>
         <div className="flex items-center gap-4">

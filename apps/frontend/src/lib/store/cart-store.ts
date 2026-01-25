@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { getAuthToken, isAuthenticated } from '@/lib/auth';
+import { isAuthenticated } from '@/lib/auth';
 import { getCart, updateCart as updateCartAPI, clearCart as clearCartAPI, CartItemResponse } from '@/lib/api/client';
 
 export interface CartItem {
@@ -51,18 +51,12 @@ async function syncToServer(items: CartItem[]): Promise<void> {
     return; // Don't sync if not logged in
   }
 
-  const token = getAuthToken();
-  if (!token) {
-    return;
-  }
-
   try {
     await updateCartAPI(
       items.map((item) => ({
         variantId: item.id,
         quantity: item.quantity,
-      })),
-      token,
+      }))
     );
   } catch (error) {
     console.error('Failed to sync cart to server:', error);
@@ -144,13 +138,10 @@ export const useCartStore = create<CartStore>()(
         
         // Sync to server if logged in
         if (isAuthenticated()) {
-          const token = getAuthToken();
-          if (token) {
-            try {
-              await clearCartAPI(token);
-            } catch (error) {
-              console.error('Failed to clear cart on server:', error);
-            }
+          try {
+            await clearCartAPI();
+          } catch (error) {
+            console.error('Failed to clear cart on server:', error);
           }
         }
       },
@@ -171,14 +162,9 @@ export const useCartStore = create<CartStore>()(
           return;
         }
 
-        const token = getAuthToken();
-        if (!token) {
-          return;
-        }
-
         set({ isSyncing: true });
         try {
-          const serverCart = await getCart(token);
+          const serverCart = await getCart();
           const serverItems = serverCart.items.map(convertCartItem);
           
           // Merge with local cart (server takes precedence for conflicts)
@@ -208,14 +194,9 @@ export const useCartStore = create<CartStore>()(
           return;
         }
 
-        const token = getAuthToken();
-        if (!token) {
-          return;
-        }
-
         set({ isLoading: true });
         try {
-          const serverCart = await getCart(token);
+          const serverCart = await getCart();
           const serverItems = serverCart.items.map(convertCartItem);
           set({ items: serverItems });
         } catch (error) {
