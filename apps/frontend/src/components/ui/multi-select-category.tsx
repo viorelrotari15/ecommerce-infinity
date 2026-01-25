@@ -121,13 +121,20 @@ export function MultiSelectCategory({
                   className="inline-flex items-center gap-1 px-2 py-1 bg-primary/10 text-primary rounded-md text-sm"
                 >
                   <span className="line-clamp-1 max-w-[150px]">{cat.name}</span>
-                  <button
-                    type="button"
+                  <span
+                    role="button"
+                    tabIndex={0}
                     onClick={(e) => removeCategory(cat.id, e)}
-                    className="hover:bg-primary/20 rounded-full p-0.5"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        removeCategory(cat.id, e as any);
+                      }
+                    }}
+                    className="hover:bg-primary/20 rounded-full p-0.5 cursor-pointer focus:outline-none focus:ring-2 focus:ring-ring"
                   >
                     <X className="h-3 w-3" />
-                  </button>
+                  </span>
                 </span>
               ))}
               {selectedIds.length > 2 && (

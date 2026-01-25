@@ -4,6 +4,11 @@ import { fetchProducts, fetchCategories, fetchBrands } from '@/lib/api/server';
 import { ProductList } from '@/components/client/products/product-list';
 import { ProductFilters } from '@/components/client/products/product-filters';
 import { ProductsHeader } from '@/components/client/products/products-header';
+import { PaginationControls } from '@/components/ui/pagination-controls';
+import { getServerLanguage } from '@/lib/utils/language';
+
+// Force dynamic rendering to respect language cookie changes
+export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
   title: 'Products',
@@ -15,6 +20,7 @@ export default async function ProductsPage({
 }: {
   searchParams: { [key: string]: string | string[] | undefined };
 }) {
+  const language = await getServerLanguage();
   // Filter out "all" values and undefined/empty values
   const brandId = searchParams.brand && searchParams.brand !== 'all' 
     ? (searchParams.brand as string) 
@@ -32,24 +38,25 @@ export default async function ProductsPage({
   
   const search = searchParams.search ? (searchParams.search as string) : undefined;
   const featured = searchParams.featuredOnly === 'true' ? true : undefined;
+  const limit = Number(searchParams.limit) || 20;
 
   // Server Component fetches initial data with caching
   const [initialData, initialCategories, initialBrands] = await Promise.all([
     fetchProducts({
       page: Number(searchParams.page) || 1,
-      limit: 20,
+      limit,
       brandId,
       categoryIds,
       search,
       featured,
-    }),
-    fetchCategories(),
-    fetchBrands(),
+    }, language),
+    fetchCategories(language),
+    fetchBrands(language),
   ]);
 
   const filters = {
     page: Number(searchParams.page) || 1,
-    limit: 20,
+    limit,
     brandId,
     categoryIds,
     search,
@@ -65,6 +72,7 @@ export default async function ProductsPage({
         initialFilters={searchParams}
         initialCategories={initialCategories}
         initialBrands={initialBrands}
+        initialLimit={limit}
       />
 
       {/* Client Component that hydrates React Query cache */}
@@ -72,32 +80,13 @@ export default async function ProductsPage({
 
       {/* Pagination */}
       {initialData.meta.totalPages > 1 && (
-        <div className="mt-8 flex justify-center gap-2">
-          {Array.from({ length: initialData.meta.totalPages }, (_, i) => i + 1).map((page) => {
-            const params = new URLSearchParams();
-            params.set('page', String(page));
-            if (searchParams.brand) params.set('brand', searchParams.brand as string);
-            if (searchParams.categories) {
-              const cats = Array.isArray(searchParams.categories) 
-                ? searchParams.categories 
-                : [searchParams.categories];
-              cats.forEach(cat => params.append('categories', cat as string));
-            } else if (searchParams.category) {
-              params.set('category', searchParams.category as string);
-            }
-            if (searchParams.search) params.set('search', searchParams.search as string);
-            if (searchParams.featuredOnly) params.set('featuredOnly', searchParams.featuredOnly as string);
-            return (
-              <Link
-                key={page}
-                href={`/products?${params.toString()}`}
-                className="rounded-md border px-4 py-2 hover:bg-accent"
-              >
-                {page}
-              </Link>
-            );
-          })}
-        </div>
+        <PaginationControls
+          currentPage={Number(searchParams.page) || 1}
+          totalPages={initialData.meta.totalPages}
+          limit={limit}
+          baseUrl="/products"
+          preserveParams={['brand', 'categories', 'category', 'search', 'featuredOnly']}
+        />
       )}
     </div>
   );

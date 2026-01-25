@@ -10,27 +10,26 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { fetchAPI } from '@/lib/api';
+import { fetchAPIAuth } from '@/lib/api';
 import { apiService } from '@/lib/api/client';
 import { getProductImageUrl } from '@/lib/images';
 import { isAdmin, getAuthToken } from '@/lib/auth';
 import { useUploadProductImage, useDeleteProductImage } from '@/lib/hooks/use-product-images';
 import { useCategories } from '@/lib/hooks/use-categories';
 import { useBrands } from '@/lib/hooks/use-brands';
-import { useProductTypes } from '@/lib/hooks/use-product-types';
 import { useQueryClient } from '@tanstack/react-query';
 import { productQueryKeys } from '@/lib/api/queries';
 import { X, Plus, Upload, Image as ImageIcon } from 'lucide-react';
 import Image from 'next/image';
 import { ProductTranslationsTabs, ProductTranslationsTabsRef } from '@/components/admin/product-translations-tabs';
 import { useT, translationKeys } from '@/lib/utils/translations';
+import { useLanguages, useDefaultLanguage } from '@/lib/hooks/use-languages';
 
 type ProductFormData = {
-  name: string;
+  name?: string;
   description?: string;
   shortDescription?: string;
   brandId: string;
-  productTypeId: string;
   categoryIds: string[];
   isActive: boolean;
   isFeatured: boolean;
@@ -42,7 +41,7 @@ type ProductFormData = {
     stock: number;
     isActive: boolean;
   }>;
-  attributes: Array<{
+  attributes?: Array<{
     attributeId: string;
     value: string;
   }>;
@@ -62,16 +61,13 @@ interface Category {
   children?: Category[];
 }
 
-interface ProductType {
-  id: string;
-  name: string;
-  slug: string;
-}
 
 interface Attribute {
   id: string;
   name: string;
   slug: string;
+  parentId?: string;
+  subattributes?: Attribute[];
 }
 
 interface ProductImage {
@@ -95,18 +91,20 @@ export default function EditProductPage() {
   const [uploadedImages, setUploadedImages] = useState<ProductImage[]>([]);
   const [token, setToken] = useState<string | null>(null);
   const translationsRef = useRef<ProductTranslationsTabsRef>(null);
+  const { data: languages = [] } = useLanguages(true);
+  const { data: defaultLanguageCode = 'en' } = useDefaultLanguage();
 
   const productSchema = yup.object({
-    name: yup.string().required(t(translationKeys.admin.products.productNameRequired, 'Product name is required')),
-    description: yup.string(),
-    shortDescription: yup.string(),
+    // Name, description, shortDescription, metaTitle, metaDescription come from translations
+    name: yup.string().optional(),
+    description: yup.string().optional(),
+    shortDescription: yup.string().optional(),
     brandId: yup.string().required(t(translationKeys.admin.products.brandRequired, 'Brand is required')),
-    productTypeId: yup.string().required(t(translationKeys.admin.products.productTypeRequired, 'Product type is required')),
-    categoryIds: yup.array().of(yup.string()).min(1, t(translationKeys.admin.products.categoryRequired, 'At least one category is required')),
+    categoryIds: yup.array().of(yup.string().required()).min(1, t(translationKeys.admin.products.categoryRequired, 'At least one category is required')).required(),
     isActive: yup.boolean().default(true),
     isFeatured: yup.boolean().default(false),
-    metaTitle: yup.string(),
-    metaDescription: yup.string(),
+    metaTitle: yup.string().optional(),
+    metaDescription: yup.string().optional(),
     variants: yup
       .array()
       .of(
@@ -117,7 +115,8 @@ export default function EditProductPage() {
           isActive: yup.boolean().default(true),
         }),
       )
-      .min(1, t(translationKeys.admin.products.variantRequired, 'At least one variant is required')),
+      .min(1, t(translationKeys.admin.products.variantRequired, 'At least one variant is required'))
+      .required(),
     attributes: yup.array().of(
       yup.object({
         attributeId: yup.string().required(t(translationKeys.admin.products.attributeRequired, 'Attribute is required')),
@@ -129,7 +128,6 @@ export default function EditProductPage() {
   // Use React Query hooks for brands, categories, and product types
   const { data: brands = [] } = useBrands();
   const { data: categories = [] } = useCategories();
-  const { data: productTypes = [] } = useProductTypes();
 
   // Use React Query hooks for image operations
   const uploadImageMutation = useUploadProductImage(productId);
@@ -143,7 +141,7 @@ export default function EditProductPage() {
     watch,
     setValue,
     reset,
-  } = useForm<ProductFormData>({
+  } = useForm<yup.InferType<typeof productSchema>>({
     resolver: yupResolver(productSchema),
     defaultValues: {
       isActive: true,
@@ -238,8 +236,6 @@ export default function EditProductPage() {
     }
   };
 
-  const selectedProductTypeId = watch('productTypeId');
-
   useEffect(() => {
     // Check authentication and admin status
     if (!isAdmin()) {
@@ -263,7 +259,6 @@ export default function EditProductPage() {
       shortDescription: string;
       sku: string;
       brandId: string;
-      productTypeId: string;
       isActive: boolean;
       isFeatured: boolean;
       metaTitle: string;
@@ -296,7 +291,6 @@ export default function EditProductPage() {
           description: product.description || '',
           shortDescription: product.shortDescription || '',
           brandId: product.brandId,
-          productTypeId: product.productTypeId,
           categoryIds: product.categories.map((c) => c.categoryId),
           isActive: product.isActive,
           isFeatured: product.isFeatured,
@@ -335,15 +329,15 @@ export default function EditProductPage() {
   }, [productId, router, reset]);
 
   useEffect(() => {
-    // Fetch attributes when product type changes
-    if (selectedProductTypeId) {
-      apiService.get<Attribute[]>(`/attributes/product-type/${selectedProductTypeId}`)
+    // Fetch all attributes
+    if (token) {
+      fetchAPIAuth<Attribute[]>('/attributes', token)
         .then((data) => setAttributes(data))
         .catch(() => setAttributes([]));
     } else {
       setAttributes([]);
     }
-  }, [selectedProductTypeId]);
+  }, [token]);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -429,19 +423,41 @@ export default function EditProductPage() {
     }
   };
 
-  const onSubmit = async (data: ProductFormData) => {
+  const onSubmit = async (data: yup.InferType<typeof productSchema>) => {
     if (!token) {
       setError('Not authenticated');
       return;
+    }
+
+    // Validate translations before saving - all active languages must have required fields
+    // Note: Translation validation with inline errors is already done in the form's onSubmit wrapper
+    // This check ensures we don't proceed if translations are invalid
+    if (translationsRef.current) {
+      const validation = translationsRef.current.validateAll();
+      if (!validation.isValid) {
+        // Inline errors are already displayed, just prevent submission
+        return;
+      }
     }
 
     setIsLoading(true);
     setError(null);
 
     try {
+      // Get default language translation data for main product fields
+      const translationDataToSave = translationsRef.current?.getTranslationData() || {};
+      const defaultLangData = translationDataToSave[defaultLanguageCode] || {};
+      
       // SKU and slug are auto-generated on backend, don't send them
+      const { productTypeId, ...dataWithoutProductType } = data;
       const submitData = {
-        ...data,
+        ...dataWithoutProductType,
+        // Use default language translation values for main product fields
+        name: defaultLangData.name || data.name || '',
+        description: defaultLangData.description || data.description || '',
+        shortDescription: defaultLangData.shortDescription || data.shortDescription || '',
+        metaTitle: defaultLangData.metaTitle || data.metaTitle || '',
+        metaDescription: defaultLangData.metaDescription || data.metaDescription || '',
         sku: undefined,
         slug: undefined,
         variants: (data.variants || []).map((v) => ({
@@ -450,7 +466,56 @@ export default function EditProductPage() {
         })),
       };
 
-      await apiService.patch(`/products/${productId}`, submitData);
+      const updatedProduct = await fetchAPIAuth<{
+        id: string;
+        slug: string;
+      }>(`/products/${productId}`, token, {
+        method: 'PATCH',
+        body: JSON.stringify(submitData),
+      });
+
+      // Save translations for all active languages
+      if (translationsRef.current && token) {
+        try {
+          const translationDataToSave = translationsRef.current.getTranslationData();
+          const activeLanguages = languages.filter((l) => l.isActive);
+          
+          // Save translations for all active languages (POST handles both create and update)
+          for (const lang of activeLanguages) {
+            const langData = translationDataToSave[lang.code];
+            if (langData && langData.name && langData.metaTitle && langData.metaDescription) {
+              await fetchAPIAuth(`/products/${productId}/translations/${lang.code}`, token, {
+                method: 'POST',
+                body: JSON.stringify({
+                  name: langData.name,
+                  description: langData.description || '',
+                  shortDescription: langData.shortDescription || '',
+                  metaTitle: langData.metaTitle,
+                  metaDescription: langData.metaDescription,
+                }),
+              });
+            }
+          }
+        } catch (transErr: any) {
+          console.error('Failed to save translations:', transErr);
+          setError(transErr.message || 'Failed to save translations. Please try again.');
+          setIsLoading(false);
+          return;
+        }
+      }
+
+      // Invalidate React Query cache to ensure fresh data is shown
+      // Invalidate all product lists
+      queryClient.invalidateQueries({ queryKey: productQueryKeys.lists() });
+      // Invalidate the specific product detail if we have the slug
+      if (updatedProduct?.slug) {
+        queryClient.invalidateQueries({ queryKey: productQueryKeys.detail(updatedProduct.slug) });
+      }
+      // Also invalidate all products queries to be safe
+      queryClient.invalidateQueries({ queryKey: productQueryKeys.all });
+
+      // Refresh Next.js router cache to ensure server-side cache is also invalidated
+      router.refresh();
 
       // Redirect to products page
       router.push('/admin/products');
@@ -484,35 +549,35 @@ export default function EditProductPage() {
         </div>
       )}
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        <div className="grid gap-6 md:grid-cols-2">
-          {/* Basic Information */}
+      <form onSubmit={(e) => {
+        e.preventDefault();
+        // Always validate translations first, even if form validation will fail
+        // This ensures inline errors are shown for translations regardless of other validation errors
+        if (translationsRef.current) {
+          translationsRef.current.validateAll();
+        }
+        // Then proceed with normal form validation
+        handleSubmit(onSubmit)(e);
+      }} className="space-y-6">
+        {/* Product Basic Information and Translations - Must be first as it contains name, description, and SEO */}
+        {languages.filter((l) => l.isActive).length > 0 && (
           <Card>
             <CardHeader>
-              <CardTitle>{t(translationKeys.common.basicInfo, 'Basic Information')}</CardTitle>
-              <CardDescription>{t(translationKeys.common.productDetails, 'Product name and details')}</CardDescription>
+              <CardTitle>{t(translationKeys.common.productInformationAndTranslations, 'Product Information and Translations')}</CardTitle>
+              <CardDescription>
+                {t(translationKeys.common.manageProductTranslations, 'Manage translations for this product in different languages. All active languages must have required fields populated.')}
+              </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">
-                  {t(translationKeys.common.name, 'Product Name')} <span className="text-destructive">*</span>
-                </Label>
-                <Input id="name" {...register('name')} />
-                {errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="shortDescription">{t(translationKeys.common.shortDescription, 'Short Description')}</Label>
-                <textarea
-                  id="shortDescription"
-                  {...register('shortDescription')}
-                  rows={2}
-                  className="flex min-h-[60px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                />
-              </div>
+            <CardContent>
+              <ProductTranslationsTabs
+                ref={translationsRef}
+                productId={productId}
+              />
             </CardContent>
           </Card>
+        )}
 
+        <div className="grid gap-6 md:grid-cols-2">
           {/* Product Details */}
           <Card>
             <CardHeader>
@@ -538,27 +603,6 @@ export default function EditProductPage() {
                 </Select>
                 {errors.brandId && (
                   <p className="text-sm text-destructive">{errors.brandId.message}</p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label>
-                  {t(translationKeys.common.productType, 'Product Type')} <span className="text-destructive">*</span>
-                </Label>
-                <Select onValueChange={(value) => setValue('productTypeId', value)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder={t(translationKeys.admin.products.selectProductType, 'Select product type')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {productTypes.map((type) => (
-                      <SelectItem key={type.id} value={type.id}>
-                        {type.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {errors.productTypeId && (
-                  <p className="text-sm text-destructive">{errors.productTypeId.message}</p>
                 )}
               </div>
 
@@ -664,26 +708,105 @@ export default function EditProductPage() {
               </div>
             </CardContent>
           </Card>
-        </div>
 
-        {/* Description */}
-        <Card>
-          <CardHeader>
-            <CardTitle>{t(translationKeys.common.description, 'Description')}</CardTitle>
-            <CardDescription>{t(translationKeys.common.description, 'Full product description')}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              <Label htmlFor="description">{t(translationKeys.common.description, 'Description')}</Label>
-              <textarea
-                id="description"
-                {...register('description')}
-                rows={6}
-                className="flex min-h-[120px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-              />
-            </div>
-          </CardContent>
-        </Card>
+          {/* Attributes */}
+          <Card>
+            <CardHeader>
+              <CardTitle>{t(translationKeys.common.attributes, 'Attributes')}</CardTitle>
+              <CardDescription>{t(translationKeys.common.productSpecificAttributes, 'Product-specific attributes')}</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {attributes.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  {t(translationKeys.admin.products.noAttributes, 'No attributes available')}
+                </p>
+              ) : (
+                <>
+                  {attributeFields.map((field, index) => {
+                    const selectedAttributeId = watch(`attributes.${index}.attributeId`);
+                    const selectedAttribute = attributes.find(attr => attr.id === selectedAttributeId);
+                    const subattributes = selectedAttribute?.subattributes || [];
+                    
+                    return (
+                      <div key={field.id} className="grid gap-4 rounded-lg border p-4 md:grid-cols-3">
+                        <div className="space-y-2">
+                          <Label>{t(translationKeys.common.attribute, 'Attribute')}</Label>
+                          <Select
+                            value={selectedAttributeId || ''}
+                            onValueChange={(value) => {
+                              setValue(`attributes.${index}.attributeId`, value);
+                              // Clear value when attribute changes
+                              setValue(`attributes.${index}.value`, '');
+                            }}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder={t(translationKeys.common.selectAttribute, 'Select attribute')} />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {attributes.filter(attr => !attr.parentId).map((attr) => (
+                                <SelectItem key={attr.id} value={attr.id}>
+                                  {attr.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>{t(translationKeys.common.value, 'Value')}</Label>
+                          {selectedAttributeId && subattributes.length > 0 ? (
+                            <Select
+                              value={watch(`attributes.${index}.value`) || ''}
+                              onValueChange={(value) => setValue(`attributes.${index}.value`, value)}
+                            >
+                            <SelectTrigger>
+                              <SelectValue placeholder={t(translationKeys.common.selectValue, 'Select value')} />
+                            </SelectTrigger>
+                              <SelectContent>
+                                {subattributes.map((subattr) => (
+                                  <SelectItem key={subattr.id} value={subattr.name}>
+                                    {subattr.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          ) : selectedAttributeId && subattributes.length === 0 ? (
+                            <p className="text-sm text-muted-foreground">
+                              {t(translationKeys.admin.products.noSubattributesAvailable, 'No subattributes available for this attribute')}
+                            </p>
+                          ) : (
+                            <Input 
+                              {...register(`attributes.${index}.value`)} 
+                              placeholder={t(translationKeys.admin.products.selectAttributeFirst, 'Select attribute first')}
+                              disabled
+                            />
+                          )}
+                        </div>
+                        <div className="flex items-end">
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => removeAttribute(index)}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => appendAttribute({ attributeId: '', value: '' })}
+                  >
+                    <Plus className="mr-2 h-4 w-4" />
+                    {t(translationKeys.common.addAttribute, 'Add Attribute')}
+                  </Button>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        </div>
 
         {/* Variants */}
         <Card>
@@ -696,7 +819,7 @@ export default function EditProductPage() {
               <div key={field.id} className="grid gap-4 rounded-lg border p-4 md:grid-cols-4">
                 <div className="space-y-2">
                   <Label>{t(translationKeys.common.name, 'Name')}</Label>
-                  <Input {...register(`variants.${index}.name`)} placeholder="e.g., 50ml" />
+                  <Input {...register(`variants.${index}.name`)} placeholder={t(translationKeys.admin.products.variantNamePlaceholder, 'e.g., 50ml')} />
                   {errors.variants?.[index]?.name && (
                     <p className="text-sm text-destructive">
                       {errors.variants[index]?.name?.message}
@@ -756,84 +879,6 @@ export default function EditProductPage() {
           </CardContent>
         </Card>
 
-        {/* Attributes */}
-        {attributes.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle>{t(translationKeys.common.attributes, 'Attributes')}</CardTitle>
-              <CardDescription>{t(translationKeys.common.productSpecificAttributes, 'Product-specific attributes')}</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {attributeFields.map((field, index) => (
-                <div key={field.id} className="grid gap-4 rounded-lg border p-4 md:grid-cols-3">
-                  <div className="space-y-2">
-                    <Label>{t(translationKeys.common.attribute, 'Attribute')}</Label>
-                    <Select
-                      onValueChange={(value) => setValue(`attributes.${index}.attributeId`, value)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder={t(translationKeys.common.selectAttribute, 'Select attribute')} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {attributes.map((attr) => (
-                          <SelectItem key={attr.id} value={attr.id}>
-                            {attr.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>{t(translationKeys.common.value, 'Value')}</Label>
-                    <Input {...register(`attributes.${index}.value`)} />
-                  </div>
-                  <div className="flex items-end">
-                    <Button
-                      type="button"
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => removeAttribute(index)}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => appendAttribute({ attributeId: '', value: '' })}
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                {t(translationKeys.common.addAttribute, 'Add Attribute')}
-              </Button>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* SEO */}
-        <Card>
-          <CardHeader>
-            <CardTitle>{t(translationKeys.common.seoSettings, 'SEO Settings')}</CardTitle>
-            <CardDescription>{t(translationKeys.common.metaTitleDescription, 'Meta title and description')}</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="metaTitle">{t(translationKeys.common.metaTitle, 'Meta Title')}</Label>
-              <Input id="metaTitle" {...register('metaTitle')} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="metaDescription">{t(translationKeys.common.metaDescription, 'Meta Description')}</Label>
-              <textarea
-                id="metaDescription"
-                {...register('metaDescription')}
-                rows={3}
-                className="flex min-h-[60px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-              />
-            </div>
-          </CardContent>
-        </Card>
-
         {/* Images */}
         <Card>
           <CardHeader>
@@ -889,16 +934,6 @@ export default function EditProductPage() {
           </CardContent>
         </Card>
 
-        {/* Translations */}
-        <ProductTranslationsTabs
-          ref={translationsRef}
-          productId={productId}
-          defaultName={watch('name') || ''}
-          defaultDescription={watch('description') || ''}
-          defaultShortDescription={watch('shortDescription') || ''}
-          defaultMetaTitle={watch('metaTitle') || ''}
-          defaultMetaDescription={watch('metaDescription') || ''}
-        />
 
         {/* Options */}
         <Card>

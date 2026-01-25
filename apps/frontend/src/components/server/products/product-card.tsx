@@ -9,6 +9,8 @@ interface ProductCardProps {
     id: string;
     name: string;
     slug: string;
+    description?: string | null;
+    shortDescription?: string | null;
     images: string[];
     productImages?: Array<{ filepath: string; url?: string; isPrimary?: boolean }>;
     brand: { name: string; slug: string };
@@ -28,7 +30,7 @@ export function ProductCard({ product }: ProductCardProps) {
     : '/placeholder-image.jpg';
 
   return (
-    <Link href={`/products/${product.slug}`}>
+    <Link href={`/products/${product.slug}`} className="block h-full">
       <Card className="h-full transition-shadow hover:shadow-lg">
         <CardHeader>
           <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-muted">
@@ -48,9 +50,14 @@ export function ProductCard({ product }: ProductCardProps) {
         </CardHeader>
         <CardContent>
           <CardTitle className="mb-2 line-clamp-2">{product.name}</CardTitle>
-          <CardDescription className="mb-4">
+          <CardDescription className="mb-2">
             {product.brand.name}
           </CardDescription>
+          {product.shortDescription && (
+            <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
+              {product.shortDescription}
+            </p>
+          )}
           <p className="text-lg font-semibold">{minPrice}</p>
         </CardContent>
       </Card>

@@ -10,6 +10,18 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 const AUTH_REDIRECT_PATH = '/auth/login';
 
 /**
+ * Get current language from cookie
+ */
+function getCurrentLanguage(): string {
+  if (typeof document === 'undefined') return 'en';
+  const cookieLang = document.cookie
+    .split('; ')
+    .find((row) => row.startsWith('lang='))
+    ?.split('=')[1];
+  return cookieLang || 'en';
+}
+
+/**
  * API Client for React Query hooks
  */
 export const apiClient = {
@@ -63,11 +75,13 @@ function handleUnauthorized() {
 
 export async function fetchAPI<T>(endpoint: string, options?: RequestInit): Promise<T> {
   const url = `${API_URL}/api${endpoint}`;
+  const language = getCurrentLanguage();
   
   const response = await fetch(url, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
+      'x-language': language,
       ...options?.headers,
     },
   });

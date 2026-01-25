@@ -155,32 +155,18 @@ model Category {
   @@map("categories")
 }
 
-model ProductType {
-  id          String    @id @default(uuid())
-  name        String    @unique
-  slug        String    @unique
-  description String?   @db.Text
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  products    Product[]
-  attributes  Attribute[]
-  translations ProductTypeTranslation[]
-
-  @@map("product_types")
-}
-
 model Attribute {
   id           String            @id @default(uuid())
   name         String
-  slug         String
-  productTypeId String
-  productType  ProductType       @relation(fields: [productTypeId], references: [id], onDelete: Cascade)
+  slug         String            @unique
+  parentId     String?           // For subattributes
+  parent       Attribute?        @relation("AttributeSubattributes", fields: [parentId], references: [id], onDelete: Cascade)
+  subattributes Attribute[]      @relation("AttributeSubattributes")
   createdAt    DateTime          @default(now())
   updatedAt    DateTime          @updatedAt
   values       ProductAttribute[]
   translations AttributeTranslation[]
 
-  @@unique([slug, productTypeId])
   @@map("attributes")
 }
 
@@ -193,8 +179,6 @@ model Product {
   sku           String            @unique
   brandId       String
   brand         Brand             @relation(fields: [brandId], references: [id])
-  productTypeId String
-  productType   ProductType       @relation(fields: [productTypeId], references: [id])
   images        String[]          @default([]) // Legacy field, kept for backward compatibility
   productImages ProductImage[]    // New relation to ProductImage model
   isActive      Boolean           @default(true)
@@ -372,6 +356,7 @@ model UiTranslation {
 
   @@unique([key, language])
   @@index([language])
+  @@index([language, key]) // Composite index for translation lookups
   @@map("ui_translations")
 }
 
@@ -392,6 +377,7 @@ model ProductTranslation {
   @@unique([productId, language])
   @@index([productId])
   @@index([language])
+  @@index([productId, language]) // Composite index for product translation lookups
   @@map("product_translations")
 }
 
@@ -409,6 +395,7 @@ model CategoryTranslation {
   @@unique([categoryId, language])
   @@index([categoryId])
   @@index([language])
+  @@index([categoryId, language]) // Composite index for category translation lookups
   @@map("category_translations")
 }
 
@@ -426,24 +413,8 @@ model BrandTranslation {
   @@unique([brandId, language])
   @@index([brandId])
   @@index([language])
+  @@index([brandId, language]) // Composite index for brand translation lookups
   @@map("brand_translations")
-}
-
-// ProductType Translations
-model ProductTypeTranslation {
-  id          String      @id @default(uuid())
-  productTypeId String
-  productType ProductType @relation(fields: [productTypeId], references: [id], onDelete: Cascade)
-  language    String
-  name        String
-  description String?     @db.Text
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-
-  @@unique([productTypeId, language])
-  @@index([productTypeId])
-  @@index([language])
-  @@map("product_type_translations")
 }
 
 // Attribute Translations
@@ -459,6 +430,7 @@ model AttributeTranslation {
   @@unique([attributeId, language])
   @@index([attributeId])
   @@index([language])
+  @@index([attributeId, language]) // Composite index for attribute translation lookups
   @@map("attribute_translations")
 }
 

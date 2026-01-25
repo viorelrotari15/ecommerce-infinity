@@ -80,8 +80,7 @@ ecommerce-infinity/
 The database uses a flexible, future-proof design:
 
 - **Product**: Generic product entity (not perfume-specific)
-- **ProductType**: Defines product categories (perfume, cosmetic, etc.)
-- **Attribute**: Dynamic attributes per product type
+- **Attribute**: Dynamic attributes for products
 - **ProductAttribute**: Stores attribute values
 - **ProductVariant**: Price, stock, and variant-specific data
 - **Category**: Hierarchical category system

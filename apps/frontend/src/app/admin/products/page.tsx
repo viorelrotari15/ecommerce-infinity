@@ -27,6 +27,8 @@ import { useToast } from '@/hooks/use-toast';
 import { MultiSelectCategory } from '@/components/ui/multi-select-category';
 import { useT, translationKeys } from '@/lib/utils/translations';
 import { apiService } from '@/lib/api/client';
+import { ItemsPerPageControl } from '@/components/ui/items-per-page-control';
+import { PaginationControls } from '@/components/ui/pagination-controls';
 
 interface Product {
   id: string;
@@ -52,6 +54,7 @@ export default function ProductsPage() {
   
   // Get filter values from URL params
   const page = Number(searchParams.get('page')) || 1;
+  const limit = Number(searchParams.get('limit')) || 20;
   const searchParam = searchParams.get('search') || '';
   const brandParam = searchParams.get('brand');
   // Memoize categories param to prevent infinite loops
@@ -127,7 +130,7 @@ export default function ProductsPage() {
 
   const filters = {
     page,
-    limit: 20,
+    limit,
     includeInactive: true,
     search: searchParam || undefined,
     brandId: brandParam && brandParam !== 'all' ? brandParam : undefined,
@@ -144,6 +147,24 @@ export default function ProductsPage() {
   const confirm = useConfirm();
   const { toast } = useToast();
 
+  const handleLimitChange = (newLimit: number) => {
+    const params = new URLSearchParams();
+    if (search) params.set('search', search);
+    if (selectedBrand && selectedBrand !== 'all') {
+      params.set('brand', selectedBrand);
+    }
+    if (selectedCategories.length > 0) {
+      selectedCategories.forEach(catId => {
+        params.append('categories', catId);
+      });
+    }
+    if (inactiveOnly) params.set('inactiveOnly', 'true');
+    if (featuredOnly) params.set('featuredOnly', 'true');
+    if (newLimit !== 20) params.set('limit', String(newLimit));
+    params.set('page', '1'); // Reset to first page
+    router.push(`/admin/products?${params.toString()}`);
+  };
+
   const applyFilters = () => {
     const params = new URLSearchParams();
     if (search) params.set('search', search);
@@ -158,6 +179,7 @@ export default function ProductsPage() {
     }
     if (inactiveOnly) params.set('inactiveOnly', 'true');
     if (featuredOnly) params.set('featuredOnly', 'true');
+    if (limit !== 20) params.set('limit', String(limit));
     params.set('page', '1'); // Reset to first page
     router.push(`/admin/products?${params.toString()}`);
   };
@@ -186,6 +208,7 @@ export default function ProductsPage() {
     }
     if (inactiveOnly) params.set('inactiveOnly', 'true');
     if (featuredOnly) params.set('featuredOnly', 'true');
+    if (limit !== 20) params.set('limit', String(limit));
     return `/admin/products?${params.toString()}`;
   };
 
@@ -362,6 +385,12 @@ export default function ProductsPage() {
         </div>
       </div>
 
+      {/* Items Per Page Control */}
+      <ItemsPerPageControl
+        limit={limit}
+        baseUrl="/admin/products"
+      />
+
       {products.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center">
@@ -466,27 +495,12 @@ export default function ProductsPage() {
           </div>
 
           {meta.totalPages > 1 && (
-            <div className="mt-8 flex justify-center gap-2">
-              <Link href={buildPaginationUrl(Math.max(1, page - 1))}>
-                <Button
-                  variant="outline"
-                  disabled={page === 1}
-                >
-                  {t(translationKeys.admin.products.previous, 'Previous')}
-                </Button>
-              </Link>
-              <span className="flex items-center px-4 text-sm text-muted-foreground">
-                {t(translationKeys.admin.products.page, 'Page')} {page} {t(translationKeys.admin.products.of, 'of')} {meta.totalPages}
-              </span>
-              <Link href={buildPaginationUrl(Math.min(meta.totalPages, page + 1))}>
-                <Button
-                  variant="outline"
-                  disabled={page === meta.totalPages}
-                >
-                  {t(translationKeys.admin.products.next, 'Next')}
-                </Button>
-              </Link>
-            </div>
+            <PaginationControls
+              currentPage={page}
+              totalPages={meta.totalPages}
+              limit={limit}
+              baseUrl="/admin/products"
+            />
           )}
         </>
       )}

@@ -4,6 +4,7 @@ import { Request } from 'express';
 import { CategoriesService } from './categories.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
+import { CreateCategoryTranslationDto } from './dto/create-category-translation.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -62,6 +63,37 @@ export class CategoriesController {
   @ApiOperation({ summary: 'Delete a category (Admin only)' })
   remove(@Param('id') id: string) {
     return this.categoriesService.remove(id);
+  }
+
+  @Get(':id/translations')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get category translations (Admin only)' })
+  getTranslations(@Param('id') id: string) {
+    return this.categoriesService.getTranslations(id);
+  }
+
+  @Post(':id/translations/:language')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Create or update category translation (Admin only)' })
+  upsertTranslation(
+    @Param('id') id: string,
+    @Param('language') language: string,
+    @Body() translationData: CreateCategoryTranslationDto,
+  ) {
+    return this.categoriesService.upsertTranslation(id, language, translationData);
+  }
+
+  @Delete(':id/translations/:language')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Delete category translation (Admin only)' })
+  deleteTranslation(@Param('id') id: string, @Param('language') language: string) {
+    return this.categoriesService.deleteTranslation(id, language);
   }
 }
 

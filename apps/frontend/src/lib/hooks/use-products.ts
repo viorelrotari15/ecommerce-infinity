@@ -84,7 +84,6 @@ export interface CreateProductDto {
   shortDescription?: string;
   sku: string;
   brandId: string;
-  productTypeId: string;
   categoryIds: string[];
   isActive?: boolean;
   isFeatured?: boolean;
@@ -113,7 +112,6 @@ export interface UpdateProductDto {
   shortDescription?: string;
   sku?: string;
   brandId?: string;
-  productTypeId?: string;
   categoryIds?: string[];
   isActive?: boolean;
   isFeatured?: boolean;

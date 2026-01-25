@@ -31,12 +31,12 @@ export function LanguageSelector() {
     );
   }
 
-  // Show current language even if only one (for debugging/visibility)
-  // In production, you might want to hide if languages.length <= 1
+  // English is guaranteed to exist in the database (auto-created by backend)
+  // This is a safety fallback during loading or edge cases
   if (languages.length === 0) {
     return (
-      <div className="text-xs text-muted-foreground px-2">
-        No languages
+      <div className="text-sm px-3 py-2 rounded-md border border-input bg-background">
+        {currentLanguage || 'en'}
       </div>
     );
   }

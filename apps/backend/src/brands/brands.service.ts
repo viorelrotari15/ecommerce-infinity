@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { LanguageHelperService } from '../languages/language-helper.service';
 import { CreateBrandDto } from './dto/create-brand.dto';
@@ -235,6 +235,65 @@ export class BrandsService {
     }
 
     return brand;
+  }
+
+  async getTranslations(brandId: string) {
+    const brand = await this.findById(brandId);
+    return this.prisma.brandTranslation.findMany({
+      where: { brandId },
+      orderBy: { language: 'asc' },
+    });
+  }
+
+  async upsertTranslation(
+    brandId: string,
+    language: string,
+    translationData: { name: string; description?: string },
+  ) {
+    // Verify brand exists
+    await this.findById(brandId);
+
+    // Verify language exists
+    const lang = await this.prisma.language.findUnique({
+      where: { code: language },
+    });
+
+    if (!lang || !lang.isActive) {
+      throw new BadRequestException(`Language ${language} is not active`);
+    }
+
+    return this.prisma.brandTranslation.upsert({
+      where: {
+        brandId_language: {
+          brandId,
+          language,
+        },
+      },
+      create: {
+        brandId,
+        language,
+        name: translationData.name,
+        description: translationData.description,
+      },
+      update: {
+        name: translationData.name,
+        description: translationData.description,
+      },
+    });
+  }
+
+  async deleteTranslation(brandId: string, language: string) {
+    // Verify brand exists
+    await this.findById(brandId);
+
+    return this.prisma.brandTranslation.delete({
+      where: {
+        brandId_language: {
+          brandId,
+          language,
+        },
+      },
+    });
   }
 }
 

@@ -4,17 +4,24 @@ import { CreateTranslationDto } from './dto/create-translation.dto';
 import { UpdateTranslationDto } from './dto/update-translation.dto';
 import { BulkTranslationsDto } from './dto/bulk-translations.dto';
 import { LanguagesService } from '../languages/languages.service';
+import { RedisService } from '../redis/redis.service';
+
+const CACHE_TTL_SECONDS = 24 * 60 * 60; // 24 hours
+const TRANSLATION_CACHE_PREFIX = 'translations:';
+const TRANSLATION_KEY_CACHE_PREFIX = 'translation_keys:';
 
 @Injectable()
 export class TranslationsService {
   constructor(
     private prisma: PrismaService,
     private languagesService: LanguagesService,
+    private redisService: RedisService,
   ) {}
 
   /**
    * Get all translations for a language
    * Returns as nested object structure
+   * Uses Redis cache if available
    */
   async getTranslations(language: string): Promise<Record<string, any>> {
     // Verify language exists and is active
@@ -28,6 +35,14 @@ export class TranslationsService {
       return this.getTranslations(defaultLang);
     }
 
+    // Try to get from Redis cache
+    const cacheKey = `${TRANSLATION_CACHE_PREFIX}${language}`;
+    const cached = await this.redisService.get<Record<string, any>>(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
+    // Cache miss, fetch from database
     const translations = await this.prisma.uiTranslation.findMany({
       where: { language },
     });
@@ -35,6 +50,10 @@ export class TranslationsService {
     // Convert flat key-value to nested object
     const result: Record<string, any> = {};
     for (const t of translations) {
+      // Skip if key is null or undefined
+      if (!t.key) {
+        continue;
+      }
       const keys = t.key.split('.');
       let current = result;
       for (let i = 0; i < keys.length - 1; i++) {
@@ -45,6 +64,9 @@ export class TranslationsService {
       }
       current[keys[keys.length - 1]] = t.value;
     }
+
+    // Store in Redis cache
+    await this.redisService.set(cacheKey, result, CACHE_TTL_SECONDS);
 
     return result;
   }
@@ -119,7 +141,7 @@ export class TranslationsService {
       where: { code: createTranslationDto.language },
     });
 
-    return this.prisma.uiTranslation.upsert({
+    const result = await this.prisma.uiTranslation.upsert({
       where: {
         key_language: {
           key: createTranslationDto.key,
@@ -135,6 +157,11 @@ export class TranslationsService {
         value: createTranslationDto.value,
       },
     });
+
+    // Invalidate cache for this language
+    await this.invalidateLanguageCache(createTranslationDto.language);
+
+    return result;
   }
 
   /**
@@ -154,7 +181,7 @@ export class TranslationsService {
       throw new NotFoundException(`Translation not found for key ${key} and language ${language}`);
     }
 
-    return this.prisma.uiTranslation.update({
+    const result = await this.prisma.uiTranslation.update({
       where: {
         key_language: {
           key,
@@ -165,13 +192,18 @@ export class TranslationsService {
         value: updateTranslationDto.value!,
       },
     });
+
+    // Invalidate cache for this language
+    await this.invalidateLanguageCache(language);
+
+    return result;
   }
 
   /**
    * Delete a translation
    */
   async remove(key: string, language: string) {
-    return this.prisma.uiTranslation.delete({
+    const result = await this.prisma.uiTranslation.delete({
       where: {
         key_language: {
           key,
@@ -179,6 +211,11 @@ export class TranslationsService {
         },
       },
     });
+
+    // Invalidate cache for this language
+    await this.invalidateLanguageCache(language);
+
+    return result;
   }
 
   /**
@@ -208,7 +245,31 @@ export class TranslationsService {
     );
 
     await Promise.all(operations);
+
+    // Invalidate cache for this language
+    await this.invalidateLanguageCache(bulkTranslationsDto.language);
+
     return { success: true, count: operations.length };
+  }
+
+  /**
+   * Invalidate cache for a specific language
+   */
+  private async invalidateLanguageCache(language: string): Promise<void> {
+    const cacheKey = `${TRANSLATION_CACHE_PREFIX}${language}`;
+    await this.redisService.del(cacheKey);
+    
+    // Also invalidate translation keys cache
+    const keysCacheKey = `${TRANSLATION_KEY_CACHE_PREFIX}${language}`;
+    await this.redisService.del(keysCacheKey);
+  }
+
+  /**
+   * Clear all translation caches (useful for admin operations)
+   */
+  async clearAllCaches(): Promise<void> {
+    await this.redisService.delPattern(`${TRANSLATION_CACHE_PREFIX}*`);
+    await this.redisService.delPattern(`${TRANSLATION_KEY_CACHE_PREFIX}*`);
   }
 }
 

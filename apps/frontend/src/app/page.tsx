@@ -65,7 +65,7 @@ export default async function HomePage() {
                 ? formatPrice(product.variants[0].price)
                 : 'N/A';
               return (
-                <Link key={product.id} href={`/products/${product.slug}`}>
+                <Link key={product.id} href={`/products/${product.slug}`} className="block h-full">
                   <Card className="h-full transition-shadow hover:shadow-lg">
                     <CardHeader>
                       <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-muted">

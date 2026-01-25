@@ -13,6 +13,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { MultiSelectCategory } from '@/components/ui/multi-select-category';
+import { ItemsPerPageSelector } from '@/components/ui/items-per-page-selector';
 import { useCategories } from '@/lib/hooks/use-categories';
 import { useBrands } from '@/lib/hooks/use-brands';
 import type { Category, Brand } from '@/lib/api/server';
@@ -22,12 +23,14 @@ interface ProductFiltersProps {
   initialFilters: { [key: string]: string | string[] | undefined };
   initialCategories?: Category[];
   initialBrands?: Brand[];
+  initialLimit?: number;
 }
 
 export function ProductFilters({
   initialFilters,
   initialCategories,
   initialBrands,
+  initialLimit = 20,
 }: ProductFiltersProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -54,6 +57,7 @@ export function ProductFilters({
   const [selectedCategories, setSelectedCategories] = useState<string[]>(getInitialCategories());
   const featuredOnlyParam = (initialFilters.featuredOnly as string) === 'true';
   const [featuredOnly, setFeaturedOnly] = useState(featuredOnlyParam);
+  const [limit, setLimit] = useState(initialLimit);
 
   // Fetch categories and brands for filter dropdowns
   const { data: categoriesData } = useCategories(initialCategories);
@@ -67,6 +71,12 @@ export function ProductFilters({
     const featured = (initialFilters.featuredOnly as string) === 'true';
     setFeaturedOnly(featured);
   }, [initialFilters.featuredOnly]);
+
+  // Sync limit with URL params
+  useEffect(() => {
+    const urlLimit = Number(initialFilters.limit) || 20;
+    setLimit(urlLimit);
+  }, [initialFilters.limit]);
 
   // Memoize categories from URL to prevent infinite loops
   const urlCategories = useMemo(() => {
@@ -92,6 +102,24 @@ export function ProductFilters({
     }
   }, [urlCategories]);
 
+  const handleLimitChange = (newLimit: number) => {
+    setLimit(newLimit);
+    const params = new URLSearchParams();
+    if (search) params.set('search', search);
+    if (selectedBrand && selectedBrand !== 'all') {
+      params.set('brand', selectedBrand);
+    }
+    if (selectedCategories.length > 0) {
+      selectedCategories.forEach(catId => {
+        params.append('categories', catId);
+      });
+    }
+    if (featuredOnly) params.set('featuredOnly', 'true');
+    if (newLimit !== 20) params.set('limit', String(newLimit));
+    params.set('page', '1'); // Reset to first page
+    router.push(`/products?${params.toString()}`);
+  };
+
   const applyFilters = () => {
     const params = new URLSearchParams();
     if (search) params.set('search', search);
@@ -106,6 +134,7 @@ export function ProductFilters({
       });
     }
     if (featuredOnly) params.set('featuredOnly', 'true');
+    if (limit !== 20) params.set('limit', String(limit));
     params.set('page', '1'); // Reset to first page
 
     router.push(`/products?${params.toString()}`);
@@ -151,19 +180,26 @@ export function ProductFilters({
         </Select>
       </div>
 
-      <div className="flex gap-6">
-        <div className="flex items-center space-x-2">
-          <input
-            type="checkbox"
-            id="featuredOnly"
-            checked={featuredOnly}
-            onChange={(e) => setFeaturedOnly(e.target.checked)}
-            className="h-4 w-4"
-          />
-          <Label htmlFor="featuredOnly" className="font-normal cursor-pointer">
-            {t(translationKeys.products.showFeaturedOnly, 'Show featured only')}
-          </Label>
+      <div className="flex items-center justify-between flex-wrap gap-4">
+        <div className="flex gap-6">
+          <div className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              id="featuredOnly"
+              checked={featuredOnly}
+              onChange={(e) => setFeaturedOnly(e.target.checked)}
+              className="h-4 w-4"
+            />
+            <Label htmlFor="featuredOnly" className="font-normal cursor-pointer">
+              {t(translationKeys.products.showFeaturedOnly, 'Show featured only')}
+            </Label>
+          </div>
         </div>
+        <ItemsPerPageSelector
+          value={limit}
+          onChange={handleLimitChange}
+          label={t(translationKeys.common.itemsPerPage, 'Items per page')}
+        />
       </div>
 
       <div className="flex gap-2">
