@@ -28,7 +28,7 @@ export default async function CategoriesPage() {
   const categories = await getCategories(language);
 
   return (
-    <div className="container py-8">
+    <div className="w-full px-4 md:px-6 lg:px-8 py-8">
       <CategoriesHeader />
       <CategoriesControls />
       <CategoriesList initialCategories={categories} />

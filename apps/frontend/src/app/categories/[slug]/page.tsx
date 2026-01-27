@@ -95,7 +95,7 @@ export default async function CategoryDetailPage({
   };
 
   return (
-    <div className="container py-8">
+    <div className="w-full px-4 md:px-6 lg:px-8 py-8">
       {/* Breadcrumb for child categories */}
       {isChildCategory && category.parent && (
         <div className="mb-4 flex items-center gap-2 text-sm text-muted-foreground">

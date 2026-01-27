@@ -18,11 +18,22 @@ export function BrandsList({ initialBrands }: BrandsListProps) {
 
   const page = Number(searchParams.get('page')) || 1;
   const limit = Number(searchParams.get('limit')) || 20;
+  const searchQuery = searchParams.get('search') || '';
 
-  const totalPages = Math.ceil(brands.length / limit);
+  // Filter brands by search query
+  const filteredBrands = useMemo(() => {
+    if (!searchQuery.trim()) return brands;
+    const query = searchQuery.toLowerCase().trim();
+    return brands.filter(brand => 
+      brand.name.toLowerCase().includes(query) ||
+      (brand.description && brand.description.toLowerCase().includes(query))
+    );
+  }, [brands, searchQuery]);
+
+  const totalPages = Math.ceil(filteredBrands.length / limit);
   const startIndex = (page - 1) * limit;
   const endIndex = startIndex + limit;
-  const paginatedBrands = brands.slice(startIndex, endIndex);
+  const paginatedBrands = filteredBrands.slice(startIndex, endIndex);
 
   if (isLoading && brands.length === 0) {
     return (
@@ -32,10 +43,12 @@ export function BrandsList({ initialBrands }: BrandsListProps) {
     );
   }
 
-  if (brands.length === 0) {
+  if (filteredBrands.length === 0) {
     return (
       <div className="py-12 text-center">
-        <p className="text-muted-foreground">No brands found.</p>
+        <p className="text-muted-foreground">
+          {searchQuery ? 'No brands found matching your search.' : 'No brands found.'}
+        </p>
       </div>
     );
   }

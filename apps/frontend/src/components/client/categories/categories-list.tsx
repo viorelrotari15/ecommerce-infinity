@@ -21,6 +21,7 @@ export function CategoriesList({ initialCategories }: CategoriesListProps) {
 
   const page = Number(searchParams.get('page')) || 1;
   const limit = Number(searchParams.get('limit')) || 20;
+  const searchQuery = searchParams.get('search') || '';
 
   // Flatten categories for pagination (include parent and children)
   const flatCategories = useMemo(() => {
@@ -37,10 +38,20 @@ export function CategoriesList({ initialCategories }: CategoriesListProps) {
     return flatten(categories);
   }, [categories]);
 
-  const totalPages = Math.ceil(flatCategories.length / limit);
+  // Filter categories by search query
+  const filteredCategories = useMemo(() => {
+    if (!searchQuery.trim()) return flatCategories;
+    const query = searchQuery.toLowerCase().trim();
+    return flatCategories.filter(category => 
+      category.name.toLowerCase().includes(query) ||
+      (category.description && category.description.toLowerCase().includes(query))
+    );
+  }, [flatCategories, searchQuery]);
+
+  const totalPages = Math.ceil(filteredCategories.length / limit);
   const startIndex = (page - 1) * limit;
   const endIndex = startIndex + limit;
-  const paginatedCategories = flatCategories.slice(startIndex, endIndex);
+  const paginatedCategories = filteredCategories.slice(startIndex, endIndex);
 
   if (isLoading && categories.length === 0) {
     return (
@@ -50,10 +61,14 @@ export function CategoriesList({ initialCategories }: CategoriesListProps) {
     );
   }
 
-  if (categories.length === 0) {
+  if (filteredCategories.length === 0) {
     return (
       <div className="py-12 text-center">
-        <p className="text-muted-foreground">{t(translationKeys.categories.noCategories, 'No categories found.')}</p>
+        <p className="text-muted-foreground">
+          {searchQuery 
+            ? 'No categories found matching your search.' 
+            : t(translationKeys.categories.noCategories, 'No categories found.')}
+        </p>
       </div>
     );
   }
