@@ -16,6 +16,7 @@ import { CartModule } from './cart/cart.module';
 import { LanguagesModule } from './languages/languages.module';
 import { TranslationsModule } from './translations/translations.module';
 import { LanguageInterceptor } from './languages/interceptors/language.interceptor';
+import { CheckoutModule } from './checkout/checkout.module';
 import { RedisModule } from './redis/redis.module';
 
 @Module({
@@ -37,6 +38,7 @@ import { RedisModule } from './redis/redis.module';
     CartModule,
     LanguagesModule,
     TranslationsModule,
+    CheckoutModule,
     RedisModule,
   ],
   providers: [

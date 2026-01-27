@@ -7,8 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useLanguages, useDefaultLanguage } from '@/lib/hooks/use-languages';
-import { apiClient } from '@/lib/api/client';
-import { getAuthToken } from '@/lib/auth';
+import { apiService } from '@/lib/api/client';
 import { isAdmin } from '@/lib/auth';
 import { Plus, Edit, Trash2, CheckCircle2, XCircle, Star } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
@@ -36,7 +35,6 @@ export default function LanguagesPage() {
 
   const { data: languages = [], isLoading } = useLanguages(true);
   const { data: defaultLanguage } = useDefaultLanguage();
-  const token = getAuthToken();
   const { toast } = useToast();
   const confirm = useConfirm();
   const t = useT();
@@ -58,15 +56,7 @@ export default function LanguagesPage() {
     }
 
     try {
-      await apiClient.post(
-        '/languages',
-        formData,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      await apiService.post('/languages', formData);
       queryClient.invalidateQueries({ queryKey: ['languages'] });
       setFormData({ code: '', name: '', isDefault: false, isActive: true });
       toast({
@@ -85,15 +75,7 @@ export default function LanguagesPage() {
 
   const handleUpdate = async (code: string, updates: Partial<Language>) => {
     try {
-      await apiClient.patch(
-        `/languages/${code}`,
-        updates,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      await apiService.patch(`/languages/${code}`, updates);
       queryClient.invalidateQueries({ queryKey: ['languages'] });
       setEditingCode(null);
       toast({
@@ -112,15 +94,7 @@ export default function LanguagesPage() {
 
   const handleSetDefault = async (code: string) => {
     try {
-      await apiClient.post(
-        `/languages/${code}/set-default`,
-        {},
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      await apiService.post(`/languages/${code}/set-default`, {});
       queryClient.invalidateQueries({ queryKey: ['languages'] });
       toast({
         variant: 'success',
@@ -151,14 +125,7 @@ export default function LanguagesPage() {
     }
 
     try {
-      await apiClient.delete(
-        `/languages/${code}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      await apiService.delete(`/languages/${code}`);
       queryClient.invalidateQueries({ queryKey: ['languages'] });
       toast({
         variant: 'success',

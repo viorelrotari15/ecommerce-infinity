@@ -16,9 +16,7 @@ export default function CartPage() {
   const { items, removeItem, updateQuantity, clearCart, getTotalPrice } = useCartStore();
   const total = getTotalPrice();
   const subtotal = total;
-  const tax = subtotal * 0.1; // 10% tax
-  const shipping = subtotal > 100 ? 0 : 10; // Free shipping over $100
-  const finalTotal = subtotal + tax + shipping;
+  const finalTotal = subtotal;
 
   if (items.length === 0) {
     return (
@@ -162,24 +160,11 @@ export default function CartPage() {
                   <span>{formatPrice(subtotal)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">{t(translationKeys.cart.tax, 'Tax')}</span>
-                  <span>{formatPrice(tax)}</span>
-                </div>
-                <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">{t(translationKeys.cart.shipping, 'Shipping')}</span>
-                  <span>
-                    {shipping === 0 ? (
-                      <span className="text-green-600">{t(translationKeys.cart.free, 'Free')}</span>
-                    ) : (
-                      formatPrice(shipping)
-                    )}
+                  <span className="text-muted-foreground">
+                    {t(translationKeys.cart.shippingCalculated, 'Calculated at checkout')}
                   </span>
                 </div>
-                {subtotal < 100 && (
-                  <p className="text-xs text-muted-foreground">
-                    {t(translationKeys.cart.freeShipping, `Add ${formatPrice(100 - subtotal)} more for free shipping`).replace('{amount}', formatPrice(100 - subtotal))}
-                  </p>
-                )}
               </div>
               <div className="border-t pt-4">
                 <div className="flex justify-between text-lg font-semibold">

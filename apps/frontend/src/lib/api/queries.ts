@@ -36,3 +36,12 @@ export const brandQueryKeys = {
   list: () => [...brandQueryKeys.lists()] as const,
 };
 
+export const pricingQueryKeys = {
+  all: ['pricing'] as const,
+  regions: () => [...pricingQueryKeys.all, 'regions'] as const,
+  taxRates: (regionCode?: string) => [...pricingQueryKeys.all, 'taxRates', regionCode ?? 'all'] as const,
+  shippingMethods: (regionCode?: string) => [...pricingQueryKeys.all, 'shippingMethods', regionCode ?? 'all'] as const,
+  shippingRules: (shippingMethodId?: string) =>
+    [...pricingQueryKeys.all, 'shippingRules', shippingMethodId ?? 'all'] as const,
+};
+

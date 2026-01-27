@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { useLanguage } from '@/lib/contexts/language-context';
 import {
   Select,
@@ -11,6 +12,17 @@ import {
 
 export function LanguageSelector() {
   const { currentLanguage, setLanguage, languages, isLoading } = useLanguage();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return (
+      <div className="w-[120px] h-10 rounded-md border border-input bg-background" />
+    );
+  }
 
   // Show loading state
   if (isLoading) {

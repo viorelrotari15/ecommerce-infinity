@@ -16,8 +16,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { apiClient } from '@/lib/api/client';
-import { getAuthToken } from '@/lib/auth';
-import { isAdmin } from '@/lib/auth';
+import { isAdmin, getAuthToken } from '@/lib/auth';
 import { useBrands, useUpsertBrandTranslation } from '@/lib/hooks/use-brands';
 import { brandQueryKeys } from '@/lib/api/queries';
 import { useLanguages } from '@/lib/hooks/use-languages';

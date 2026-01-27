@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiClient } from '../api/client';
+import { apiService } from '../api/client';
 import { getAuthToken } from '../auth';
 
 export interface ProductTranslation {
@@ -20,15 +20,7 @@ export function useProductTranslations(productId: string) {
     queryKey: ['product-translations', productId],
     queryFn: async () => {
       // Fetch translations directly
-      const response = await apiClient.get<ProductTranslation[]>(
-        `/products/${productId}/translations`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-      return response.data || [];
+      return apiService.get<ProductTranslation[]>(`/products/${productId}/translations`);
     },
     enabled: !!token && !!productId,
   });
@@ -36,25 +28,16 @@ export function useProductTranslations(productId: string) {
 
 export function useCreateProductTranslation() {
   const queryClient = useQueryClient();
-  const token = getAuthToken();
 
   return useMutation({
     mutationFn: async (data: ProductTranslation) => {
-      return apiClient.post(
-        `/products/${data.productId}/translations/${data.language}`,
-        {
-          name: data.name,
-          description: data.description,
-          shortDescription: data.shortDescription,
-          metaTitle: data.metaTitle,
-          metaDescription: data.metaDescription,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      return apiService.post(`/products/${data.productId}/translations/${data.language}`, {
+        name: data.name,
+        description: data.description,
+        shortDescription: data.shortDescription,
+        metaTitle: data.metaTitle,
+        metaDescription: data.metaDescription,
+      });
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['product-translations', variables.productId] });
@@ -65,25 +48,16 @@ export function useCreateProductTranslation() {
 
 export function useUpdateProductTranslation() {
   const queryClient = useQueryClient();
-  const token = getAuthToken();
 
   return useMutation({
     mutationFn: async (data: ProductTranslation) => {
-      return apiClient.post(
-        `/products/${data.productId}/translations/${data.language}`,
-        {
-          name: data.name,
-          description: data.description,
-          shortDescription: data.shortDescription,
-          metaTitle: data.metaTitle,
-          metaDescription: data.metaDescription,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      return apiService.post(`/products/${data.productId}/translations/${data.language}`, {
+        name: data.name,
+        description: data.description,
+        shortDescription: data.shortDescription,
+        metaTitle: data.metaTitle,
+        metaDescription: data.metaDescription,
+      });
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['product-translations', variables.productId] });

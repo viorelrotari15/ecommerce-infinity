@@ -19,6 +19,9 @@ npx prisma db push --skip-generate --accept-data-loss || {
 echo "🌱 Seeding database..."
 npx ts-node -r tsconfig-paths/register prisma/seed.ts || echo "⚠️  Seed failed or already seeded, continuing..."
 
+echo "🖼️  Seeding product images..."
+npm run prisma:seed:images || echo "⚠️  Image seed failed or already seeded, continuing..."
+
 echo "🚀 Starting NestJS..."
 exec npm run start:dev
 
