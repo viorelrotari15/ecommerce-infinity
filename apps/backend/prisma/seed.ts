@@ -468,20 +468,27 @@ async function main() {
 
     // Link attributes
     for (const attr of attributes) {
-      await prisma.productAttribute.upsert({
+      const existing = await prisma.productAttribute.findFirst({
         where: {
-          productId_attributeId: {
-            productId: product.id,
-            attributeId: attr.attributeId,
-          },
-        },
-        update: { value: attr.value },
-        create: {
           productId: product.id,
           attributeId: attr.attributeId,
-          value: attr.value,
         },
       });
+
+      if (existing) {
+        await prisma.productAttribute.update({
+          where: { id: existing.id },
+          data: { value: attr.value },
+        });
+      } else {
+        await prisma.productAttribute.create({
+          data: {
+            productId: product.id,
+            attributeId: attr.attributeId,
+            value: attr.value,
+          },
+        });
+      }
     }
   }
 

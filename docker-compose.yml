@@ -65,7 +65,25 @@ services:
       retries: 5
       start_period: 40s
     # Entrypoint script handles migrations and seeding
-    command: sh /app/docker-entrypoint.sh
+    # Using inline commands to avoid Windows line ending issues
+    command: >
+      sh -c "
+      echo '📦 Installing dependencies...' &&
+      npm install &&
+      echo '🔧 Generating Prisma Client...' &&
+      npx prisma generate &&
+      echo '🗄️  Syncing database schema...' &&
+      (npx prisma db push --skip-generate --accept-data-loss || 
+       (echo '⚠️  Schema sync failed, trying migrations...' &&
+        (npx prisma migrate deploy 2>/dev/null || 
+         npx prisma migrate dev --name init --skip-seed --skip-generate || true))) &&
+      echo '🌱 Seeding database...' &&
+      (npx ts-node -r tsconfig-paths/register prisma/seed.ts || echo '⚠️  Seed failed or already seeded, continuing...') &&
+      echo '🖼️  Seeding product images...' &&
+      (npm run prisma:seed:images || echo '⚠️  Image seed failed or already seeded, continuing...') &&
+      echo '🚀 Starting NestJS...' &&
+      exec npm run start:dev
+      "
 
   frontend:
     build:
