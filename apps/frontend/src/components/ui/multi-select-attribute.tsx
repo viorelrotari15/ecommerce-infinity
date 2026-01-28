@@ -3,77 +3,83 @@
 import * as React from 'react';
 import { Check, ChevronDown, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { Category } from '@/lib/api/server';
+import type { Attribute } from '@/lib/hooks/use-attributes';
 
-interface MultiSelectCategoryProps {
-  categories: Category[];
+interface MultiSelectAttributeProps {
+  attributes: Attribute[];
   selectedIds: string[];
   onSelectionChange: (selectedIds: string[]) => void;
   placeholder?: string;
   className?: string;
 }
 
-export function MultiSelectCategory({
-  categories,
+export function MultiSelectAttribute({
+  attributes,
   selectedIds,
   onSelectionChange,
-  placeholder = 'Select categories...',
+  placeholder = 'Select attributes...',
   className,
-}: MultiSelectCategoryProps) {
+}: MultiSelectAttributeProps) {
   const [open, setOpen] = React.useState(false);
   const dropdownRef = React.useRef<HTMLDivElement>(null);
 
-  // Get all category IDs (including subcategories)
-  const getAllCategoryIds = (): string[] => {
+  // Filter to get only top-level attributes (no parentId)
+  const topLevelAttributes = React.useMemo(() => 
+    attributes.filter(attr => !attr.parentId),
+    [attributes]
+  );
+
+  // Get all attribute IDs (including subattributes)
+  const getAllAttributeIds = (): string[] => {
     const allIds: string[] = [];
-    categories.forEach(cat => {
-      allIds.push(cat.id);
-      if (cat.children) {
-        cat.children.forEach(subcat => {
-          allIds.push(subcat.id);
+    topLevelAttributes.forEach(attr => {
+      allIds.push(attr.id);
+      if (attr.subattributes) {
+        attr.subattributes.forEach(subattr => {
+          allIds.push(subattr.id);
         });
       }
     });
     return allIds;
   };
 
-  const allCategoryIds = React.useMemo(() => getAllCategoryIds(), [categories]);
-  const allSelected = allCategoryIds.length > 0 && allCategoryIds.every(id => selectedIds.includes(id));
+  const allAttributeIds = React.useMemo(() => getAllAttributeIds(), [topLevelAttributes]);
+  const allSelected = allAttributeIds.length > 0 && allAttributeIds.every(id => selectedIds.includes(id));
 
-  // Get category name (just the name, no parent prefix)
-  const getCategoryName = (categoryId: string): string => {
-    for (const cat of categories) {
-      if (cat.id === categoryId) {
-        return cat.name;
+  // Get attribute name (just the name, no parent prefix)
+  const getAttributeName = (attributeId: string): string => {
+    for (const attr of topLevelAttributes) {
+      if (attr.id === attributeId) {
+        return attr.name;
       }
-      if (cat.children) {
-        for (const subcat of cat.children) {
-          if (subcat.id === categoryId) {
-            return subcat.name;
+      if (attr.subattributes) {
+        for (const subattr of attr.subattributes) {
+          if (subattr.id === attributeId) {
+            return subattr.name;
           }
         }
       }
     }
-    return categoryId;
+    return attributeId;
   };
 
-  // Get subcategory IDs for a given category
-  const getSubcategoryIds = (categoryId: string): string[] => {
-    const category = categories.find(cat => cat.id === categoryId);
-    return category?.children?.map(child => child.id) || [];
+  // Get subattribute IDs for a given attribute
+  const getSubattributeIds = (attributeId: string): string[] => {
+    const attribute = topLevelAttributes.find(attr => attr.id === attributeId);
+    return attribute?.subattributes?.map(subattr => subattr.id) || [];
   };
 
-  const toggleCategory = (categoryId: string) => {
-    const subcategoryIds = getSubcategoryIds(categoryId);
-    const isSelected = selectedIds.includes(categoryId);
+  const toggleAttribute = (attributeId: string) => {
+    const subattributeIds = getSubattributeIds(attributeId);
+    const isSelected = selectedIds.includes(attributeId);
     
     if (isSelected) {
-      // Deselect category and all its subcategories
-      const idsToRemove = [categoryId, ...subcategoryIds];
+      // Deselect attribute and all its subattributes
+      const idsToRemove = [attributeId, ...subattributeIds];
       onSelectionChange(selectedIds.filter(id => !idsToRemove.includes(id)));
     } else {
-      // Select category and all its subcategories
-      const newIds = [...selectedIds, categoryId, ...subcategoryIds];
+      // Select attribute and all its subattributes
+      const newIds = [...selectedIds, attributeId, ...subattributeIds];
       onSelectionChange(newIds);
     }
   };
@@ -82,18 +88,18 @@ export function MultiSelectCategory({
     if (allSelected) {
       onSelectionChange([]);
     } else {
-      onSelectionChange([...allCategoryIds]);
+      onSelectionChange([...allAttributeIds]);
     }
   };
 
-  const removeCategory = (categoryId: string, e: React.MouseEvent) => {
+  const removeAttribute = (attributeId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    onSelectionChange(selectedIds.filter(id => id !== categoryId));
+    onSelectionChange(selectedIds.filter(id => id !== attributeId));
   };
 
-  const selectedCategories = selectedIds.map(id => ({
+  const selectedAttributes = selectedIds.map(id => ({
     id,
-    name: getCategoryName(id),
+    name: getAttributeName(id),
   }));
 
   // Close dropdown when clicking outside
@@ -128,20 +134,20 @@ export function MultiSelectCategory({
             <span className="text-foreground">{placeholder}</span>
           ) : (
             <>
-              {selectedCategories.slice(0, 1).map((cat) => (
+              {selectedAttributes.slice(0, 1).map((attr) => (
                 <span
-                  key={cat.id}
+                  key={attr.id}
                   className="inline-flex items-center gap-1 px-2 py-1 bg-primary/10 text-foreground rounded-md text-sm"
                 >
-                  <span className="line-clamp-1 max-w-[150px]">{cat.name}</span>
+                  <span className="line-clamp-1 max-w-[150px]">{attr.name}</span>
                   <span
                     role="button"
                     tabIndex={0}
-                    onClick={(e) => removeCategory(cat.id, e)}
+                    onClick={(e) => removeAttribute(attr.id, e)}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' || e.key === ' ') {
                         e.preventDefault();
-                        removeCategory(cat.id, e as any);
+                        removeAttribute(attr.id, e as any);
                       }
                     }}
                     className="hover:bg-primary/20 rounded-full p-0.5 cursor-pointer focus:outline-none focus:ring-2 focus:ring-ring"
@@ -150,20 +156,20 @@ export function MultiSelectCategory({
                   </span>
                 </span>
               ))}
-              {selectedCategories.slice(1, 2).map((cat) => (
+              {selectedAttributes.slice(1, 2).map((attr) => (
                 <span
-                  key={cat.id}
+                  key={attr.id}
                   className="hidden md:inline-flex items-center gap-1 px-2 py-1 bg-primary/10 text-foreground rounded-md text-sm"
                 >
-                  <span className="line-clamp-1 max-w-[150px]">{cat.name}</span>
+                  <span className="line-clamp-1 max-w-[150px]">{attr.name}</span>
                   <span
                     role="button"
                     tabIndex={0}
-                    onClick={(e) => removeCategory(cat.id, e)}
+                    onClick={(e) => removeAttribute(attr.id, e)}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' || e.key === ' ') {
                         e.preventDefault();
-                        removeCategory(cat.id, e as any);
+                        removeAttribute(attr.id, e as any);
                       }
                     }}
                     className="hover:bg-primary/20 rounded-full p-0.5 cursor-pointer focus:outline-none focus:ring-2 focus:ring-ring"
@@ -211,57 +217,57 @@ export function MultiSelectCategory({
                   <Check className="h-4 w-4 text-primary-foreground font-bold" strokeWidth={3} />
                 )}
               </div>
-              <span className="text-sm font-semibold">Select All</span>
+              <span className="text-sm font-semibold text-foreground">Select All</span>
             </div>
             
-            {categories.map((category) => (
-              <div key={category.id} className="space-y-1">
+            {topLevelAttributes.map((attribute) => (
+              <div key={attribute.id} className="space-y-1">
                 <div
                   className={cn(
                     'flex items-center space-x-2 px-2 py-1.5 rounded-sm cursor-pointer hover:bg-accent hover:text-white',
-                    selectedIds.includes(category.id) && 'bg-accent'
+                    selectedIds.includes(attribute.id) && 'bg-accent'
                   )}
-                  onClick={() => toggleCategory(category.id)}
+                  onClick={() => toggleAttribute(attribute.id)}
                 >
                   <div
                     className={cn(
                       'flex h-5 w-5 items-center justify-center rounded border-2 transition-colors',
-                      selectedIds.includes(category.id)
+                      selectedIds.includes(attribute.id)
                         ? 'bg-primary border-primary'
                         : 'border-border bg-background hover:border-primary'
                     )}
                   >
-                    {selectedIds.includes(category.id) && (
+                    {selectedIds.includes(attribute.id) && (
                       <Check className="h-4 w-4 text-primary-foreground font-bold" strokeWidth={3} />
                     )}
                   </div>
-                  <span className="text-sm font-medium">{category.name}</span>
+                  <span className="text-sm font-medium text-foreground">{attribute.name}</span>
                 </div>
-                {category.children && category.children.length > 0 && (
+                {attribute.subattributes && attribute.subattributes.length > 0 && (
                   <div className="ml-6 space-y-1">
-                    {category.children.map((subcategory) => (
+                    {attribute.subattributes.map((subattribute) => (
                       <div
-                        key={subcategory.id}
+                        key={subattribute.id}
                         className={cn(
                           'flex items-center space-x-2 px-2 py-1.5 rounded-sm cursor-pointer hover:bg-accent hover:text-white',
-                          selectedIds.includes(subcategory.id) && 'bg-accent'
+                          selectedIds.includes(subattribute.id) && 'bg-accent'
                         )}
-                        onClick={() => toggleCategory(subcategory.id)}
+                        onClick={() => toggleAttribute(subattribute.id)}
                       >
                         <div
                           className={cn(
                             'flex h-5 w-5 items-center justify-center rounded border-2 transition-colors',
-                            selectedIds.includes(subcategory.id)
+                            selectedIds.includes(subattribute.id)
                               ? 'bg-primary border-primary'
                               : 'border-border bg-background hover:border-primary'
                           )}
                         >
-                          {selectedIds.includes(subcategory.id) && (
+                          {selectedIds.includes(subattribute.id) && (
                             <Check className="h-4 w-4 text-primary-foreground font-bold" strokeWidth={3} />
                           )}
                         </div>
                         <span className="text-sm font-medium text-foreground">
-                          {subcategory.name}
+                          {subattribute.name}
                         </span>
                       </div>
                     ))}

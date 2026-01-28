@@ -20,7 +20,7 @@ export default function CartPage() {
 
   if (items.length === 0) {
     return (
-      <div className="container py-16">
+      <div className="w-full px-4 md:px-6 lg:px-8 py-16">
         <div className="flex flex-col items-center justify-center space-y-4 text-center">
           <ShoppingBag className="h-16 w-16 text-muted-foreground" />
           <h1 className="text-3xl font-bold">{t(translationKeys.cart.empty, 'Your cart is empty')}</h1>
@@ -36,7 +36,7 @@ export default function CartPage() {
   }
 
   return (
-    <div className="container py-8">
+    <div className="w-full px-4 md:px-6 lg:px-8 py-8">
       <div className="mb-8">
         <h1 className="text-4xl font-bold tracking-tight">{t(translationKeys.cart.title, 'Shopping Cart')}</h1>
         <p className="mt-2 text-muted-foreground">
@@ -54,10 +54,10 @@ export default function CartPage() {
             return (
               <Card key={item.id}>
                 <CardContent className="p-6">
-                  <div className="flex gap-4">
+                  <div className="flex gap-4 flex-wrap">
                     {/* Product Image */}
                     <Link href={`/products/${item.productSlug}`}>
-                      <div className="relative h-24 w-24 flex-shrink-0 overflow-hidden rounded-lg bg-muted">
+                      <div className="relative h-20 w-20 md:h-24 md:w-24 flex-shrink-0 overflow-hidden rounded-lg bg-muted">
                         {item.image ? (
                           <Image
                             src={item.image}
@@ -75,11 +75,11 @@ export default function CartPage() {
                     </Link>
 
                     {/* Product Info */}
-                    <div className="flex flex-1 flex-col gap-2">
-                      <div className="flex items-start justify-between">
-                        <div>
+                    <div className="flex flex-1 flex-col gap-2 min-w-0">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0">
                           <Link href={`/products/${item.productSlug}`}>
-                            <h3 className="font-semibold hover:underline">
+                            <h3 className="font-semibold hover:underline line-clamp-2">
                               {item.productName}
                             </h3>
                           </Link>

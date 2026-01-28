@@ -25,7 +25,7 @@ export default function UserProfilePage() {
 
   if (profileLoading) {
     return (
-      <div className="container flex min-h-[60vh] items-center justify-center py-12">
+      <div className="w-full px-4 md:px-6 lg:px-8 flex min-h-[60vh] items-center justify-center py-12">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
@@ -33,7 +33,7 @@ export default function UserProfilePage() {
 
   if (profileError || !profile) {
     return (
-      <div className="container py-12">
+      <div className="w-full px-4 md:px-6 lg:px-8 py-12">
         <Card>
           <CardHeader>
             <CardTitle>{t(translationKeys.profile.error, 'Error')}</CardTitle>

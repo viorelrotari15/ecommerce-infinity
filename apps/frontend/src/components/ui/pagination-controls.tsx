@@ -36,9 +36,16 @@ export function PaginationControls({
     });
     
     // Also preserve all other params except page
+    // Handle array params (like categories[], brands[], attributes[])
     searchParams.forEach((value, key) => {
       if (!preserveParams.includes(key) && key !== 'page') {
-        params.set(key, value);
+        // For array params, use getAll and append each value
+        const allValues = searchParams.getAll(key);
+        if (allValues.length > 1) {
+          allValues.forEach(v => params.append(key, v));
+        } else {
+          params.set(key, value);
+        }
       }
     });
     

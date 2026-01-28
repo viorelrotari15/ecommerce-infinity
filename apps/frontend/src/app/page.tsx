@@ -28,7 +28,7 @@ export default async function HomePage() {
   return (
     <div className="flex flex-col">
       {/* Hero Section */}
-      <section className="container py-20 md:py-32">
+      <section className="w-full px-4 md:px-6 lg:px-8 py-20 md:py-32">
         <div className="mx-auto max-w-3xl text-center">
           <h1 className="mb-6 text-4xl font-bold tracking-tight md:text-6xl">
             Discover Premium Fragrances
@@ -52,7 +52,7 @@ export default async function HomePage() {
 
       {/* Featured Products */}
       {featuredProducts.length > 0 && (
-        <section className="container py-12">
+        <section className="w-full px-4 md:px-6 lg:px-8 py-12">
           <div className="mb-8 text-center">
             <h2 className="text-3xl font-bold tracking-tight">Featured Products</h2>
             <p className="mt-2 text-muted-foreground">
@@ -106,7 +106,7 @@ export default async function HomePage() {
       )}
 
       {/* CTA Section */}
-      <section className="container py-12">
+      <section className="w-full px-4 md:px-6 lg:px-8 py-12">
         <Card className="bg-muted/50">
           <CardHeader className="text-center">
             <CardTitle className="text-2xl">Ready to Find Your Signature Scent?</CardTitle>

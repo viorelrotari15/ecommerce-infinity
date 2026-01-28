@@ -28,7 +28,7 @@ export default async function BrandsPage() {
   const brands = await getBrands(language);
 
   return (
-    <div className="container py-8">
+    <div className="w-full px-4 md:px-6 lg:px-8 py-8">
       <BrandsHeader />
       <BrandsControls />
       <BrandsList initialBrands={brands} />

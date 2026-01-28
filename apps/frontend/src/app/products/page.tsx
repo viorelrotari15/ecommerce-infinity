@@ -21,10 +21,18 @@ export default async function ProductsPage({
   searchParams: { [key: string]: string | string[] | undefined };
 }) {
   const language = await getServerLanguage();
-  // Filter out "all" values and undefined/empty values
-  const brandId = searchParams.brand && searchParams.brand !== 'all' 
-    ? (searchParams.brand as string) 
+  // Handle multiple brands
+  const brandsParam = searchParams.brands;
+  const brandIds = brandsParam
+    ? (Array.isArray(brandsParam) 
+        ? brandsParam.filter(b => b && b !== 'all')
+        : [brandsParam].filter(b => b && b !== 'all'))
+    : searchParams.brand && searchParams.brand !== 'all'
+    ? [searchParams.brand as string]
     : undefined;
+  
+  // For backward compatibility, use first brand for backend API
+  const brandId = brandIds && brandIds.length > 0 ? brandIds[0] : undefined;
   
   // Handle multiple categories
   const categoriesParam = searchParams.categories;
@@ -39,13 +47,23 @@ export default async function ProductsPage({
   const search = searchParams.search ? (searchParams.search as string) : undefined;
   const featured = searchParams.featuredOnly === 'true' ? true : undefined;
   const limit = Number(searchParams.limit) || 20;
+  
+  // Handle multiple attributes
+  const attributesParam = searchParams.attributes;
+  const attributeIds = attributesParam
+    ? (Array.isArray(attributesParam) 
+        ? attributesParam.filter(a => a && a !== 'all')
+        : [attributesParam].filter(a => a && a !== 'all'))
+    : undefined;
 
   // Server Component fetches initial data with caching
+  // If multiple brands are selected, don't filter by brandId on backend
+  // (let client-side filtering handle multiple brands)
   const [initialData, initialCategories, initialBrands] = await Promise.all([
     fetchProducts({
       page: Number(searchParams.page) || 1,
       limit,
-      brandId,
+      brandId: brandIds && brandIds.length > 1 ? undefined : brandId, // Only use brandId if single brand or no brands
       categoryIds,
       search,
       featured,
@@ -58,13 +76,15 @@ export default async function ProductsPage({
     page: Number(searchParams.page) || 1,
     limit,
     brandId,
+    brandIds, // Add brandIds for client-side filtering
     categoryIds,
+    attributeIds,
     search,
     featured,
   };
 
   return (
-    <div className="container py-8">
+    <div className="w-full px-4 md:px-6 lg:px-8 py-8">
       <ProductsHeader total={initialData.meta.total} />
 
       {/* Client Component for interactive filters */}
@@ -85,7 +105,7 @@ export default async function ProductsPage({
           totalPages={initialData.meta.totalPages}
           limit={limit}
           baseUrl="/products"
-          preserveParams={['brand', 'categories', 'category', 'search', 'featuredOnly']}
+          preserveParams={['brand', 'brands', 'categories', 'category', 'attributes', 'search', 'featuredOnly']}
         />
       )}
     </div>

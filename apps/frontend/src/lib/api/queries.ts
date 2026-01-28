@@ -7,8 +7,10 @@ export interface ProductFilters {
   page?: number;
   limit?: number;
   brandId?: string;
+  brandIds?: string[]; // For client-side filtering of multiple brands
   categoryId?: string | string[];
   categoryIds?: string | string[];
+  attributeIds?: string[];
   search?: string;
   featured?: boolean;
   includeInactive?: boolean;
