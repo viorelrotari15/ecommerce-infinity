@@ -244,15 +244,21 @@ export class PricingAdminService {
   }
 
   async updateShippingMethod(id: string, dto: UpdateShippingMethodDto) {
+    const existing = await this.prisma.shippingMethod.findUnique({ where: { id } });
+    if (!existing) {
+      throw new NotFoundException(`Shipping method ${id} not found`);
+    }
+
+    const updateData: any = {};
+    if (dto.code !== undefined) updateData.code = dto.code;
+    if (dto.name !== undefined) updateData.name = dto.name;
+    if (dto.carrier !== undefined) updateData.carrier = dto.carrier;
+    if (dto.isExpress !== undefined) updateData.isExpress = dto.isExpress;
+    if (dto.isActive !== undefined) updateData.isActive = dto.isActive;
+
     return this.prisma.shippingMethod.update({
       where: { id },
-      data: {
-        code: dto.code,
-        name: dto.name,
-        carrier: dto.carrier,
-        isExpress: dto.isExpress,
-        isActive: dto.isActive,
-      },
+      data: updateData,
     });
   }
 
@@ -296,14 +302,20 @@ export class PricingAdminService {
   }
 
   async updateShippingRule(id: string, dto: UpdateShippingRuleDto) {
+    const existing = await this.prisma.shippingRule.findUnique({ where: { id } });
+    if (!existing) {
+      throw new NotFoundException(`Shipping rule ${id} not found`);
+    }
+
+    const updateData: any = {};
+    if (dto.minSubtotal !== undefined) updateData.minSubtotal = dto.minSubtotal;
+    if (dto.maxSubtotal !== undefined) updateData.maxSubtotal = dto.maxSubtotal;
+    if (dto.price !== undefined) updateData.price = dto.price;
+    if (dto.isActive !== undefined) updateData.isActive = dto.isActive;
+
     return this.prisma.shippingRule.update({
       where: { id },
-      data: {
-        minSubtotal: dto.minSubtotal,
-        maxSubtotal: dto.maxSubtotal,
-        price: dto.price,
-        isActive: dto.isActive,
-      },
+      data: updateData,
     });
   }
 
