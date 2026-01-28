@@ -230,12 +230,12 @@ export default function LanguagesPage() {
                       <span className="font-semibold">{lang.name}</span>
                       <span className="text-sm text-muted-foreground">({lang.code})</span>
                       {lang.isDefault && (
-                        <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
+                        <Star className="h-4 w-4 text-primary fill-primary" />
                       )}
                       {lang.isActive ? (
-                        <CheckCircle2 className="h-4 w-4 text-green-500" />
+                        <CheckCircle2 className="h-4 w-4 text-accent" />
                       ) : (
-                        <XCircle className="h-4 w-4 text-red-500" />
+                        <XCircle className="h-4 w-4 text-destructive" />
                       )}
                     </div>
                     <div className="text-sm text-muted-foreground mt-1">

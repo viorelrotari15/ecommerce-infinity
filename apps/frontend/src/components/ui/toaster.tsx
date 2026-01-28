@@ -19,10 +19,10 @@ export function Toaster() {
       {toasts.map(function ({ id, title, description, action, variant, ...props }) {
         const getIcon = () => {
           if (variant === 'success') {
-            return <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400" />;
+            return <CheckCircle2 className="h-5 w-5 text-accent" />;
           }
           if (variant === 'destructive') {
-            return <XCircle className="h-5 w-5 text-red-600 dark:text-red-400" />;
+            return <XCircle className="h-5 w-5 text-destructive" />;
           }
           return <AlertCircle className="h-5 w-5 text-muted-foreground" />;
         };

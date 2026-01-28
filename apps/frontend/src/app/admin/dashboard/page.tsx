@@ -30,85 +30,103 @@ export default function AdminDashboard() {
 
       {/* Management Quick Links */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 mb-8">
-        <Card className="cursor-pointer hover:bg-accent transition-colors" onClick={() => router.push('/admin/products')}>
+        <Card className="group cursor-pointer hover:bg-accent hover:text-white transition-colors" onClick={() => router.push('/admin/products')}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Package className="h-5 w-5" />
               Products
             </CardTitle>
-            <CardDescription>{t(translationKeys.admin.dashboard.manageProducts, 'Manage products')}</CardDescription>
+            <CardDescription className="group-hover:text-white">
+              {t(translationKeys.admin.dashboard.manageProducts, 'Manage products')}
+            </CardDescription>
           </CardHeader>
         </Card>
-        <Card className="cursor-pointer hover:bg-accent transition-colors" onClick={() => router.push('/admin/brands')}>
+        <Card className="group cursor-pointer hover:bg-accent hover:text-white transition-colors" onClick={() => router.push('/admin/brands')}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Tag className="h-5 w-5" />
               Brands
             </CardTitle>
-            <CardDescription>{t(translationKeys.admin.dashboard.manageBrands, 'Manage product brands')}</CardDescription>
+            <CardDescription className="group-hover:text-white">
+              {t(translationKeys.admin.dashboard.manageBrands, 'Manage product brands')}
+            </CardDescription>
           </CardHeader>
         </Card>
-        <Card className="cursor-pointer hover:bg-accent transition-colors" onClick={() => router.push('/admin/categories')}>
+        <Card className="group cursor-pointer hover:bg-accent hover:text-white transition-colors" onClick={() => router.push('/admin/categories')}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <FolderTree className="h-5 w-5" />
               Categories
             </CardTitle>
-            <CardDescription>{t(translationKeys.admin.dashboard.manageCategories, 'Manage product categories')}</CardDescription>
+            <CardDescription className="group-hover:text-white">
+              {t(translationKeys.admin.dashboard.manageCategories, 'Manage product categories')}
+            </CardDescription>
           </CardHeader>
         </Card>
-        <Card className="cursor-pointer hover:bg-accent transition-colors" onClick={() => router.push('/admin/attributes')}>
+        <Card className="group cursor-pointer hover:bg-accent hover:text-white transition-colors" onClick={() => router.push('/admin/attributes')}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <List className="h-5 w-5" />
               Attributes
             </CardTitle>
-            <CardDescription>Manage product attributes and subattributes</CardDescription>
+            <CardDescription className="group-hover:text-white">
+              Manage product attributes and subattributes
+            </CardDescription>
           </CardHeader>
         </Card>
-        <Card className="cursor-pointer hover:bg-accent transition-colors" onClick={() => router.push('/admin/languages')}>
+        <Card className="group cursor-pointer hover:bg-accent hover:text-white transition-colors" onClick={() => router.push('/admin/languages')}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Languages className="h-5 w-5" />
               Languages
             </CardTitle>
-            <CardDescription>{t(translationKeys.admin.dashboard.manageLanguages, 'Manage supported languages')}</CardDescription>
+            <CardDescription className="group-hover:text-white">
+              {t(translationKeys.admin.dashboard.manageLanguages, 'Manage supported languages')}
+            </CardDescription>
           </CardHeader>
         </Card>
-        <Card className="cursor-pointer hover:bg-accent transition-colors" onClick={() => router.push('/admin/translations')}>
+        <Card className="group cursor-pointer hover:bg-accent hover:text-white transition-colors" onClick={() => router.push('/admin/translations')}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <FileText className="h-5 w-5" />
               UI Translations
             </CardTitle>
-            <CardDescription>{t(translationKeys.admin.dashboard.manageTranslations, 'Manage interface text translations')}</CardDescription>
+            <CardDescription className="group-hover:text-white">
+              {t(translationKeys.admin.dashboard.manageTranslations, 'Manage interface text translations')}
+            </CardDescription>
           </CardHeader>
         </Card>
-        <Card className="cursor-pointer hover:bg-accent transition-colors" onClick={() => router.push('/admin/orders')}>
+        <Card className="group cursor-pointer hover:bg-accent hover:text-white transition-colors" onClick={() => router.push('/admin/orders')}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Receipt className="h-5 w-5" />
               {t(translationKeys.admin.dashboard.ordersTitle, 'Orders')}
             </CardTitle>
-            <CardDescription>{t(translationKeys.admin.dashboard.manageOrders, 'Review customer orders')}</CardDescription>
+            <CardDescription className="group-hover:text-white">
+              {t(translationKeys.admin.dashboard.manageOrders, 'Review customer orders')}
+            </CardDescription>
           </CardHeader>
         </Card>
-        <Card className="cursor-pointer hover:bg-accent transition-colors" onClick={() => router.push('/admin/tax-rates')}>
+        <Card className="group cursor-pointer hover:bg-accent hover:text-white transition-colors" onClick={() => router.push('/admin/tax-rates')}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Percent className="h-5 w-5" />
               {t(translationKeys.admin.dashboard.taxRatesTitle, 'Tax Rates')}
             </CardTitle>
-            <CardDescription>{t(translationKeys.admin.dashboard.manageTaxRates, 'Configure VAT rates')}</CardDescription>
+            <CardDescription className="group-hover:text-white">
+              {t(translationKeys.admin.dashboard.manageTaxRates, 'Configure VAT rates')}
+            </CardDescription>
           </CardHeader>
         </Card>
-        <Card className="cursor-pointer hover:bg-accent transition-colors" onClick={() => router.push('/admin/shipping')}>
+        <Card className="group cursor-pointer hover:bg-accent hover:text-white transition-colors" onClick={() => router.push('/admin/shipping')}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Truck className="h-5 w-5" />
               {t(translationKeys.admin.dashboard.shippingTitle, 'Shipping')}
             </CardTitle>
-            <CardDescription>{t(translationKeys.admin.dashboard.manageShipping, 'Configure shipping methods')}</CardDescription>
+            <CardDescription className="group-hover:text-white">
+              {t(translationKeys.admin.dashboard.manageShipping, 'Configure shipping methods')}
+            </CardDescription>
           </CardHeader>
         </Card>
       </div>

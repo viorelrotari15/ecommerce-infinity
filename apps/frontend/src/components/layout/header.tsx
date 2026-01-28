@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { ShoppingCart, LogOut, LayoutDashboard, User } from 'lucide-react';
 import { getCurrentUser, isAdmin, isAuthenticated, logout } from '@/lib/auth';
@@ -10,9 +10,14 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useCartStore } from '@/lib/store/cart-store';
 import { LanguageSelector } from '@/components/layout/language-selector';
 import { useT, translationKeys } from '@/lib/utils/translations';
+import { getBranding } from '@/lib/branding';
+import { cn } from '@/lib/utils';
+
+const branding = getBranding();
 
 export function Header() {
   const router = useRouter();
+  const pathname = usePathname();
   const queryClient = useQueryClient();
   const t = useT();
   const [user, setUser] = useState<ReturnType<typeof getCurrentUser>>(null);
@@ -51,25 +56,41 @@ export function Header() {
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center justify-between">
         <div className="flex items-center gap-6">
-          <Link href="/" className="text-2xl font-bold">
-            E-commerce Infinity
+          <Link href="/" className="flex items-center">
+            <img
+              src={branding.logo.primary}
+              alt={branding.name}
+              className="h-8 w-auto"
+            />
           </Link>
           <nav className="hidden md:flex gap-6">
             <Link
               href="/products"
-              className="text-sm font-medium transition-colors  hover:underline"
+              aria-current={pathname === '/products' ? 'page' : undefined}
+              className={cn(
+                'text-sm font-medium transition-colors hover:underline',
+                pathname === '/products' && 'text-primary'
+              )}
             >
               {t(translationKeys.header.menu.products, 'Products')}
             </Link>
             <Link
               href="/categories"
-              className="text-sm font-medium transition-colors  hover:underline"
+              aria-current={pathname === '/categories' ? 'page' : undefined}
+              className={cn(
+                'text-sm font-medium transition-colors hover:underline',
+                pathname === '/categories' && 'text-primary'
+              )}
             >
               {t(translationKeys.header.menu.categories, 'Categories')}
             </Link>
             <Link
               href="/brands"
-              className="text-sm font-medium transition-colors  hover:underline"
+              aria-current={pathname === '/brands' ? 'page' : undefined}
+              className={cn(
+                'text-sm font-medium transition-colors hover:underline',
+                pathname === '/brands' && 'text-primary'
+              )}
             >
               {t(translationKeys.header.menu.brands, 'Brands')}
             </Link>
@@ -81,7 +102,7 @@ export function Header() {
             <Button variant="ghost" size="icon" className="relative">
               <ShoppingCart className="h-5 w-5" />
               {mounted && cartItemCount > 0 && (
-                <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
+                <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-xs font-bold text-white">
                   {cartItemCount > 99 ? '99+' : cartItemCount}
                 </span>
               )}

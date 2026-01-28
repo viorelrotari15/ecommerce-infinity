@@ -154,7 +154,7 @@ export function MultiSelectCategory({
             {/* Select All option */}
             <div
               className={cn(
-                'flex items-center space-x-2 px-2 py-2 rounded-sm cursor-pointer hover:bg-accent border-b border-border mb-1',
+                'flex items-center space-x-2 px-2 py-2 rounded-sm cursor-pointer hover:bg-accent hover:text-white border-b border-border mb-1',
                 allSelected && 'bg-accent'
               )}
               onClick={toggleSelectAll}
@@ -178,7 +178,7 @@ export function MultiSelectCategory({
               <div key={category.id} className="space-y-1">
                 <div
                   className={cn(
-                    'flex items-center space-x-2 px-2 py-1.5 rounded-sm cursor-pointer hover:bg-accent',
+                    'flex items-center space-x-2 px-2 py-1.5 rounded-sm cursor-pointer hover:bg-accent hover:text-white',
                     selectedIds.includes(category.id) && 'bg-accent'
                   )}
                   onClick={() => toggleCategory(category.id)}
@@ -203,7 +203,7 @@ export function MultiSelectCategory({
                       <div
                         key={subcategory.id}
                         className={cn(
-                          'flex items-center space-x-2 px-2 py-1.5 rounded-sm cursor-pointer hover:bg-accent',
+                          'flex items-center space-x-2 px-2 py-1.5 rounded-sm cursor-pointer hover:bg-accent hover:text-white',
                           selectedIds.includes(subcategory.id) && 'bg-accent'
                         )}
                         onClick={() => toggleCategory(subcategory.id)}

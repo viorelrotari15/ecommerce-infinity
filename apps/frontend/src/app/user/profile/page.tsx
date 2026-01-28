@@ -80,17 +80,17 @@ export default function UserProfilePage() {
   const getStatusColor = (status: string) => {
     switch (status.toUpperCase()) {
       case 'PENDING':
-        return 'text-yellow-600 bg-yellow-50';
+        return 'text-primary bg-primary/10';
       case 'PROCESSING':
-        return 'text-blue-600 bg-blue-50';
+        return 'text-secondary bg-secondary/10';
       case 'SHIPPED':
-        return 'text-purple-600 bg-purple-50';
+        return 'text-accent bg-accent/10';
       case 'DELIVERED':
-        return 'text-green-600 bg-green-50';
+        return 'text-foreground bg-muted';
       case 'CANCELLED':
-        return 'text-red-600 bg-red-50';
+        return 'text-destructive bg-destructive/10';
       default:
-        return 'text-gray-600 bg-gray-50';
+        return 'text-muted-foreground bg-muted';
     }
   };
 
