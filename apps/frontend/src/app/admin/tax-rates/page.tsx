@@ -223,7 +223,7 @@ export default function TaxRatesPage() {
                   {t(translationKeys.common.status, 'Status')}: {rate.isActive ? t(translationKeys.common.active, 'Active') : t(translationKeys.common.inactive, 'Inactive')}
                 </p>
                 {rate.isDefault && (
-                  <p className="text-xs font-semibold text-primary">{t(translationKeys.admin.taxRates.defaultRate, 'Default rate')}</p>
+                  <p className="text-xs font-semibold text-green-600">{t(translationKeys.admin.taxRates.defaultRate, 'Default rate')}</p>
                 )}
                 <div className="flex gap-2 pt-2">
                   <Button variant="outline" size="sm" onClick={() => openEditDialog(rate)}>
