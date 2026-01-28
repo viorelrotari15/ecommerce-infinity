@@ -2,11 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-<<<<<<< HEAD
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-=======
-import { useRouter, usePathname, useSearchParams } from 'next/navigation';
->>>>>>> origin/main
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ShoppingCart, LogOut, LayoutDashboard, User, Search, Menu, X } from 'lucide-react';

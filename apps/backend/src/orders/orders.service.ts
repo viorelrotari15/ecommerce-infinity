@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { ShippingCalculatorService } from '../pricing/shipping-calculator.service';
@@ -74,8 +75,8 @@ export class OrdersService {
         tax,
         shipping,
         total: subtotal + shipping,
-        shippingAddress: createOrderDto.shippingAddress,
-        billingAddress: createOrderDto.billingAddress,
+        shippingAddress: createOrderDto.shippingAddress as Prisma.InputJsonValue,
+        billingAddress: createOrderDto.billingAddress as Prisma.InputJsonValue,
         items: {
           create: lineItems.map((item) => ({
             productVariantId: item.variant.id,
