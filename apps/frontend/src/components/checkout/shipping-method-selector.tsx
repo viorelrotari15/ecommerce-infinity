@@ -45,15 +45,20 @@ export function ShippingMethodSelector({
           key={option.id}
           onClick={() => onChange(option.id)}
           className={cn(
-            'flex w-full items-center justify-between rounded-md border px-4 py-3 text-left transition-colors',
-            value === option.id ? 'border-primary bg-primary/5' : 'hover:bg-accent'
+            'group flex w-full items-center justify-between rounded-md border px-4 py-3 text-left transition-colors',
+            value === option.id ? 'border-primary bg-primary/5' : 'hover:bg-accent hover:text-white'
           )}
         >
           <div>
             <p className="font-medium">
               {option.name} {option.isExpress ? `(${option.carrier})` : ''}
             </p>
-            <p className="text-sm text-muted-foreground">
+            <p
+              className={cn(
+                'text-sm text-muted-foreground',
+                value === option.id ? '' : 'group-hover:text-white'
+              )}
+            >
               {option.carrier} ·{' '}
               {option.isExpress
                 ? t(translationKeys.checkout.shippingExpress, 'Express')

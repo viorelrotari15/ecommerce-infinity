@@ -2,6 +2,9 @@
 
 import Link from 'next/link';
 import { useT, translationKeys } from '@/lib/utils/translations';
+import { getBranding } from '@/lib/branding';
+
+const branding = getBranding();
 
 export function Footer() {
   const t = useT();
@@ -11,9 +14,11 @@ export function Footer() {
       <div className="container py-10 md:py-12">
         <div className="grid gap-8 md:grid-cols-4">
           <div>
-            <h3 className="mb-4 text-lg font-semibold">{t(translationKeys.footer.company.name, 'E-commerce Infinity')}</h3>
+            <h3 className="mb-4 text-lg font-semibold">
+              {t(translationKeys.footer.company.name, branding.name)}
+            </h3>
             <p className="text-sm text-muted-foreground">
-              {t(translationKeys.footer.company.tagline, 'Premium fragrances and luxury perfumes for every occasion.')}
+              {t(translationKeys.footer.company.tagline, branding.tagline)}
             </p>
           </div>
           <div>
@@ -97,7 +102,10 @@ export function Footer() {
           </div>
         </div>
         <div className="mt-8 border-t pt-8 text-center text-sm text-muted-foreground">
-          <p>&copy; {new Date().getFullYear()} {t(translationKeys.footer.company.name, 'E-commerce Infinity')}. {t(translationKeys.footer.company.copyright, 'All rights reserved.')}</p>
+          <p>
+            &copy; {new Date().getFullYear()} {t(translationKeys.footer.company.name, branding.name)}.{' '}
+            {t(translationKeys.footer.company.copyright, 'All rights reserved.')}
+          </p>
         </div>
       </div>
     </footer>

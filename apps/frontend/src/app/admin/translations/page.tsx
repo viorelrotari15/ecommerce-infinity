@@ -559,7 +559,7 @@ export default function TranslationsPage() {
                               <div className="mt-2">
                                 <label
                                   htmlFor={`file-import-${lang.code}`}
-                                  className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-3 cursor-pointer"
+                                  className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-white h-9 px-3 cursor-pointer"
                                 >
                                   <input
                                     id={`file-import-${lang.code}`}
@@ -639,12 +639,12 @@ export default function TranslationsPage() {
                             <div className="flex items-center justify-between">
                               <Label className="text-sm font-mono">{translation.key}</Label>
                               {translation.hasTranslation && (
-                                <span className="text-xs px-2 py-1 rounded bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                                <span className="text-xs px-2 py-1 rounded bg-secondary/10 text-secondary-foreground">
                                   {t(translationKeys.admin.translations.translated, 'Translated')}
                                 </span>
                               )}
                               {!translation.hasTranslation && (
-                                <span className="text-xs px-2 py-1 rounded bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
+                                <span className="text-xs px-2 py-1 rounded bg-accent/10 text-accent-foreground">
                                   {t(translationKeys.admin.translations.missing, 'Missing')}
                                 </span>
                               )}

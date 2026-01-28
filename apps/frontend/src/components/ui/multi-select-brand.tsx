@@ -164,7 +164,7 @@ export function MultiSelectBrand({
             {/* Select All / All Brands option */}
             <div
               className={cn(
-                'flex items-center space-x-2 px-2 py-2 rounded-sm cursor-pointer hover:bg-accent border-b border-border mb-1',
+                'flex items-center space-x-2 px-2 py-2 rounded-sm cursor-pointer hover:bg-accent hover:text-white border-b border-border mb-1',
                 noneSelected && 'bg-accent'
               )}
               onClick={toggleDeselectAll}
@@ -188,7 +188,7 @@ export function MultiSelectBrand({
               <div
                 key={brand.id}
                 className={cn(
-                  'flex items-center space-x-2 px-2 py-1.5 rounded-sm cursor-pointer hover:bg-accent',
+                  'flex items-center space-x-2 px-2 py-1.5 rounded-sm cursor-pointer hover:bg-accent hover:text-white',
                   selectedIds.includes(brand.id) && 'bg-accent'
                 )}
                 onClick={() => toggleBrand(brand.id)}

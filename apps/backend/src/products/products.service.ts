@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
@@ -826,7 +827,7 @@ export class ProductsService {
       productSlug = await this.generateUniqueSlug(baseSlug, id);
     }
 
-    const { categoryIds, variants, attributes, ...productData } = updateProductDto;
+    const { categoryIds, variants, attributes, brandId, ...productData } = updateProductDto;
 
     // Always auto-generate variant SKUs (ignore any user input)
     let variantsWithSku = variants;
@@ -843,12 +844,21 @@ export class ProductsService {
     }
 
     // Update product
-    const updatedProduct = await this.prisma.product.update({
+    const updatedProduct: Prisma.ProductGetPayload<{
+      include: {
+        brand: true;
+        categories: { include: { category: true } };
+        variants: true;
+        attributes: { include: { attribute: true } };
+        productImages: { orderBy: { order: 'asc' } };
+      };
+    }> = await this.prisma.product.update({
       where: { id },
       data: {
         ...productData,
         sku: productSku,
         slug: productSlug,
+        ...(brandId && { brand: { connect: { id: brandId } } }),
         ...(categoryIds && {
           categories: {
             deleteMany: {},

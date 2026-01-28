@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter, usePathname, useSearchParams } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ShoppingCart, LogOut, LayoutDashboard, User, Search, Menu, X } from 'lucide-react';
@@ -11,6 +11,10 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useCartStore } from '@/lib/store/cart-store';
 import { LanguageSelector } from '@/components/layout/language-selector';
 import { useT, translationKeys } from '@/lib/utils/translations';
+import { getBranding } from '@/lib/branding';
+import { cn } from '@/lib/utils';
+
+const branding = getBranding();
 
 export function Header() {
   const router = useRouter();
@@ -26,6 +30,9 @@ export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const cartItemCount = useCartStore((state) => state.getTotalItems());
   const { loadFromServer } = useCartStore();
+  const isProducts = pathname?.startsWith('/products');
+  const isCategories = pathname?.startsWith('/categories');
+  const isBrands = pathname?.startsWith('/brands');
 
   // Sync search query with URL params
   useEffect(() => {
@@ -110,31 +117,43 @@ export function Header() {
             <Menu className="h-5 w-5" />
           </Button>
 
-          {/* App name and Desktop navigation */}
+          {/* App logo and Desktop navigation */}
           <div className="flex items-center gap-6 flex-shrink-0">
-            <Link href="/" className="text-xl md:text-2xl font-bold flex-shrink-0">
-              E-commerce Infinity
+            <Link href="/" className="flex items-center">
+              <img src={branding.logo.primary} alt={branding.name} className="h-8 w-auto" />
             </Link>
             <nav className="hidden xl:flex gap-6 flex-shrink-0">
-            <Link
-              href="/products"
-              className="text-sm font-medium transition-colors hover:underline whitespace-nowrap"
-            >
-              {t(translationKeys.header.menu.products, 'Products')}
-            </Link>
-            <Link
-              href="/categories"
-              className="text-sm font-medium transition-colors hover:underline whitespace-nowrap"
-            >
-              {t(translationKeys.header.menu.categories, 'Categories')}
-            </Link>
-            <Link
-              href="/brands"
-              className="text-sm font-medium transition-colors hover:underline whitespace-nowrap"
-            >
-              {t(translationKeys.header.menu.brands, 'Brands')}
-            </Link>
-          </nav>
+              <Link
+                href="/products"
+                aria-current={isProducts ? 'page' : undefined}
+                className={cn(
+                  'text-sm font-medium transition-colors hover:underline whitespace-nowrap',
+                  isProducts && 'text-primary'
+                )}
+              >
+                {t(translationKeys.header.menu.products, 'Products')}
+              </Link>
+              <Link
+                href="/categories"
+                aria-current={isCategories ? 'page' : undefined}
+                className={cn(
+                  'text-sm font-medium transition-colors hover:underline whitespace-nowrap',
+                  isCategories && 'text-primary'
+                )}
+              >
+                {t(translationKeys.header.menu.categories, 'Categories')}
+              </Link>
+              <Link
+                href="/brands"
+                aria-current={isBrands ? 'page' : undefined}
+                className={cn(
+                  'text-sm font-medium transition-colors hover:underline whitespace-nowrap',
+                  isBrands && 'text-primary'
+                )}
+              >
+                {t(translationKeys.header.menu.brands, 'Brands')}
+              </Link>
+            </nav>
           </div>
 
           {/* Right side actions - progressively hide items on smaller screens */}
@@ -167,7 +186,7 @@ export function Header() {
               <Button variant="ghost" size="icon" className="relative">
                 <ShoppingCart className="h-5 w-5" />
                 {mounted && cartItemCount > 0 && (
-                  <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
+                  <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-xs font-bold text-white">
                     {cartItemCount > 99 ? '99+' : cartItemCount}
                   </span>
                 )}
@@ -218,21 +237,14 @@ export function Header() {
       {mobileMenuOpen && (
         <div className="fixed inset-0 z-50 xl:hidden">
           {/* Backdrop */}
-          <div
-            className="fixed inset-0 bg-black/50"
-            onClick={() => setMobileMenuOpen(false)}
-          />
+          <div className="fixed inset-0 bg-black/50" onClick={() => setMobileMenuOpen(false)} />
           {/* Menu panel */}
           <div className="fixed left-0 top-0 h-full w-80 bg-background border-r shadow-lg overflow-y-auto">
             <div className="flex items-center justify-between p-4 border-b">
-              <Link href="/" className="text-xl font-bold" onClick={() => setMobileMenuOpen(false)}>
-                E-commerce Infinity
+              <Link href="/" className="flex items-center" onClick={() => setMobileMenuOpen(false)}>
+                <img src={branding.logo.primary} alt={branding.name} className="h-8 w-auto" />
               </Link>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setMobileMenuOpen(false)}
-              >
+              <Button variant="ghost" size="icon" onClick={() => setMobileMenuOpen(false)}>
                 <X className="h-5 w-5" />
               </Button>
             </div>
@@ -264,21 +276,21 @@ export function Header() {
               <nav className="space-y-2">
                 <Link
                   href="/products"
-                  className="block px-4 py-2 text-sm font-medium hover:bg-accent rounded-md"
+                  className="block px-4 py-2 text-sm font-medium hover:bg-accent hover:text-white rounded-md"
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   {t(translationKeys.header.menu.products, 'Products')}
                 </Link>
                 <Link
                   href="/categories"
-                  className="block px-4 py-2 text-sm font-medium hover:bg-accent rounded-md"
+                  className="block px-4 py-2 text-sm font-medium hover:bg-accent hover:text-white rounded-md"
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   {t(translationKeys.header.menu.categories, 'Categories')}
                 </Link>
                 <Link
                   href="/brands"
-                  className="block px-4 py-2 text-sm font-medium hover:bg-accent rounded-md"
+                  className="block px-4 py-2 text-sm font-medium hover:bg-accent hover:text-white rounded-md"
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   {t(translationKeys.header.menu.brands, 'Brands')}
@@ -289,13 +301,13 @@ export function Header() {
               <div className="pt-4 border-t space-y-2">
                 <Link
                   href="/cart"
-                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium hover:bg-accent rounded-md"
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium hover:bg-accent hover:text-white rounded-md"
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   <ShoppingCart className="h-5 w-5" />
                   {t(translationKeys.header.menu.cart, 'Cart')}
                   {mounted && cartItemCount > 0 && (
-                    <span className="ml-auto px-2 py-0.5 rounded-full bg-primary text-xs font-bold text-primary-foreground">
+                    <span className="ml-auto px-2 py-0.5 rounded-full bg-primary text-xs font-bold text-white">
                       {cartItemCount > 99 ? '99+' : cartItemCount}
                     </span>
                   )}
@@ -303,7 +315,7 @@ export function Header() {
                 {mounted && isUserAdmin && (
                   <Link
                     href="/admin/dashboard"
-                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium hover:bg-accent rounded-md"
+                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium hover:bg-accent hover:text-white rounded-md"
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     <LayoutDashboard className="h-5 w-5" />
@@ -322,7 +334,7 @@ export function Header() {
                     <>
                       <Link
                         href="/user/profile"
-                        className="flex items-center gap-2 px-4 py-2 text-sm font-medium hover:bg-accent rounded-md"
+                        className="flex items-center gap-2 px-4 py-2 text-sm font-medium hover:bg-accent hover:text-white rounded-md"
                         onClick={() => setMobileMenuOpen(false)}
                       >
                         <User className="h-5 w-5" />

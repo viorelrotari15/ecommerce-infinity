@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { ShippingCalculatorService } from '../pricing/shipping-calculator.service';
 import { TaxCalculatorService } from '../pricing/tax-calculator.service';
@@ -90,8 +91,8 @@ export class CheckoutService {
         tax,
         shipping,
         total: subtotal + shipping,
-        shippingAddress: dto.shippingAddress,
-        billingAddress: dto.billingAddress,
+        shippingAddress: dto.shippingAddress as Prisma.InputJsonValue,
+        billingAddress: dto.billingAddress as Prisma.InputJsonValue,
         items: {
           create: lineItems.map((item) => ({
             productVariantId: item.variant.id,

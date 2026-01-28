@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateTaxRateDto, UpdateTaxRateDto } from './dto/tax-rate.dto';
 import { CreateShippingMethodDto, UpdateShippingMethodDto } from './dto/shipping-method.dto';
@@ -210,8 +211,9 @@ export class PricingAdminService {
 
     return methods.map((method) => {
       const defaultRule =
-        method.rules.find((rule) => rule.minSubtotal === 0 && rule.maxSubtotal == null) ||
-        method.rules[0];
+        method.rules.find(
+          (rule) => rule.minSubtotal.equals(new Prisma.Decimal(0)) && rule.maxSubtotal == null,
+        ) || method.rules[0];
 
       return {
         id: method.id,

@@ -21,6 +21,7 @@ import { useBrands } from '@/lib/hooks/use-brands';
 import { useAttributes } from '@/lib/hooks/use-attributes';
 import type { Category, Brand } from '@/lib/api/server';
 import { useT, translationKeys } from '@/lib/utils/translations';
+import { cn } from '@/lib/utils';
 import { Filter, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface ProductFiltersProps {
@@ -270,15 +271,22 @@ export function ProductFilters({
 
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div className="flex gap-6">
-          <div className="flex items-center space-x-2">
+          <div
+            className={cn(
+              'flex items-center space-x-2 rounded-md px-2 py-1 transition-colors',
+              featuredOnly
+                ? 'bg-accent text-white'
+                : 'text-foreground hover:bg-accent hover:text-white'
+            )}
+          >
             <input
               type="checkbox"
               id="featuredOnly"
               checked={featuredOnly}
               onChange={(e) => setFeaturedOnly(e.target.checked)}
-              className="h-4 w-4"
+              className="h-4 w-4 accent-primary"
             />
-            <Label htmlFor="featuredOnly" className="font-normal cursor-pointer">
+            <Label htmlFor="featuredOnly" className="font-normal cursor-pointer text-inherit">
               {t(translationKeys.products.showFeaturedProducts, 'Show featured products')}
             </Label>
           </div>
