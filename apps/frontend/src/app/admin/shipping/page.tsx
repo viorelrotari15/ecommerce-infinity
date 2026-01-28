@@ -7,6 +7,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -162,6 +169,7 @@ export default function ShippingAdminPage() {
     }
   };
 
+
   return (
     <div className="container py-8 space-y-8">
       <div className="flex items-center justify-between">
@@ -224,18 +232,18 @@ export default function ShippingAdminPage() {
         <CardContent className="space-y-4">
           <div className="grid gap-2">
             <Label htmlFor="methodFilter">{t(translationKeys.admin.shipping.methodFilter, 'Shipping method')}</Label>
-            <select
-              id="methodFilter"
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-              value={selectedMethodId}
-              onChange={(event) => setSelectedMethodId(event.target.value)}
-            >
-              {methods.map((method: any) => (
-                <option key={method.id} value={method.id}>
-                  {method.name}
-                </option>
-              ))}
-            </select>
+            <Select value={selectedMethodId} onValueChange={setSelectedMethodId}>
+              <SelectTrigger id="methodFilter">
+                <SelectValue placeholder={t(translationKeys.admin.shipping.methodFilter, 'Shipping method')} />
+              </SelectTrigger>
+              <SelectContent>
+                {methods.map((method: any) => (
+                  <SelectItem key={method.id} value={method.id}>
+                    {method.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           {loadingRules ? (

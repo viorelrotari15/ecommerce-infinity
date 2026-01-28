@@ -7,6 +7,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -216,7 +223,7 @@ export default function TaxRatesPage() {
                   {t(translationKeys.common.status, 'Status')}: {rate.isActive ? t(translationKeys.common.active, 'Active') : t(translationKeys.common.inactive, 'Inactive')}
                 </p>
                 {rate.isDefault && (
-                  <p className="text-xs font-semibold text-primary">{t(translationKeys.admin.taxRates.defaultRate, 'Default rate')}</p>
+                  <p className="text-xs font-semibold text-green-600">{t(translationKeys.admin.taxRates.defaultRate, 'Default rate')}</p>
                 )}
                 <div className="flex gap-2 pt-2">
                   <Button variant="outline" size="sm" onClick={() => openEditDialog(rate)}>
@@ -273,18 +280,22 @@ export default function TaxRatesPage() {
             </div>
             <div className="grid gap-2">
               <Label>{t(translationKeys.admin.taxRates.category, 'Category')}</Label>
-              <select
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                value={formData.categoryId}
-                onChange={(event) => setFormData({ ...formData, categoryId: event.target.value })}
+              <Select
+                value={formData.categoryId || 'all'}
+                onValueChange={(value) => setFormData({ ...formData, categoryId: value === 'all' ? '' : value })}
               >
-                <option value="">{t(translationKeys.common.all, 'All')}</option>
-                {categories.map((category) => (
-                  <option key={category.id} value={category.id}>
-                    {category.name}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger>
+                  <SelectValue placeholder={t(translationKeys.common.all, 'All')} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{t(translationKeys.common.all, 'All')}</SelectItem>
+                  {categories.map((category) => (
+                    <SelectItem key={category.id} value={category.id}>
+                      {category.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="flex items-center gap-2">
               <input

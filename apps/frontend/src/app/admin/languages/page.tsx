@@ -222,9 +222,9 @@ export default function LanguagesPage() {
             {languages.map((lang) => (
               <div
                 key={lang.code}
-                className="flex items-center justify-between p-4 border rounded-lg"
+                className="flex items-center justify-between p-4 border rounded-lg gap-4 flex-wrap"
               >
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-4 flex-1 min-w-0">
                   <div>
                     <div className="flex items-center gap-2">
                       <span className="font-semibold">{lang.name}</span>
@@ -244,12 +244,13 @@ export default function LanguagesPage() {
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap justify-end flex-shrink-0 w-full sm:w-auto">
                   {!lang.isDefault && (
                     <Button
                       size="sm"
                       variant="outline"
                       onClick={() => handleSetDefault(lang.code)}
+                      className="whitespace-nowrap"
                     >
                       {t(translationKeys.admin.languages.setDefault, 'Set Default')}
                     </Button>
@@ -258,6 +259,7 @@ export default function LanguagesPage() {
                     size="sm"
                     variant="outline"
                     onClick={() => handleUpdate(lang.code, { isActive: !lang.isActive })}
+                    className="whitespace-nowrap"
                   >
                     {lang.isActive ? t(translationKeys.admin.languages.deactivate, 'Deactivate') : t(translationKeys.admin.languages.activate, 'Activate')}
                   </Button>

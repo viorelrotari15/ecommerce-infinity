@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useLanguages } from '@/lib/hooks/use-languages';
 import { useProductTranslations, useCreateProductTranslation, useUpdateProductTranslation } from '@/lib/hooks/use-product-translations';
 import { useToast } from '@/hooks/use-toast';
@@ -442,7 +443,44 @@ export const ProductTranslationsTabs = forwardRef<ProductTranslationsTabsRef, Pr
   return (
     <div>
       <Tabs value={activeTab || (defaultLanguage?.code || activeLanguages[0]?.code)} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full" style={{ gridTemplateColumns: `repeat(${activeLanguages.length}, minmax(0, 1fr))` }}>
+        {/* Mobile: Dropdown, Desktop: Tabs */}
+        <div className="md:hidden mb-4">
+          <Select value={activeTab || (defaultLanguage?.code || activeLanguages[0]?.code)} onValueChange={setActiveTab}>
+            <SelectTrigger className="w-full">
+              <SelectValue>
+                {(() => {
+                  const selectedLang = activeLanguages.find(l => l.code === (activeTab || defaultLanguage?.code || activeLanguages[0]?.code));
+                  if (!selectedLang) return 'Select Language';
+                  const hasTranslation = translations.some((t) => t.language === selectedLang.code);
+                  const hasErrors = fieldErrors[selectedLang.code] && Object.keys(fieldErrors[selectedLang.code]).length > 0;
+                  return (
+                    <span>
+                      {selectedLang.name}
+                      {selectedLang.isDefault && ' ★'}
+                      {!hasTranslation && ' (missing)'}
+                      {hasErrors && ' ⚠'}
+                    </span>
+                  );
+                })()}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              {activeLanguages.map((lang) => {
+                const hasTranslation = translations.some((t) => t.language === lang.code);
+                const hasErrors = fieldErrors[lang.code] && Object.keys(fieldErrors[lang.code]).length > 0;
+                return (
+                  <SelectItem key={lang.code} value={lang.code}>
+                    {lang.name}
+                    {lang.isDefault && ' ★'}
+                    {!hasTranslation && ' (missing)'}
+                    {hasErrors && ' ⚠'}
+                  </SelectItem>
+                );
+              })}
+            </SelectContent>
+          </Select>
+        </div>
+        <TabsList className="hidden md:grid w-full" style={{ gridTemplateColumns: `repeat(${activeLanguages.length}, minmax(0, 1fr))` }}>
           {activeLanguages.map((lang) => {
             const hasTranslation = translations.some((t) => t.language === lang.code);
             const hasErrors = fieldErrors[lang.code] && Object.keys(fieldErrors[lang.code]).length > 0;

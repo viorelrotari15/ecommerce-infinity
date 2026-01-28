@@ -491,10 +491,10 @@ export default function TranslationsPage() {
             return (
               <Card key={lang.code}>
                 <CardHeader>
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between gap-4 flex-wrap">
                     <button
                       onClick={() => toggleLanguage(lang.code)}
-                      className="flex items-center gap-2 flex-1 text-left hover:opacity-80 transition-opacity"
+                      className="flex items-center gap-2 flex-1 text-left hover:opacity-80 transition-opacity min-w-0"
                     >
                       {isExpanded ? (
                         <ChevronUp className="h-5 w-5" />
@@ -508,11 +508,12 @@ export default function TranslationsPage() {
                         {translatedCount}/{totalCount} {t(translationKeys.admin.translations.translated || 'common.translated', 'translated')}
                       </span>
                     </button>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap justify-end flex-shrink-0 w-full sm:w-auto">
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => exportTranslations(lang.code)}
+                        className="whitespace-nowrap"
                       >
                         <Download className="h-4 w-4 mr-2" />
                         {t(translationKeys.admin.translations.export, 'Export')}
@@ -534,6 +535,7 @@ export default function TranslationsPage() {
                           // Toggle import section
                           setImportingLanguage(importingLanguage === lang.code ? null : lang.code);
                         }}
+                        className="whitespace-nowrap"
                       >
                         <FileUp className="h-4 w-4 mr-2" />
                         {t(translationKeys.admin.translations.import, 'Import')}

@@ -55,17 +55,17 @@ model Region {
 }
 
 model TaxRate {
-  id         String   @id @default(uuid())
+  id         String    @id @default(uuid())
   regionId   String
-  region     Region   @relation(fields: [regionId], references: [id], onDelete: Cascade)
+  region     Region    @relation(fields: [regionId], references: [id], onDelete: Cascade)
   name       String
-  rate       Decimal  @db.Decimal(5, 4) // 0.1900 = 19%
-  categoryId String?  // Optional: apply to specific category
+  rate       Decimal   @db.Decimal(5, 4) // 0.1900 = 19%
+  categoryId String? // Optional: apply to specific category
   category   Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  isDefault  Boolean  @default(false)
-  isActive   Boolean  @default(true)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  isDefault  Boolean   @default(false)
+  isActive   Boolean   @default(true)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 
   @@index([regionId])
   @@index([categoryId])
@@ -92,15 +92,15 @@ model ShippingMethod {
 }
 
 model ShippingRule {
-  id              String   @id @default(uuid())
+  id               String         @id @default(uuid())
   shippingMethodId String
   shippingMethod   ShippingMethod @relation(fields: [shippingMethodId], references: [id], onDelete: Cascade)
-  minSubtotal     Decimal  @db.Decimal(10, 2)
-  maxSubtotal     Decimal? @db.Decimal(10, 2)
-  price           Decimal  @db.Decimal(10, 2)
-  isActive        Boolean  @default(true)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  minSubtotal      Decimal        @db.Decimal(10, 2)
+  maxSubtotal      Decimal?       @db.Decimal(10, 2)
+  price            Decimal        @db.Decimal(10, 2)
+  isActive         Boolean        @default(true)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
 
   @@index([shippingMethodId])
   @@map("shipping_rules")
@@ -123,74 +123,74 @@ model User {
 }
 
 model Brand {
-  id          String    @id @default(uuid())
-  name        String    @unique
-  slug        String    @unique
-  description String?   @db.Text
-  logo        String?
-  website     String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  products    Product[]
+  id           String             @id @default(uuid())
+  name         String             @unique
+  slug         String             @unique
+  description  String?            @db.Text
+  logo         String?
+  website      String?
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+  products     Product[]
   translations BrandTranslation[]
 
   @@map("brands")
 }
 
 model Category {
-  id          String     @id @default(uuid())
-  name        String
-  slug        String     @unique
-  description String?    @db.Text
-  image       String?
-  parentId    String?
-  parent      Category?  @relation("CategoryTree", fields: [parentId], references: [id], onDelete: Cascade)
-  children    Category[] @relation("CategoryTree")
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
-  products    ProductCategory[]
+  id           String                @id @default(uuid())
+  name         String
+  slug         String                @unique
+  description  String?               @db.Text
+  image        String?
+  parentId     String?
+  parent       Category?             @relation("CategoryTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children     Category[]            @relation("CategoryTree")
+  createdAt    DateTime              @default(now())
+  updatedAt    DateTime              @updatedAt
+  products     ProductCategory[]
   translations CategoryTranslation[]
-  taxRates    TaxRate[]
+  taxRates     TaxRate[]
 
   @@map("categories")
 }
 
 model Attribute {
-  id           String            @id @default(uuid())
-  name         String
-  slug         String            @unique
-  parentId     String?           // For subattributes
-  parent       Attribute?        @relation("AttributeSubattributes", fields: [parentId], references: [id], onDelete: Cascade)
-  subattributes Attribute[]      @relation("AttributeSubattributes")
-  createdAt    DateTime          @default(now())
-  updatedAt    DateTime          @updatedAt
-  values       ProductAttribute[]
-  translations AttributeTranslation[]
+  id            String                 @id @default(uuid())
+  name          String
+  slug          String                 @unique
+  parentId      String? // For subattributes
+  parent        Attribute?             @relation("AttributeSubattributes", fields: [parentId], references: [id], onDelete: Cascade)
+  subattributes Attribute[]            @relation("AttributeSubattributes")
+  createdAt     DateTime               @default(now())
+  updatedAt     DateTime               @updatedAt
+  values        ProductAttribute[]
+  translations  AttributeTranslation[]
 
   @@map("attributes")
 }
 
 model Product {
-  id            String            @id @default(uuid())
-  name          String
-  slug          String            @unique
-  description   String?           @db.Text
-  shortDescription String?        @db.Text
-  sku           String            @unique
-  brandId       String
-  brand         Brand             @relation(fields: [brandId], references: [id])
-  images        String[]          @default([]) // Legacy field, kept for backward compatibility
-  productImages ProductImage[]    // New relation to ProductImage model
-  isActive      Boolean           @default(true)
-  isFeatured    Boolean           @default(false)
-  metaTitle     String?
-  metaDescription String?         @db.Text
-  createdAt     DateTime          @default(now())
-  updatedAt     DateTime          @updatedAt
-  categories    ProductCategory[]
-  variants      ProductVariant[]
-  attributes    ProductAttribute[]
-  translations  ProductTranslation[]
+  id               String               @id @default(uuid())
+  name             String
+  slug             String               @unique
+  description      String?              @db.Text
+  shortDescription String?              @db.Text
+  sku              String               @unique
+  brandId          String
+  brand            Brand                @relation(fields: [brandId], references: [id])
+  images           String[]             @default([]) // Legacy field, kept for backward compatibility
+  productImages    ProductImage[] // New relation to ProductImage model
+  isActive         Boolean              @default(true)
+  isFeatured       Boolean              @default(false)
+  metaTitle        String?
+  metaDescription  String?              @db.Text
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+  categories       ProductCategory[]
+  variants         ProductVariant[]
+  attributes       ProductAttribute[]
+  translations     ProductTranslation[]
 
   @@map("products")
 }
@@ -200,10 +200,10 @@ model ProductImage {
   productId String
   product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
   bucket    String
-  filepath  String   // Full path: products/{category}/{brand}/{productId}/{filename}.jpg
+  filepath  String // Full path: products/{category}/{brand}/{productId}/{filename}.jpg
   filename  String
-  size      Int      // File size in bytes
-  mimeType  String   // e.g., image/jpeg, image/png
+  size      Int // File size in bytes
+  mimeType  String // e.g., image/jpeg, image/png
   isPrimary Boolean  @default(false) // First image is primary
   order     Int      @default(0) // Display order
   createdAt DateTime @default(now())
@@ -226,30 +226,30 @@ model ProductCategory {
 }
 
 model ProductAttribute {
-  id         String    @id @default(uuid())
-  productId  String
-  product    Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  id          String    @id @default(uuid())
+  productId   String
+  product     Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
   attributeId String
-  attribute  Attribute @relation(fields: [attributeId], references: [id], onDelete: Cascade)
-  value      String
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
+  attribute   Attribute @relation(fields: [attributeId], references: [id], onDelete: Cascade)
+  value       String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   @@unique([productId, attributeId])
   @@map("product_attributes")
 }
 
 model ProductVariant {
-  id        String      @id @default(uuid())
-  productId String
-  product   Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
-  name      String?     // e.g., "50ml", "100ml", "Red", "Blue"
-  sku       String      @unique
-  price     Decimal     @db.Decimal(10, 2)
-  stock     Int         @default(0)
-  isActive  Boolean     @default(true)
-  createdAt DateTime    @default(now())
-  updatedAt DateTime    @updatedAt
+  id         String      @id @default(uuid())
+  productId  String
+  product    Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  name       String? // e.g., "50ml", "100ml", "Red", "Blue"
+  sku        String      @unique
+  price      Decimal     @db.Decimal(10, 2)
+  stock      Int         @default(0)
+  isActive   Boolean     @default(true)
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
   orderItems OrderItem[]
   cartItems  CartItem[]
 
@@ -257,38 +257,38 @@ model ProductVariant {
 }
 
 model Order {
-  id            String        @id @default(uuid())
-  userId        String?
-  user          User?         @relation(fields: [userId], references: [id])
-  guestEmail    String?
-  regionId      String?
-  region        Region?       @relation(fields: [regionId], references: [id], onDelete: SetNull)
+  id               String          @id @default(uuid())
+  userId           String?
+  user             User?           @relation(fields: [userId], references: [id])
+  guestEmail       String?
+  regionId         String?
+  region           Region?         @relation(fields: [regionId], references: [id], onDelete: SetNull)
   shippingMethodId String?
-  shippingMethod ShippingMethod? @relation(fields: [shippingMethodId], references: [id], onDelete: SetNull)
-  status        OrderStatus   @default(PENDING)
-  total         Decimal       @db.Decimal(10, 2)
-  subtotal      Decimal       @db.Decimal(10, 2)
-  tax           Decimal       @db.Decimal(10, 2) @default(0)
-  shipping      Decimal       @db.Decimal(10, 2) @default(0)
-  shippingAddress Json
-  billingAddress  Json
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-  items         OrderItem[]
-  payment       Payment?
+  shippingMethod   ShippingMethod? @relation(fields: [shippingMethodId], references: [id], onDelete: SetNull)
+  status           OrderStatus     @default(PENDING)
+  total            Decimal         @db.Decimal(10, 2)
+  subtotal         Decimal         @db.Decimal(10, 2)
+  tax              Decimal         @default(0) @db.Decimal(10, 2)
+  shipping         Decimal         @default(0) @db.Decimal(10, 2)
+  shippingAddress  Json
+  billingAddress   Json
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  items            OrderItem[]
+  payment          Payment?
 
   @@map("orders")
 }
 
 model OrderItem {
-  id              String        @id @default(uuid())
-  orderId         String
-  order           Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  id               String         @id @default(uuid())
+  orderId          String
+  order            Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
   productVariantId String
-  productVariant  ProductVariant @relation(fields: [productVariantId], references: [id])
-  quantity        Int
-  price           Decimal       @db.Decimal(10, 2)
-  createdAt       DateTime      @default(now())
+  productVariant   ProductVariant @relation(fields: [productVariantId], references: [id])
+  quantity         Int
+  price            Decimal        @db.Decimal(10, 2)
+  createdAt        DateTime       @default(now())
 
   @@map("order_items")
 }
@@ -320,14 +320,14 @@ model Cart {
 }
 
 model CartItem {
-  id              String        @id @default(uuid())
-  cartId          String
-  cart            Cart          @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  id               String         @id @default(uuid())
+  cartId           String
+  cart             Cart           @relation(fields: [cartId], references: [id], onDelete: Cascade)
   productVariantId String
-  productVariant  ProductVariant @relation(fields: [productVariantId], references: [id], onDelete: Cascade)
-  quantity        Int
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  productVariant   ProductVariant @relation(fields: [productVariantId], references: [id], onDelete: Cascade)
+  quantity         Int
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
 
   @@unique([cartId, productVariantId])
   @@map("cart_items")
@@ -338,21 +338,21 @@ model CartItem {
 // ============================================
 
 model Language {
-  code        String   @id        // "en", "ro", "ru", "de", "tr"
-  name        String              // English, Romanian, etc.
-  isDefault   Boolean  @default(false)
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  code      String   @id // "en", "ro", "ru", "de", "tr"
+  name      String // English, Romanian, etc.
+  isDefault Boolean  @default(false)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("languages")
 }
 
 model UiTranslation {
-  id        String   @id @default(uuid())
-  key       String   // example: "header.menu.home"
-  language  String
-  value     String   @db.Text
+  id       String @id @default(uuid())
+  key      String // example: "header.menu.home"
+  language String
+  value    String @db.Text
 
   @@unique([key, language])
   @@index([language])
@@ -362,17 +362,17 @@ model UiTranslation {
 
 // Product Translations
 model ProductTranslation {
-  id          String   @id @default(uuid())
-  productId   String
-  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  language    String
-  name        String
-  description String?  @db.Text
-  shortDescription String? @db.Text
-  metaTitle   String?
-  metaDescription String? @db.Text
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id               String   @id @default(uuid())
+  productId        String
+  product          Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  language         String
+  name             String
+  description      String?  @db.Text
+  shortDescription String?  @db.Text
+  metaTitle        String?
+  metaDescription  String?  @db.Text
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   @@unique([productId, language])
   @@index([productId])
@@ -433,4 +433,3 @@ model AttributeTranslation {
   @@index([attributeId, language]) // Composite index for attribute translation lookups
   @@map("attribute_translations")
 }
-
