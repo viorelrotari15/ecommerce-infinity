@@ -4,6 +4,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { ShippingCalculatorService } from '../pricing/shipping-calculator.service';
 import { TaxCalculatorService } from '../pricing/tax-calculator.service';
+import { MetricsService } from '../metrics/metrics.service';
 
 @Injectable()
 export class OrdersService {
@@ -11,6 +12,7 @@ export class OrdersService {
     private prisma: PrismaService,
     private taxCalculator: TaxCalculatorService,
     private shippingCalculator: ShippingCalculatorService,
+    private metricsService: MetricsService,
   ) {}
 
   private async buildLineItems(items: { variantId: string; quantity: number }[]) {
@@ -75,8 +77,8 @@ export class OrdersService {
         tax,
         shipping,
         total: subtotal + shipping,
-        shippingAddress: createOrderDto.shippingAddress as Prisma.InputJsonValue,
-        billingAddress: createOrderDto.billingAddress as Prisma.InputJsonValue,
+        shippingAddress: createOrderDto.shippingAddress as unknown as Prisma.InputJsonValue,
+        billingAddress: createOrderDto.billingAddress as unknown as Prisma.InputJsonValue,
         items: {
           create: lineItems.map((item) => ({
             productVariantId: item.variant.id,
@@ -97,6 +99,8 @@ export class OrdersService {
         },
       },
     });
+
+    this.metricsService.incrementOrdersCreated();
 
     return order;
   }

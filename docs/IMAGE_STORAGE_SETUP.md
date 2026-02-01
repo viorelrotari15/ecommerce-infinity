@@ -219,6 +219,16 @@ MINIO_PUBLIC_URL=https://cdn.myshop.com
 NEXT_PUBLIC_CDN_URL=https://cdn.myshop.com
 ```
 
+### 1a. Production Docker Compose
+
+When deploying on a VM, use the production compose file:
+
+```bash
+docker compose -f docker-compose.prod.yml up -d
+```
+
+The production compose keeps MinIO internal (not publicly exposed). Use a CDN or reverse proxy to access images.
+
 ### 2. Cloudflare CDN Setup
 
 1. **Create DNS Record**:

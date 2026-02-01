@@ -21,8 +21,10 @@ async function bootstrap() {
     }),
   );
 
-  // API prefix
-  app.setGlobalPrefix('api');
+  // API prefix (exclude Prometheus metrics endpoint)
+  app.setGlobalPrefix('api', {
+    exclude: ['metrics'],
+  });
 
   // Swagger documentation
   const config = new DocumentBuilder()

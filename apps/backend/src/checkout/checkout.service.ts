@@ -91,8 +91,8 @@ export class CheckoutService {
         tax,
         shipping,
         total: subtotal + shipping,
-        shippingAddress: dto.shippingAddress as Prisma.InputJsonValue,
-        billingAddress: dto.billingAddress as Prisma.InputJsonValue,
+        shippingAddress: dto.shippingAddress as unknown as Prisma.InputJsonValue,
+        billingAddress: dto.billingAddress as unknown as Prisma.InputJsonValue,
         items: {
           create: lineItems.map((item) => ({
             productVariantId: item.variant.id,

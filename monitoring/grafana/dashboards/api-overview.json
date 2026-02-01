@@ -1,0 +1,262 @@
+{
+  "uid": "ecommerce-api-overview",
+  "title": "Ecommerce API Overview",
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "10s",
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": "-- Grafana --",
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "API p95 Latency (s)",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job=\"backend\"}[5m])) by (le))",
+          "legendFormat": "p95",
+          "refId": "A"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 }
+    },
+    {
+      "type": "timeseries",
+      "title": "API p99 Latency (s)",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket{job=\"backend\"}[5m])) by (le))",
+          "legendFormat": "p99",
+          "refId": "A"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 }
+    },
+    {
+      "type": "timeseries",
+      "title": "RPS",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum(rate(http_requests_total{job=\"backend\"}[1m]))",
+          "legendFormat": "requests/sec",
+          "refId": "A"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 }
+    },
+    {
+      "type": "timeseries",
+      "title": "Error Rate",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum(rate(http_errors_total{job=\"backend\"}[5m])) / sum(rate(http_requests_total{job=\"backend\"}[5m]))",
+          "legendFormat": "5xx rate",
+          "refId": "A"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 }
+    },
+    {
+      "type": "timeseries",
+      "title": "Service CPU (process)",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "rate(process_cpu_seconds_total{job=~\"backend|postgres-exporter|redis-exporter\"}[5m])",
+          "legendFormat": "{{job}}",
+          "refId": "A"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 }
+    },
+    {
+      "type": "timeseries",
+      "title": "Service Memory (process)",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "process_resident_memory_bytes{job=~\"backend|postgres-exporter|redis-exporter\"}",
+          "legendFormat": "{{job}}",
+          "refId": "A"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 }
+    },
+    {
+      "type": "timeseries",
+      "title": "Postgres Connections",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum(pg_stat_database_numbackends{datname!~\"template.*\"})",
+          "legendFormat": "connections",
+          "refId": "A"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 24 }
+    },
+    {
+      "type": "timeseries",
+      "title": "Redis Hit / Miss",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "rate(redis_keyspace_hits_total[5m])",
+          "legendFormat": "hits/sec",
+          "refId": "A"
+        },
+        {
+          "expr": "rate(redis_keyspace_misses_total[5m])",
+          "legendFormat": "misses/sec",
+          "refId": "B"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 24 }
+    },
+    {
+      "type": "timeseries",
+      "title": "k6 VUs",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "k6_vus",
+          "legendFormat": "vus",
+          "refId": "A"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 32 }
+    },
+    {
+      "type": "timeseries",
+      "title": "k6 HTTP Req Duration p95 (ms)",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "k6_http_req_duration{quantile=\"0.95\",test_type=\"api\"}",
+          "legendFormat": "p95",
+          "refId": "A"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 32 }
+    },
+    {
+      "type": "timeseries",
+      "title": "k6 Frontend p95 (ms)",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "k6_http_req_duration{quantile=\"0.95\",test_type=\"frontend\"}",
+          "legendFormat": "p95",
+          "refId": "A"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 40 }
+    },
+    {
+      "type": "timeseries",
+      "title": "k6 Frontend RPS",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum(rate(k6_http_reqs{test_type=\"frontend\"}[1m]))",
+          "legendFormat": "req/s",
+          "refId": "A"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 40 }
+    },
+    {
+      "type": "timeseries",
+      "title": "Web Vitals LCP p95 (s)",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(web_vital_timing_seconds_bucket{name=\"LCP\"}[5m])) by (le))",
+          "legendFormat": "LCP p95",
+          "refId": "A"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 40 }
+    },
+    {
+      "type": "timeseries",
+      "title": "Web Vitals INP p95 (s)",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(web_vital_timing_seconds_bucket{name=\"INP\"}[5m])) by (le))",
+          "legendFormat": "INP p95",
+          "refId": "A"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 40 }
+    },
+    {
+      "type": "timeseries",
+      "title": "Web Vitals CLS p95",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(web_vital_cls_bucket[5m])) by (le))",
+          "legendFormat": "CLS p95",
+          "refId": "A"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 48 }
+    },
+    {
+      "type": "timeseries",
+      "title": "Nginx RPS",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "rate(nginx_http_requests_total[1m])",
+          "legendFormat": "req/s",
+          "refId": "A"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 48 }
+    },
+    {
+      "type": "timeseries",
+      "title": "Web Vitals TTFB p95 (s)",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(web_vital_timing_seconds_bucket{name=\"TTFB\"}[5m])) by (le))",
+          "legendFormat": "TTFB p95",
+          "refId": "A"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 56 }
+    },
+    {
+      "type": "timeseries",
+      "title": "Nginx Active Connections",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "nginx_connections_active",
+          "legendFormat": "active",
+          "refId": "A"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 56 }
+    }
+  ]
+}

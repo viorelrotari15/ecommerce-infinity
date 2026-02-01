@@ -1,0 +1,49 @@
+groups:
+  - name: ecommerce-alerts
+    rules:
+      - alert: ApiDown
+        expr: up{job="backend"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "API is down"
+          description: "No successful scrape from backend in the last 2 minutes."
+
+      - alert: ApiHighLatency
+        expr: histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job="backend"}[5m])) by (le)) > 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High API latency (p95 > 1s)"
+          description: "p95 latency is above 1s for 5 minutes."
+
+      - alert: ApiHighErrorRate
+        expr: |
+          (sum(rate(http_errors_total{job="backend"}[5m])) / sum(rate(http_requests_total{job="backend"}[5m]))) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High API error rate (>5%)"
+          description: "5xx error rate exceeds 5% for 5 minutes."
+
+      - alert: PostgresConnectionSaturation
+        expr: |
+          sum(pg_stat_database_numbackends{datname!~"template.*"}) / max(pg_settings_max_connections) > 0.8
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Postgres connections nearing saturation"
+          description: "Active connections are above 80% of max_connections."
+
+      - alert: RedisUnavailable
+        expr: up{job="redis-exporter"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Redis exporter is down"
+          description: "No successful scrape from redis-exporter in the last 2 minutes."

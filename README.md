@@ -41,6 +41,21 @@ Key environment variables:
 - `NEXT_PUBLIC_API_URL`: Backend API URL
 - `NEXT_PUBLIC_APP_URL`: Frontend URL
 
+### Production (On-Prem Server with HTTPS)
+
+For a physical server in the production office, use the production compose file with nginx TLS termination.
+
+1. Copy `.env.example` to `.env` and set production values.
+2. Set `NGINX_SERVER_NAME` and public URLs:
+   - `NEXT_PUBLIC_APP_URL=https://your-domain`
+   - `NEXT_PUBLIC_API_URL=https://your-domain/api`
+   - `NEXT_PUBLIC_CDN_URL=https://cdn.your-domain`
+3. Start production stack:
+   ```bash
+   docker compose -f docker-compose.prod.yml up -d
+   ```
+4. Issue TLS certs (see `docs/ENV_SETUP.md` for certbot command).
+
 ## 📁 Project Structure
 
 ```

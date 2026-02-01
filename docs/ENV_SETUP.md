@@ -58,6 +58,10 @@ DATABASE_URL=postgresql://user:password@postgres-prod:5432/ecommerce
 JWT_SECRET=your-very-secure-production-secret
 JWT_EXPIRES_IN=7d
 
+# Public App URLs (Production)
+NEXT_PUBLIC_APP_URL=https://your-domain
+NEXT_PUBLIC_API_URL=https://your-domain/api
+
 # MinIO (Production - Internal)
 MINIO_ENDPOINT=minio.internal
 MINIO_PORT=9000
@@ -69,6 +73,10 @@ MINIO_BUCKET=products
 # Image URLs (Production - CDN)
 MINIO_PUBLIC_URL=https://cdn.myshop.com
 NEXT_PUBLIC_CDN_URL=https://cdn.myshop.com
+
+# Nginx / TLS
+NGINX_SERVER_NAME=your-domain
+LETSENCRYPT_EMAIL=you@example.com
 ```
 
 ### Production URL Strategy
@@ -111,6 +119,25 @@ NEXT_PUBLIC_CDN_URL=https://cdn.myshop.com
    }
    ```
 
+### Production HTTPS (nginx + certbot)
+
+1. Ensure ports **80** and **443** are open on the server firewall and router.
+2. Set `NGINX_SERVER_NAME` in `.env` to your domain.
+3. Start the production stack:
+   ```bash
+   docker compose -f docker-compose.prod.yml up -d
+   ```
+4. Issue the first certificate (one-time):
+   ```bash
+   docker compose -f docker-compose.prod.yml run --rm certbot \
+     certonly --webroot -w /var/www/certbot \
+     -d your-domain --email you@example.com --agree-tos --no-eff-email
+   ```
+5. Reload nginx after certificate creation:
+   ```bash
+   docker compose -f docker-compose.prod.yml restart nginx
+   ```
+
 ## Environment Variable Reference
 
 ### Backend (NestJS)
@@ -124,12 +151,15 @@ NEXT_PUBLIC_CDN_URL=https://cdn.myshop.com
 | `MINIO_SECRET_KEY` | `minioadmin` | `secure-secret` | MinIO secret key |
 | `MINIO_BUCKET` | `products` | `products` | Default bucket name |
 | `MINIO_PUBLIC_URL` | `http://localhost:9000` | `https://cdn.myshop.com` | Public URL for images |
+| `NGINX_SERVER_NAME` | `localhost` | `your-domain` | Public domain for TLS |
 
 ### Frontend (Next.js)
 
 | Variable | Development | Production | Description |
 |----------|-------------|------------|-------------|
 | `NEXT_PUBLIC_CDN_URL` | `http://localhost:9000` | `https://cdn.myshop.com` | CDN URL for images |
+| `NEXT_PUBLIC_APP_URL` | `http://localhost:3000` | `https://your-domain` | Public app URL |
+| `NEXT_PUBLIC_API_URL` | `http://localhost:3001` | `https://your-domain/api` | Public API URL |
 
 ## Security Notes
 
