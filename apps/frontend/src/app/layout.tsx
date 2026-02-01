@@ -7,6 +7,7 @@ import { Header } from '@/components/layout/header';
 import { Footer } from '@/components/layout/footer';
 import { Toaster } from '@/components/ui/toaster';
 import { getBranding } from '@/lib/branding';
+import { WebVitalsReporter } from '@/components/monitoring/web-vitals-reporter';
 
 const inter = Inter({ subsets: ['latin'] });
 const branding = getBranding();
@@ -52,6 +53,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className} style={branding.cssVars as CSSProperties}>
         <Providers>
+          <WebVitalsReporter />
           <div className="flex min-h-screen flex-col">
             <Header />
             <main className="flex-1">{children}</main>

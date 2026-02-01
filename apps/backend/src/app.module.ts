@@ -18,6 +18,8 @@ import { TranslationsModule } from './translations/translations.module';
 import { LanguageInterceptor } from './languages/interceptors/language.interceptor';
 import { CheckoutModule } from './checkout/checkout.module';
 import { RedisModule } from './redis/redis.module';
+import { MetricsModule } from './metrics/metrics.module';
+import { MetricsInterceptor } from './metrics/metrics.interceptor';
 
 @Module({
   imports: [
@@ -40,11 +42,16 @@ import { RedisModule } from './redis/redis.module';
     TranslationsModule,
     CheckoutModule,
     RedisModule,
+    MetricsModule,
   ],
   providers: [
     {
       provide: APP_INTERCEPTOR,
       useClass: LanguageInterceptor,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: MetricsInterceptor,
     },
   ],
 })

@@ -830,29 +830,32 @@ export class ProductsService {
     const { categoryIds, variants, attributes, brandId, ...productData } = updateProductDto;
 
     // Always auto-generate variant SKUs (ignore any user input)
-    let variantsWithSku = variants;
+    let variantsWithSku:
+      | Array<{
+          name: string;
+          price: number;
+          stock: number;
+          sku: string;
+          isActive: boolean;
+        }>
+      | undefined;
     if (variants) {
       variantsWithSku = await Promise.all(
         variants.map(async (variant) => {
           const variantSku = await this.generateVariantSku(productSku, variant.name);
           return {
-            ...variant,
+            name: variant.name,
+            price: variant.price,
+            stock: variant.stock,
             sku: variantSku,
+            isActive: variant.isActive ?? true,
           };
         }),
       );
     }
 
     // Update product
-    const updatedProduct: Prisma.ProductGetPayload<{
-      include: {
-        brand: true;
-        categories: { include: { category: true } };
-        variants: true;
-        attributes: { include: { attribute: true } };
-        productImages: { orderBy: { order: 'asc' } };
-      };
-    }> = await this.prisma.product.update({
+    const updatedProduct = await this.prisma.product.update({
       where: { id },
       data: {
         ...productData,
@@ -870,10 +873,7 @@ export class ProductsService {
         ...(variantsWithSku && {
           variants: {
             deleteMany: {},
-            create: variantsWithSku.map((variant) => ({
-              ...variant,
-              isActive: variant.isActive ?? true,
-            })),
+            create: variantsWithSku,
           },
         }),
         ...(attributes && {
