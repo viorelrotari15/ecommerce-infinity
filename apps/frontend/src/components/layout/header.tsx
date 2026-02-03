@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ShoppingCart, LogOut, LayoutDashboard, User, Search, Menu, X } from 'lucide-react';
@@ -12,10 +12,12 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useCartStore } from '@/lib/store/cart-store';
 import { LanguageSelector } from '@/components/layout/language-selector';
 import { useT, translationKeys } from '@/lib/utils/translations';
+import { cn } from '@/lib/utils';
 
 export function Header() {
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const queryClient = useQueryClient();
   const t = useT();
   const [user, setUser] = useState<ReturnType<typeof getCurrentUser>>(null);
@@ -26,6 +28,19 @@ export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const cartItemCount = useCartStore((state) => state.getTotalItems());
   const { loadFromServer } = useCartStore();
+  const isProducts = pathname?.startsWith('/products');
+  const isCategories = pathname?.startsWith('/categories');
+  const isBrands = pathname?.startsWith('/brands');
+
+  // Sync search query with URL params
+  useEffect(() => {
+    const searchParam = searchParams.get('search');
+    if (searchParam !== null) {
+      setSearchQuery(searchParam);
+    } else {
+      setSearchQuery('');
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     setMounted(true);
@@ -54,11 +69,38 @@ export function Header() {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!searchQuery.trim()) return;
     
     const isAdminPage = pathname?.startsWith('/admin');
     const basePath = isAdminPage ? '/admin/products' : '/products';
-    router.push(`${basePath}?search=${encodeURIComponent(searchQuery.trim())}`);
+    
+    // Build new URL params preserving all existing params except search
+    const currentParams = new URLSearchParams();
+    searchParams.forEach((value: string, key: string) => {
+      if (key !== 'search') {
+        // Handle array params (like categories[], brands[], attributes[])
+        const allValues = searchParams.getAll(key);
+        if (allValues.length > 1) {
+          allValues.forEach(v => currentParams.append(key, v));
+        } else {
+          currentParams.set(key, value);
+        }
+      }
+    });
+    
+    // If search query is empty, remove search parameter from URL
+    if (!searchQuery.trim()) {
+      const newUrl = currentParams.toString() 
+        ? `${basePath}?${currentParams.toString()}`
+        : basePath;
+      router.push(newUrl);
+      return;
+    }
+    
+    // If search query has value, add/update search parameter
+    currentParams.set('search', searchQuery.trim());
+    // Reset to first page when searching
+    currentParams.set('page', '1');
+    router.push(`${basePath}?${currentParams.toString()}`);
   };
 
   const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -70,19 +112,19 @@ export function Header() {
   return (
     <>
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container mx-auto px-4 flex h-16 items-center justify-between max-w-full">
+        <div className="container mx-auto px-4 flex h-16 items-center justify-between max-w-full overflow-hidden">
           {/* Mobile menu button */}
           <Button
             variant="ghost"
             size="icon"
-            className="md:hidden"
+            className="lg:hidden"
             onClick={() => setMobileMenuOpen(true)}
           >
             <Menu className="h-5 w-5" />
           </Button>
 
           {/* Logo - visible on all screens */}
-          <Link href="/" className="flex-shrink-0 flex items-center h-12 md:h-14">
+          <Link href="/" className="flex-shrink-0 flex items-center h-12 lg:h-14">
             <Image
               src="/branding/favicon_side.svg"
               alt="Mistico Parfume"
@@ -94,37 +136,49 @@ export function Header() {
           </Link>
 
           {/* Desktop navigation */}
-          <nav className="hidden md:flex gap-6 ml-6">
+          <nav className="hidden lg:flex gap-6 ml-6 flex-shrink-0">
             <Link
               href="/products"
-              className="text-sm font-medium transition-colors hover:underline"
+              aria-current={isProducts ? 'page' : undefined}
+              className={cn(
+                "text-sm font-medium transition-colors hover:underline",
+                isProducts && "text-primary font-semibold"
+              )}
             >
               {t(translationKeys.header.menu.products, 'Products')}
             </Link>
             <Link
               href="/categories"
-              className="text-sm font-medium transition-colors hover:underline"
+              aria-current={isCategories ? 'page' : undefined}
+              className={cn(
+                "text-sm font-medium transition-colors hover:underline",
+                isCategories && "text-primary font-semibold"
+              )}
             >
               {t(translationKeys.header.menu.categories, 'Categories')}
             </Link>
             <Link
               href="/brands"
-              className="text-sm font-medium transition-colors hover:underline"
+              aria-current={isBrands ? 'page' : undefined}
+              className={cn(
+                "text-sm font-medium transition-colors hover:underline",
+                isBrands && "text-primary font-semibold"
+              )}
             >
               {t(translationKeys.header.menu.brands, 'Brands')}
             </Link>
           </nav>
 
           {/* Search input - desktop */}
-          <form onSubmit={handleSearch} className="hidden md:flex max-w-md ml-auto mr-4">
-            <div className="relative w-full">
+          <form onSubmit={handleSearch} className="hidden lg:flex max-w-md ml-auto mr-4 flex-shrink">
+            <div className="relative w-full min-w-0">
               <Input
                 type="text"
                 placeholder={t(translationKeys.products.searchPlaceholder, 'Search products...')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyDown={handleSearchKeyDown}
-                className="pr-10"
+                className="pr-10 w-full"
               />
               <Button
                 type="submit"
@@ -138,8 +192,8 @@ export function Header() {
           </form>
 
           {/* Right side actions */}
-          <div className="flex items-center gap-2 md:gap-4 flex-shrink-0">
-            <div className="hidden md:block">
+          <div className="flex items-center gap-2 lg:gap-4 flex-shrink-0 min-w-0">
+            <div className="hidden lg:block">
               <LanguageSelector />
             </div>
             <Link href="/cart">
@@ -154,7 +208,7 @@ export function Header() {
             </Link>
             {!mounted ? (
               <Link href="/auth/login">
-                <Button variant="outline" size="sm" className="hidden md:inline-flex">
+                <Button variant="outline" size="sm" className="hidden lg:inline-flex">
                   {t(translationKeys.header.actions.login, 'Login')}
                 </Button>
               </Link>
@@ -168,15 +222,15 @@ export function Header() {
                   </Link>
                 )}
                 <Link href="/user/profile">
-                  <Button variant="ghost" size="icon" title="Profile" className="hidden md:inline-flex">
+                  <Button variant="ghost" size="icon" title="Profile" className="hidden lg:inline-flex">
                     <User className="h-5 w-5" />
                   </Button>
                 </Link>
-                <div className="hidden md:flex items-center gap-2">
-                  <span className="text-sm text-muted-foreground">
+                <div className="hidden lg:flex items-center gap-2 min-w-0">
+                  <span className="text-sm text-muted-foreground truncate max-w-[150px]">
                     {user?.firstName || user?.email}
                   </span>
-                  <Button variant="outline" onClick={handleLogout} size="sm">
+                  <Button variant="outline" onClick={handleLogout} size="sm" className="flex-shrink-0">
                     <LogOut className="h-4 w-4 mr-2" />
                     {t(translationKeys.header.actions.logout, 'Logout')}
                   </Button>
@@ -184,7 +238,7 @@ export function Header() {
               </>
             ) : (
               <Link href="/auth/login">
-                <Button variant="outline" size="sm" className="hidden md:inline-flex">
+                <Button variant="outline" size="sm" className="hidden lg:inline-flex">
                   {t(translationKeys.header.actions.login, 'Login')}
                 </Button>
               </Link>
@@ -195,7 +249,7 @@ export function Header() {
 
       {/* Mobile Menu */}
       {mobileMenuOpen && (
-        <div className="fixed inset-0 z-50 md:hidden">
+        <div className="fixed inset-0 z-50 lg:hidden">
           {/* Backdrop */}
           <div
             className="fixed inset-0 bg-black/50"
@@ -250,21 +304,33 @@ export function Header() {
               <nav className="space-y-2">
                 <Link
                   href="/products"
-                  className="block px-4 py-2 text-sm font-medium hover:bg-accent rounded-md"
+                  aria-current={isProducts ? 'page' : undefined}
+                  className={cn(
+                    "block px-4 py-2 text-sm font-medium hover:bg-accent rounded-md",
+                    isProducts && "bg-accent text-primary font-semibold"
+                  )}
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   {t(translationKeys.header.menu.products, 'Products')}
                 </Link>
                 <Link
                   href="/categories"
-                  className="block px-4 py-2 text-sm font-medium hover:bg-accent rounded-md"
+                  aria-current={isCategories ? 'page' : undefined}
+                  className={cn(
+                    "block px-4 py-2 text-sm font-medium hover:bg-accent rounded-md",
+                    isCategories && "bg-accent text-primary font-semibold"
+                  )}
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   {t(translationKeys.header.menu.categories, 'Categories')}
                 </Link>
                 <Link
                   href="/brands"
-                  className="block px-4 py-2 text-sm font-medium hover:bg-accent rounded-md"
+                  aria-current={isBrands ? 'page' : undefined}
+                  className={cn(
+                    "block px-4 py-2 text-sm font-medium hover:bg-accent rounded-md",
+                    isBrands && "bg-accent text-primary font-semibold"
+                  )}
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   {t(translationKeys.header.menu.brands, 'Brands')}

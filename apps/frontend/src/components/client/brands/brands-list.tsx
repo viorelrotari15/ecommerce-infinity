@@ -1,24 +1,35 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { PaginationControls } from '@/components/ui/pagination-controls';
 import { useBrands } from '@/lib/hooks/use-brands';
 import type { Brand } from '@/lib/api/server';
+import { Loader2 } from 'lucide-react';
+import { useT, translationKeys } from '@/lib/utils/translations';
 
 interface BrandsListProps {
   initialBrands: Brand[];
 }
 
 export function BrandsList({ initialBrands }: BrandsListProps) {
+  const t = useT();
   const searchParams = useSearchParams();
-  const { data: brands = initialBrands, isLoading } = useBrands(initialBrands);
+  const { data: brands = initialBrands, isLoading, isFetching } = useBrands(initialBrands);
+  const [isSearching, setIsSearching] = useState(false);
 
   const page = Number(searchParams.get('page')) || 1;
   const limit = Number(searchParams.get('limit')) || 20;
   const searchQuery = searchParams.get('search') || '';
+
+  // Track search param changes to show loading state
+  useEffect(() => {
+    setIsSearching(true);
+    const timer = setTimeout(() => setIsSearching(false), 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery, page]);
 
   // Filter brands by search query
   const filteredBrands = useMemo(() => {
@@ -35,10 +46,12 @@ export function BrandsList({ initialBrands }: BrandsListProps) {
   const endIndex = startIndex + limit;
   const paginatedBrands = filteredBrands.slice(startIndex, endIndex);
 
+  const showLoading = isLoading || isFetching || isSearching;
+
   if (isLoading && brands.length === 0) {
     return (
       <div className="py-12 text-center">
-        <p className="text-muted-foreground">Loading brands...</p>
+        <p className="text-muted-foreground">{t(translationKeys.common.loading, 'Loading brands...')}</p>
       </div>
     );
   }
@@ -47,14 +60,28 @@ export function BrandsList({ initialBrands }: BrandsListProps) {
     return (
       <div className="py-12 text-center">
         <p className="text-muted-foreground">
-          {searchQuery ? 'No brands found matching your search.' : 'No brands found.'}
+          {searchQuery 
+            ? 'No brands found matching your search.' 
+            : 'No brands found.'}
         </p>
       </div>
     );
   }
 
   return (
-    <>
+    <div className="relative">
+      {/* Loading overlay when fetching/searching */}
+      {showLoading && (
+        <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/80 backdrop-blur-sm rounded-lg min-h-[400px]">
+          <div className="flex flex-col items-center gap-3">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="text-sm font-medium text-muted-foreground">
+              {t(translationKeys.common.loading, 'Loading brands...')}
+            </p>
+          </div>
+        </div>
+      )}
+      
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {paginatedBrands.map((brand) => (
           <Link 
@@ -81,6 +108,6 @@ export function BrandsList({ initialBrands }: BrandsListProps) {
           baseUrl="/brands"
         />
       )}
-    </>
+    </div>
   );
 }
