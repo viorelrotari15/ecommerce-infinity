@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ProductCardCompact } from '@/components/server/products/product-card-compact';
+import { useT, translationKeys } from '@/lib/utils/translations';
 import type { Product } from '@/lib/api/server';
 
 interface SimilarProductsCarouselProps {
@@ -12,6 +13,7 @@ interface SimilarProductsCarouselProps {
 }
 
 export function SimilarProductsCarousel({ products, currentProductSlug }: SimilarProductsCarouselProps) {
+  const t = useT();
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const [productsPerSlide, setProductsPerSlide] = useState(3);
@@ -160,7 +162,9 @@ export function SimilarProductsCarousel({ products, currentProductSlug }: Simila
 
   return (
     <section className="w-full mt-20 pt-12 border-t">
-      <h2 className="text-4xl font-bold mb-4 text-center">You May Also Like</h2>
+      <h2 className="text-4xl font-bold mb-4 text-center">
+        {t(translationKeys.products.youMayAlsoLike, 'You May Also Like')}
+      </h2>
       <div className="flex justify-center">
         <div
           ref={containerRef}
@@ -226,7 +230,7 @@ export function SimilarProductsCarousel({ products, currentProductSlug }: Simila
                 size="icon"
                 className="absolute left-1 md:left-2 top-1/2 -translate-y-1/2 z-10 h-10 w-10 rounded-full bg-background/80 backdrop-blur-sm border shadow-lg hover:bg-background"
                 onClick={handlePrevious}
-                aria-label="Previous products"
+                aria-label={t(translationKeys.products.previousProducts, 'Previous products')}
               >
                 <ChevronLeft className="h-5 w-5" />
               </Button>
@@ -235,7 +239,7 @@ export function SimilarProductsCarousel({ products, currentProductSlug }: Simila
                 size="icon"
                 className="absolute right-1 md:right-2 top-1/2 -translate-y-1/2 z-10 h-10 w-10 rounded-full bg-background/80 backdrop-blur-sm border shadow-lg hover:bg-background"
                 onClick={handleNext}
-                aria-label="Next products"
+                aria-label={t(translationKeys.products.nextProducts, 'Next products')}
               >
                 <ChevronRight className="h-5 w-5" />
               </Button>
