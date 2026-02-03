@@ -32,8 +32,8 @@ export function ProductCardCompact({ product }: ProductCardCompactProps) {
   return (
     <Link href={`/products/${product.slug}`} className="block h-full">
       <Card className="h-full transition-shadow hover:shadow-md">
-        <CardHeader className="p-4 pb-3">
-          <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-muted">
+        <CardHeader className="p-2 pb-1">
+          <div className="relative aspect-square w-full overflow-hidden rounded bg-muted">
             {imageUrl && imageUrl !== '/placeholder-image.jpg' ? (
               <Image
                 src={imageUrl}
@@ -43,17 +43,17 @@ export function ProductCardCompact({ product }: ProductCardCompactProps) {
               />
             ) : (
               <div className="flex h-full items-center justify-center">
-                <span className="text-muted-foreground text-sm">No Image</span>
+                <span className="text-muted-foreground text-[10px]">No Image</span>
               </div>
             )}
           </div>
         </CardHeader>
-        <CardContent className="p-4 pt-3">
-          <CardTitle className="mb-1.5 text-base line-clamp-2 leading-tight font-medium">{product.name}</CardTitle>
-          <CardDescription className="mb-1.5 text-sm leading-tight">
+        <CardContent className="p-2 pt-1">
+          <CardTitle className="mb-0.5 text-xs line-clamp-2 leading-tight font-medium">{product.name}</CardTitle>
+          <CardDescription className="mb-0.5 text-[10px] leading-tight">
             {product.brand.name}
           </CardDescription>
-          <p className="text-lg font-semibold">{minPrice}</p>
+          <p className="text-sm font-semibold">{minPrice}</p>
         </CardContent>
       </Card>
     </Link>

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
 import { useDefaultLanguage, useLanguages } from '../hooks/use-languages';
 import { clearCachedTranslations } from '../utils/translation-cache';
@@ -20,6 +21,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const { data: languages = [], isLoading: languagesLoading } = useLanguages();
   const { data: defaultLanguage, isLoading: defaultLoading } = useDefaultLanguage();
   const queryClient = useQueryClient();
+  const router = useRouter();
 
   // Filter to active languages only (English is guaranteed to exist in DB)
   const activeLanguages = React.useMemo(() => {
@@ -63,15 +65,21 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     setPreviousLanguage(lang);
     setCurrentLanguageState(lang);
     
-    // Set cookie
-    document.cookie = `lang=${lang}; path=/; max-age=${365 * 24 * 60 * 60}`; // 1 year
+    // Set cookie with SameSite attribute to ensure it's available immediately
+    document.cookie = `lang=${lang}; path=/; max-age=${365 * 24 * 60 * 60}; SameSite=Lax`; // 1 year
     
     // Invalidate React Query cache for new language to force refetch
     queryClient.invalidateQueries({ queryKey: ['translations', lang] });
     
-    // Reload to apply language change
-    window.location.reload();
-  }, [previousLanguage, queryClient]);
+    // Invalidate all queries to refetch data with new language
+    queryClient.invalidateQueries();
+    
+    // Use Next.js router refresh to update server components without full page reload
+    // Small delay to ensure cookie is set before refresh
+    setTimeout(() => {
+      router.refresh();
+    }, 100);
+  }, [previousLanguage, queryClient, router]);
 
   const value: LanguageContextType = {
     currentLanguage,
