@@ -1,0 +1,330 @@
+'use client';
+
+import { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Elements, PaymentElement, useElements, useStripe } from '@stripe/react-stripe-js';
+import { loadStripe } from '@stripe/stripe-js';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useToast } from '@/hooks/use-toast';
+import { apiService, createPaymentIntent } from '@/lib/api/client';
+import { useCartStore } from '@/lib/store/cart-store';
+import { formatPrice } from '@/lib/utils';
+import { isAuthenticated } from '@/lib/auth';
+
+const stripeKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '';
+const stripePromise = stripeKey ? loadStripe(stripeKey) : null;
+
+function PaymentForm({ orderId, email }: { orderId: string; email: string }) {
+  const router = useRouter();
+  const stripe = useStripe();
+  const elements = useElements();
+  const { toast } = useToast();
+  const { clearCart } = useCartStore();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
+  const isLoggedIn = isAuthenticated();
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!stripe || !elements) {
+      return;
+    }
+
+    setIsSubmitting(true);
+    const { error, paymentIntent } = await stripe.confirmPayment({
+      elements,
+      confirmParams: {
+        return_url: `${window.location.origin}/checkout/payment?orderId=${orderId}&email=${encodeURIComponent(email)}`,
+      },
+      redirect: 'if_required',
+    });
+
+    if (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Payment failed',
+        description: error.message || 'Please try again.',
+      });
+      setIsSubmitting(false);
+      return;
+    }
+
+    if (paymentIntent?.status === 'succeeded') {
+      await clearCart();
+      setIsSuccess(true);
+      toast({
+        variant: 'success',
+        title: 'Payment confirmed',
+        description: 'Your order has been placed successfully.',
+      });
+    }
+    setIsSubmitting(false);
+  };
+
+  if (isSuccess) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Order placed</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-muted-foreground">Payment confirmed. Thank you for your order.</p>
+          {isLoggedIn ? (
+            <Button onClick={() => router.push('/user/profile')}>View my orders</Button>
+          ) : (
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Create an account to save your details and track orders faster next time.
+              </p>
+              <Button asChild>
+                <Link href={`/auth/register?email=${encodeURIComponent(email)}`}>Create account</Link>
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <PaymentElement />
+      <Button type="submit" disabled={isSubmitting || !stripe || !elements} className="w-full">
+        {isSubmitting ? 'Processing...' : 'Pay now'}
+      </Button>
+    </form>
+  );
+}
+
+export default function CheckoutPaymentPage() {
+  const searchParams = useSearchParams();
+  const { toast } = useToast();
+  const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [order, setOrder] = useState<any | null>(null);
+  const [orderId, setOrderId] = useState<string>('');
+  const [email, setEmail] = useState<string>('');
+  const [isPreparing, setIsPreparing] = useState(true);
+  const [prepError, setPrepError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    const prepareOrder = async () => {
+      if (typeof window === 'undefined') {
+        return;
+      }
+      setIsPreparing(true);
+      setPrepError(null);
+      try {
+        const searchOrderId = searchParams.get('orderId') || '';
+        const searchEmail = searchParams.get('email') || '';
+        const storedOrderId = localStorage.getItem('checkoutOrderId') || '';
+        const storedEmail = localStorage.getItem('checkoutEmail') || '';
+
+        if (searchOrderId && searchEmail) {
+          localStorage.setItem('checkoutOrderId', searchOrderId);
+          localStorage.setItem('checkoutEmail', searchEmail);
+          if (!isMounted) return;
+          setOrderId(searchOrderId);
+          setEmail(searchEmail);
+          setIsPreparing(false);
+          return;
+        }
+
+        if (storedOrderId && storedEmail) {
+          if (!isMounted) return;
+          setOrderId(storedOrderId);
+          setEmail(storedEmail);
+          setIsPreparing(false);
+          return;
+        }
+
+        const payloadRaw = localStorage.getItem('checkoutPayload');
+        if (!payloadRaw) {
+          throw new Error('Checkout details are missing. Please return to checkout.');
+        }
+        const payload = JSON.parse(payloadRaw);
+        const customerEmail = payload.guestEmail || searchEmail || storedEmail || '';
+        if (!customerEmail) {
+          throw new Error('Email is missing. Please return to checkout.');
+        }
+
+        let createdOrder;
+        if (payload.isGuest) {
+          createdOrder = await apiService.post('/checkout', {
+            items: payload.items,
+            shippingAddress: payload.shippingAddress,
+            billingAddress: payload.billingAddress,
+            guestEmail: payload.guestEmail,
+            shippingMethodId: payload.shippingMethodId,
+            regionCode: payload.regionCode,
+          });
+        } else {
+          createdOrder = await apiService.post('/orders', {
+            items: payload.items,
+            shippingAddress: payload.shippingAddress,
+            billingAddress: payload.billingAddress,
+            shippingMethodId: payload.shippingMethodId,
+            regionCode: payload.regionCode,
+          });
+        }
+
+        localStorage.setItem('checkoutOrderId', createdOrder.id);
+        localStorage.setItem('checkoutEmail', customerEmail);
+
+        if (!isMounted) return;
+        setOrderId(createdOrder.id);
+        setEmail(customerEmail);
+        setIsPreparing(false);
+      } catch (error: any) {
+        if (!isMounted) return;
+        setPrepError(error.message || 'Failed to prepare payment.');
+        setIsPreparing(false);
+      }
+    };
+
+    prepareOrder();
+    return () => {
+      isMounted = false;
+    };
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (!orderId || !email || isPreparing || prepError) {
+      return;
+    }
+    let isMounted = true;
+    createPaymentIntent({ orderId, email })
+      .then((response) => {
+        if (!isMounted) return;
+        setClientSecret(response.clientSecret);
+        setOrder(response.order);
+      })
+      .catch((error: any) => {
+        if (!isMounted) return;
+        toast({
+          variant: 'destructive',
+          title: 'Payment setup failed',
+          description: error.message || 'Please refresh and try again.',
+        });
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [orderId, email, isPreparing, prepError, toast]);
+
+  const appearance = useMemo(
+    () => ({
+      theme: 'stripe',
+    }),
+    [],
+  );
+
+  if (isPreparing) {
+    return (
+      <div className="container py-16">
+        <Card className="max-w-xl mx-auto">
+          <CardHeader>
+            <CardTitle>Preparing payment</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">Setting up your order. Please wait...</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (prepError || !orderId || !email) {
+    return (
+      <div className="container py-16">
+        <Card className="max-w-xl mx-auto">
+          <CardHeader>
+            <CardTitle>Missing payment information</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">{prepError || 'Order ID or email is missing.'}</p>
+            <div className="mt-4">
+              <Button onClick={() => router.push('/checkout')}>Back to checkout</Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div className="container py-12 grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
+      <Card>
+        <CardHeader>
+          <CardTitle>Payment</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {!stripePromise ? (
+            <p className="text-sm text-muted-foreground">
+              Stripe publishable key is missing. Please configure `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`.
+            </p>
+          ) : clientSecret ? (
+            <Elements stripe={stripePromise} options={{ clientSecret, appearance }}>
+              <PaymentForm orderId={orderId} email={email} />
+            </Elements>
+          ) : (
+            <p className="text-sm text-muted-foreground">Preparing payment...</p>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Order summary</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3 text-sm text-muted-foreground">
+          {order ? (
+            <>
+              <div className="flex justify-between">
+                <span>Subtotal</span>
+                <span>{formatPrice(order.subtotal)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Shipping</span>
+                <span>{formatPrice(order.shipping)}</span>
+              </div>
+              <div className="flex justify-between font-semibold text-foreground">
+                <span>Total</span>
+                <span>{formatPrice(order.total)}</span>
+              </div>
+              <div className="pt-3 border-t space-y-2">
+                {order.items?.map((item: any) => (
+                  <div key={item.id} className="flex justify-between">
+                    <span className="truncate">
+                      {item.productVariant.product.name}
+                      {item.productVariant.name ? ` - ${item.productVariant.name}` : ''}
+                    </span>
+                    <span>x{item.quantity}</span>
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : (
+            <p>Loading order...</p>
+          )}
+        </CardContent>
+      </Card>
+      {!isAuthenticated() && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Save your details</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3 text-sm text-muted-foreground">
+            <p>Create an account after payment to reuse your shipping details and track orders.</p>
+            <Button asChild>
+              <Link href={`/auth/register?email=${encodeURIComponent(email)}`}>Create account</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}

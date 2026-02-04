@@ -2,6 +2,7 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
 import * as bcrypt from 'bcrypt';
+import { UpdateProfileDto } from './dto/update-profile.dto';
 
 @Injectable()
 export class AuthService {
@@ -54,6 +55,10 @@ export class AuthService {
       role: 'ADMIN',
     });
     return this.login(user);
+  }
+
+  async updateProfile(userId: string, updateProfileDto: UpdateProfileDto) {
+    return this.usersService.updateProfile(userId, updateProfileDto);
   }
 }
 

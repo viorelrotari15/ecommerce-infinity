@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { FormField } from '@/components/forms/form-field';
 import { fetchAPI } from '@/lib/api';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -27,9 +27,13 @@ type RegisterFormData = yup.InferType<typeof registerSchema>;
 
 export default function RegisterPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const queryClient = useQueryClient();
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const defaultEmail = searchParams.get('email') || '';
+  const defaultFirstName = searchParams.get('firstName') || '';
+  const defaultLastName = searchParams.get('lastName') || '';
 
   const {
     register,
@@ -37,6 +41,11 @@ export default function RegisterPage() {
     formState: { errors },
   } = useForm<RegisterFormData>({
     resolver: yupResolver(registerSchema),
+    defaultValues: {
+      email: defaultEmail,
+      firstName: defaultFirstName,
+      lastName: defaultLastName,
+    },
   });
 
   const onSubmit = async (data: RegisterFormData) => {
