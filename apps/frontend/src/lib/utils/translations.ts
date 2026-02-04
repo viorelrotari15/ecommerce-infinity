@@ -56,6 +56,35 @@ export const translationKeys = {
       copyright: 'footer.company.copyright',
     },
   },
+  // Cookies
+  cookies: {
+    title: 'cookies.title',
+    description: 'cookies.description',
+    acceptAll: 'cookies.acceptAll',
+    rejectAll: 'cookies.rejectAll',
+    customize: 'cookies.customize',
+    settingsTitle: 'cookies.settingsTitle',
+    settingsDescription: 'cookies.settingsDescription',
+    savePreferences: 'cookies.savePreferences',
+    cancel: 'cookies.cancel',
+    alwaysActive: 'cookies.alwaysActive',
+    necessary: {
+      title: 'cookies.necessary.title',
+      description: 'cookies.necessary.description',
+    },
+    preferences: {
+      title: 'cookies.preferences.title',
+      description: 'cookies.preferences.description',
+    },
+    analytics: {
+      title: 'cookies.analytics.title',
+      description: 'cookies.analytics.description',
+    },
+    marketing: {
+      title: 'cookies.marketing.title',
+      description: 'cookies.marketing.description',
+    },
+  },
   // Products
   products: {
     title: 'products.title',
@@ -645,6 +674,25 @@ export function getEnglishTemplate(): Record<string, string> {
     'footer.company.name': 'E-commerce Infinity',
     'footer.company.tagline': 'Premium fragrances and luxury perfumes for every occasion.',
     'footer.company.copyright': 'All rights reserved.',
+    // Cookies
+    'cookies.title': 'We use cookies',
+    'cookies.description': 'We use cookies to enhance your browsing experience, analyze site traffic, and personalize content. By clicking "Accept All", you consent to our use of cookies.',
+    'cookies.acceptAll': 'Accept All',
+    'cookies.rejectAll': 'Reject All',
+    'cookies.customize': 'Customize',
+    'cookies.settingsTitle': 'Cookie Preferences',
+    'cookies.settingsDescription': 'Manage your cookie preferences. You can enable or disable different types of cookies below.',
+    'cookies.savePreferences': 'Save Preferences',
+    'cookies.cancel': 'Cancel',
+    'cookies.alwaysActive': 'Always Active',
+    'cookies.necessary.title': 'Necessary Cookies',
+    'cookies.necessary.description': 'These cookies are essential for the website to function properly. They cannot be disabled.',
+    'cookies.preferences.title': 'Preferences Cookies',
+    'cookies.preferences.description': 'These cookies allow the website to remember your preferences, such as language selection.',
+    'cookies.analytics.title': 'Analytics Cookies',
+    'cookies.analytics.description': 'These cookies help us understand how visitors interact with our website by collecting and reporting information anonymously.',
+    'cookies.marketing.title': 'Marketing Cookies',
+    'cookies.marketing.description': 'These cookies are used to deliver advertisements that are more relevant to you and your interests.',
     // Products
     'products.title': 'Products',
     'products.allProducts': 'All Products',

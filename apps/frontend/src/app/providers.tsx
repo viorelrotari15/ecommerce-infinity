@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useState } from 'react';
 import { ReactQueryDevtoolsWrapper } from '@/components/devtools/react-query-devtools';
 import { LanguageProvider } from '@/lib/contexts/language-context';
+import { CookieConsentProvider } from '@/lib/contexts/cookie-consent-context';
 import { ConfirmDialogProvider } from '@/contexts/confirm-dialog-context';
 
 export function Providers({ children }: { children: React.ReactNode }) {
@@ -25,13 +26,15 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <LanguageProvider>
-        <ConfirmDialogProvider>
-          {children}
-          {/* React Query DevTools - only in development, gracefully handles missing package */}
-          <ReactQueryDevtoolsWrapper initialIsOpen={false} />
-        </ConfirmDialogProvider>
-      </LanguageProvider>
+      <CookieConsentProvider>
+        <LanguageProvider>
+          <ConfirmDialogProvider>
+            {children}
+            {/* React Query DevTools - only in development, gracefully handles missing package */}
+            <ReactQueryDevtoolsWrapper initialIsOpen={false} />
+          </ConfirmDialogProvider>
+        </LanguageProvider>
+      </CookieConsentProvider>
     </QueryClientProvider>
   );
 }
