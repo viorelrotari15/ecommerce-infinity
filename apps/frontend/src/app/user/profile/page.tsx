@@ -3,6 +3,7 @@
 import { useUserProfile } from '@/lib/hooks/use-user-profile';
 import { useUserOrders } from '@/lib/hooks/use-orders';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { formatPrice } from '@/lib/utils';
 import { Loader2, User, Mail, Phone, Calendar, Package, MapPin } from 'lucide-react';
@@ -238,6 +239,11 @@ export default function UserProfilePage() {
                         <p className="font-medium">{formatPrice(parseFloat(item.price))}</p>
                       </div>
                     ))}
+                  </div>
+                  <div className="pt-4">
+                    <Link className="text-sm text-primary hover:underline" href={`/user/orders/${order.id}`}>
+                      View order details
+                    </Link>
                   </div>
                   {order.payment && (
                     <div className="mt-4 pt-4 border-t">

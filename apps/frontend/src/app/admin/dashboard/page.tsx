@@ -4,7 +4,18 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { isAdmin } from '@/lib/auth';
-import { Languages, FileText, Tag, FolderTree, Package, List, Receipt, Truck, Percent } from 'lucide-react';
+import {
+  CreditCard,
+  Languages,
+  FileText,
+  Tag,
+  FolderTree,
+  Package,
+  List,
+  Receipt,
+  Truck,
+  Percent,
+} from 'lucide-react';
 import { useT, translationKeys } from '@/lib/utils/translations';
 
 export default function AdminDashboard() {
@@ -104,6 +115,17 @@ export default function AdminDashboard() {
             </CardTitle>
             <CardDescription className="group-hover:text-white">
               {t(translationKeys.admin.dashboard.manageOrders, 'Review customer orders')}
+            </CardDescription>
+          </CardHeader>
+        </Card>
+        <Card className="group cursor-pointer hover:bg-accent hover:text-white transition-colors" onClick={() => router.push('/admin/payments')}>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <CreditCard className="h-5 w-5" />
+              Payments
+            </CardTitle>
+            <CardDescription className="group-hover:text-white">
+              View Stripe payment history
             </CardDescription>
           </CardHeader>
         </Card>

@@ -1,6 +1,7 @@
 import { Injectable, ConflictException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateUserDto } from './dto/create-user.dto';
+import { UpdateProfileDto } from '../auth/dto/update-profile.dto';
 
 @Injectable()
 export class UsersService {
@@ -50,6 +51,25 @@ export class UsersService {
   async findByEmail(email: string) {
     return this.prisma.user.findUnique({
       where: { email },
+    });
+  }
+
+  async updateProfile(id: string, updateProfileDto: UpdateProfileDto) {
+    return this.prisma.user.update({
+      where: { id },
+      data: updateProfileDto,
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        phone: true,
+        defaultShippingAddress: true,
+        defaultBillingAddress: true,
+        role: true,
+        createdAt: true,
+        updatedAt: true,
+      },
     });
   }
 }
