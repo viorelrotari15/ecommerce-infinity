@@ -6,6 +6,7 @@ import { Providers } from './providers';
 import { Header } from '@/components/layout/header';
 import { Footer } from '@/components/layout/footer';
 import { Toaster } from '@/components/ui/toaster';
+import { CookieConsentBanner } from '@/components/cookie-consent-banner';
 import { getBranding } from '@/lib/branding';
 import { WebVitalsReporter } from '@/components/monitoring/web-vitals-reporter';
 
@@ -60,6 +61,7 @@ export default function RootLayout({
             <Footer />
           </div>
           <Toaster />
+          <CookieConsentBanner />
         </Providers>
       </body>
     </html>

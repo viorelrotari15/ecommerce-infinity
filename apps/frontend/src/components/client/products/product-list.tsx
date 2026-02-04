@@ -5,6 +5,7 @@ import { ProductCard } from '@/components/server/products/product-card';
 import type { ProductsResponse } from '@/lib/api/server';
 import type { ProductFilters } from '@/lib/api/queries';
 import { useT, translationKeys } from '@/lib/utils/translations';
+import { Loader2 } from 'lucide-react';
 
 interface ProductListProps {
   initialData: ProductsResponse;
@@ -96,10 +97,16 @@ export function ProductList({ initialData, filters }: ProductListProps) {
   }
 
   return (
-    <>
+    <div className="relative">
+      {/* Loading overlay when fetching/searching */}
       {isFetching && (
-        <div className="mb-4 text-center text-sm text-muted-foreground">
-          {t(translationKeys.products.refreshing, 'Refreshing...')}
+        <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/80 backdrop-blur-sm rounded-lg">
+          <div className="flex flex-col items-center gap-3">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="text-sm font-medium text-muted-foreground">
+              {t(translationKeys.products.loading, 'Loading products...')}
+            </p>
+          </div>
         </div>
       )}
       
@@ -108,7 +115,7 @@ export function ProductList({ initialData, filters }: ProductListProps) {
           <ProductCard key={product.id} product={product} />
         ))}
       </div>
-    </>
+    </div>
   );
 }
 

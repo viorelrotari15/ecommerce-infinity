@@ -1,12 +1,14 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { fetchProduct } from '@/lib/api/server';
+import { fetchProduct, fetchProducts } from '@/lib/api/server';
 import { formatPrice } from '@/lib/utils';
 import { getProductImages, getPrimaryProductImage, getImageUrl } from '@/lib/images';
 import { ProductActions } from '@/components/client/products/product-actions';
 import { ProductImageGallery } from '@/components/client/products/product-image-gallery';
+import { SimilarProductsCarousel } from '@/components/client/products/similar-products-carousel';
 import { getServerLanguage } from '@/lib/utils/language';
+import type { Product } from '@/lib/api/server';
 
 // Force dynamic rendering to respect language cookie changes
 export const dynamic = 'force-dynamic';
@@ -79,6 +81,112 @@ export default async function ProductPage({
     : product.images && product.images.length > 0
     ? getImageUrl(product.images[0])
     : '/placeholder-image.jpg';
+
+  // Fetch similar products
+  let similarProducts: Product[] = [];
+  try {
+    // Extract category IDs from current product
+    const categoryIds = product.categories
+      .map((cat) => {
+        // Try to get category ID from different possible structures
+        const category = cat.category as any;
+        return category?.id || (cat as any)?.categoryId;
+      })
+      .filter((id): id is string => !!id);
+
+    // Extract attribute information from current product
+    const currentProductAttributeIds: string[] = [];
+    product.attributes.forEach((attr) => {
+      const attrId = (attr.attribute as any)?.id;
+      const attrValue = attr.value;
+
+      // Add the attribute ID
+      if (attrId) currentProductAttributeIds.push(attrId);
+
+      // Add the value if it's an ID
+      if (attrValue) currentProductAttributeIds.push(attrValue);
+
+      // Add subattribute IDs if they exist
+      const subattributes = (attr.attribute as any)?.subattributes || [];
+      if (subattributes.length > 0) {
+        subattributes.forEach((subattr: any) => {
+          if (subattr.id) currentProductAttributeIds.push(subattr.id);
+        });
+      }
+    });
+
+    // Fetch products by category (if categories exist)
+    if (categoryIds.length > 0) {
+      const productsResponse = await fetchProducts(
+        {
+          categoryIds,
+          limit: 30,
+        },
+        language,
+      );
+
+      // Filter products client-side
+      const candidateProducts = productsResponse.data || [];
+
+      // Filter: exclude current product and match by category OR attributes
+      similarProducts = candidateProducts
+        .filter((candidateProduct) => {
+          // Exclude current product
+          if (candidateProduct.id === product.id || candidateProduct.slug === product.slug) {
+            return false;
+          }
+
+          // Check if product matches by category
+          const hasMatchingCategory = candidateProduct.categories.some((cat) => {
+            // Try to get category ID from different possible structures
+            const category = cat.category as any;
+            const catId = category?.id || (cat as any)?.categoryId;
+            return catId && categoryIds.includes(catId);
+          });
+
+          if (hasMatchingCategory) {
+            return true;
+          }
+
+          // Check if product matches by attributes
+          if (currentProductAttributeIds.length > 0 && candidateProduct.attributes) {
+            const candidateAttributeIds: string[] = [];
+            candidateProduct.attributes.forEach((attr: any) => {
+              const attrId = attr.attribute?.id || attr.attributeId;
+              const attrValue = attr.value;
+
+              // Add the attribute ID
+              if (attrId) candidateAttributeIds.push(attrId);
+
+              // Add the value if it's an ID
+              if (attrValue) candidateAttributeIds.push(attrValue);
+
+              // Add subattribute IDs if they exist
+              if (attr.attribute?.subattributes) {
+                attr.attribute.subattributes.forEach((subattr: any) => {
+                  if (subattr.id) candidateAttributeIds.push(subattr.id);
+                });
+              }
+            });
+
+            // Check if there's any matching attribute ID
+            const hasMatchingAttribute = currentProductAttributeIds.some((id) =>
+              candidateAttributeIds.includes(id),
+            );
+
+            if (hasMatchingAttribute) {
+              return true;
+            }
+          }
+
+          return false;
+        })
+        .slice(0, 9); // Limit to 9 products
+    }
+  } catch (error) {
+    console.error('Failed to fetch similar products:', error);
+    // Continue without similar products if fetch fails
+  }
 
   return (
     <div className="w-full px-4 md:px-6 lg:px-8 py-8">
@@ -210,6 +318,11 @@ export default async function ProductPage({
           )}
         </div>
       </div>
+
+      {/* Similar Products Carousel */}
+      {similarProducts.length > 0 && (
+        <SimilarProductsCarousel products={similarProducts} currentProductSlug={product.slug} />
+      )}
     </div>
   );
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,6 +8,7 @@ import { PaginationControls } from '@/components/ui/pagination-controls';
 import { useT, translationKeys } from '@/lib/utils/translations';
 import { useCategories } from '@/lib/hooks/use-categories';
 import type { Category } from '@/lib/api/server';
+import { Loader2 } from 'lucide-react';
 
 interface CategoriesListProps {
   initialCategories: Category[];
@@ -17,11 +18,19 @@ export function CategoriesList({ initialCategories }: CategoriesListProps) {
   const t = useT();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { data: categories = initialCategories, isLoading } = useCategories(initialCategories);
+  const { data: categories = initialCategories, isLoading, isFetching } = useCategories(initialCategories);
+  const [isSearching, setIsSearching] = useState(false);
 
   const page = Number(searchParams.get('page')) || 1;
   const limit = Number(searchParams.get('limit')) || 20;
   const searchQuery = searchParams.get('search') || '';
+
+  // Track search param changes to show loading state
+  useEffect(() => {
+    setIsSearching(true);
+    const timer = setTimeout(() => setIsSearching(false), 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery, page]);
 
   // Flatten categories for pagination (include parent and children)
   const flatCategories = useMemo(() => {
@@ -73,8 +82,22 @@ export function CategoriesList({ initialCategories }: CategoriesListProps) {
     );
   }
 
+  const showLoading = isLoading || isFetching || isSearching;
+
   return (
-    <>
+    <div className="relative">
+      {/* Loading overlay when fetching/searching */}
+      {showLoading && (
+        <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/80 backdrop-blur-sm rounded-lg min-h-[400px]">
+          <div className="flex flex-col items-center gap-3">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="text-sm font-medium text-muted-foreground">
+              {t(translationKeys.categories.loading, 'Loading categories...')}
+            </p>
+          </div>
+        </div>
+      )}
+      
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {paginatedCategories.map((category) => (
           <Link 
@@ -124,6 +147,6 @@ export function CategoriesList({ initialCategories }: CategoriesListProps) {
           baseUrl="/categories"
         />
       )}
-    </>
+    </div>
   );
 }

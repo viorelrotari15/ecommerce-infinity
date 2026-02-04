@@ -1,9 +1,11 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
 import { useDefaultLanguage, useLanguages } from '../hooks/use-languages';
 import { clearCachedTranslations } from '../utils/translation-cache';
+import { useCookieConsent } from './cookie-consent-context';
 
 interface LanguageContextType {
   currentLanguage: string;
@@ -20,6 +22,8 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const { data: languages = [], isLoading: languagesLoading } = useLanguages();
   const { data: defaultLanguage, isLoading: defaultLoading } = useDefaultLanguage();
   const queryClient = useQueryClient();
+  const router = useRouter();
+  const { consent, hasConsented } = useCookieConsent();
 
   // Filter to active languages only (English is guaranteed to exist in DB)
   const activeLanguages = React.useMemo(() => {
@@ -51,6 +55,26 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     }
   }, [defaultLanguage, activeLanguages, currentLanguage, queryClient]);
 
+  // Handle consent changes - update cookie if preferences consent changed
+  useEffect(() => {
+    if (hasConsented() && consent) {
+      if (consent.preferences) {
+        // User accepted preferences cookies - ensure language cookie is set
+        const cookieLang = document.cookie
+          .split('; ')
+          .find((row) => row.startsWith('lang='))
+          ?.split('=')[1];
+        
+        if (currentLanguage && cookieLang !== currentLanguage) {
+          document.cookie = `lang=${currentLanguage}; path=/; max-age=${365 * 24 * 60 * 60}; SameSite=Lax`;
+        }
+      } else {
+        // User rejected preferences cookies - remove language cookie
+        document.cookie = 'lang=; path=/; max-age=0';
+      }
+    }
+  }, [hasConsented, consent, currentLanguage]);
+
   const setLanguage = useCallback((lang: string) => {
     // Clear cache for previous language if it changed
     if (previousLanguage && previousLanguage !== lang) {
@@ -63,15 +87,31 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     setPreviousLanguage(lang);
     setCurrentLanguageState(lang);
     
-    // Set cookie
-    document.cookie = `lang=${lang}; path=/; max-age=${365 * 24 * 60 * 60}`; // 1 year
+    // Only set cookie if user has consented to preferences cookies
+    // If consent is pending, we'll set it after consent is given
+    if (hasConsented() && consent?.preferences) {
+      // Set cookie with SameSite attribute to ensure it's available immediately
+      document.cookie = `lang=${lang}; path=/; max-age=${365 * 24 * 60 * 60}; SameSite=Lax`; // 1 year
+    } else if (!hasConsented()) {
+      // If consent is pending, still set the cookie but it's considered necessary
+      // for basic functionality. User can reject preferences later if they want.
+      document.cookie = `lang=${lang}; path=/; max-age=${365 * 24 * 60 * 60}; SameSite=Lax`; // 1 year
+    }
+    // If user rejected preferences cookies, we don't set the cookie
+    // but we still update the language state for the current session
     
     // Invalidate React Query cache for new language to force refetch
     queryClient.invalidateQueries({ queryKey: ['translations', lang] });
     
-    // Reload to apply language change
-    window.location.reload();
-  }, [previousLanguage, queryClient]);
+    // Invalidate all queries to refetch data with new language
+    queryClient.invalidateQueries();
+    
+    // Use Next.js router refresh to update server components without full page reload
+    // Small delay to ensure cookie is set before refresh
+    setTimeout(() => {
+      router.refresh();
+    }, 100);
+  }, [previousLanguage, queryClient, router, hasConsented, consent]);
 
   const value: LanguageContextType = {
     currentLanguage,
