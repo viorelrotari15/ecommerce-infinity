@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatPrice } from '@/lib/utils';
 import { isAdmin } from '@/lib/auth';
+import Link from 'next/link';
 import { useAdminOrders } from '@/lib/hooks/use-orders';
 import { useT, translationKeys } from '@/lib/utils/translations';
 
@@ -92,6 +93,11 @@ export default function AdminOrdersPage() {
                       {t(translationKeys.admin.orders.total, 'Total')}: {formatPrice(order.total)}
                     </span>
                   </div>
+                  {order.trackingNumber && (
+                    <p className="text-sm text-muted-foreground">
+                      {t(translationKeys.admin.orders.trackingLabel, 'Tracking DHL')}: {order.trackingNumber}
+                    </p>
+                  )}
                   <div className="space-y-1 text-sm">
                     <p className="font-medium">{t(translationKeys.admin.orders.items, 'Items')}</p>
                     {order.items.map((item) => (
@@ -100,6 +106,11 @@ export default function AdminOrdersPage() {
                         <span>x{item.quantity}</span>
                       </div>
                     ))}
+                  </div>
+                  <div className="pt-2">
+                    <Link className="text-sm text-primary hover:underline" href={`/admin/orders/${order.id}`}>
+                      {t(translationKeys.admin.orders.viewDetails, 'View details')}
+                    </Link>
                   </div>
                 </CardContent>
               </Card>

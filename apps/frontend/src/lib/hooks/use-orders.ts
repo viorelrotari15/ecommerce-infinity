@@ -1,7 +1,13 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
-import { apiService } from '@/lib/api/client';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import {
+  apiService,
+  getAdminOrderById,
+  getUserOrderById,
+  listStripePayments,
+  updateAdminOrderStatus,
+} from '@/lib/api/client';
 import { getAuthToken } from '@/lib/auth';
 
 export interface OrderItem {
@@ -37,6 +43,7 @@ export interface Order {
   tax: string;
   shipping: string;
   guestEmail?: string | null;
+  trackingNumber?: string | null;
   shippingAddress: any;
   billingAddress: any;
   createdAt: string;
@@ -85,3 +92,60 @@ export function useAdminOrders() {
   });
 }
 
+export function useAdminOrder(orderId?: string) {
+  const token = getAuthToken();
+
+  return useQuery({
+    queryKey: ['admin', 'orders', orderId],
+    queryFn: async () => {
+      if (!orderId) {
+        throw new Error('Order ID is required');
+      }
+      if (!token) throw new Error('Not authenticated');
+      return getAdminOrderById(orderId);
+    },
+    enabled: !!token && !!orderId,
+    staleTime: 60 * 1000,
+  });
+}
+
+export function useUserOrder(orderId?: string) {
+  const token = getAuthToken();
+
+  return useQuery({
+    queryKey: ['user', 'orders', orderId],
+    queryFn: async () => {
+      if (!orderId) {
+        throw new Error('Order ID is required');
+      }
+      if (!token) throw new Error('Not authenticated');
+      return getUserOrderById(orderId);
+    },
+    enabled: !!token && !!orderId,
+    staleTime: 60 * 1000,
+  });
+}
+
+export function useUpdateAdminOrderStatus() {
+  return useMutation({
+    mutationFn: (payload: { orderId: string; status: string; trackingNumber?: string }) =>
+      updateAdminOrderStatus(payload.orderId, {
+        status: payload.status,
+        trackingNumber: payload.trackingNumber,
+      }),
+  });
+}
+
+export function useStripePaymentHistory(params?: { orderId?: string; email?: string; limit?: number }) {
+  const token = getAuthToken();
+
+  return useQuery({
+    queryKey: ['admin', 'payments', params],
+    queryFn: async () => {
+      if (!token) throw new Error('Not authenticated');
+      return listStripePayments(params);
+    },
+    enabled: !!token,
+    staleTime: 60 * 1000,
+  });
+}

@@ -2,9 +2,11 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateOrderDto } from './dto/create-order.dto';
+import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { ShippingCalculatorService } from '../pricing/shipping-calculator.service';
 import { TaxCalculatorService } from '../pricing/tax-calculator.service';
 import { MetricsService } from '../metrics/metrics.service';
+import { EmailService } from '../email/email.service';
 
 @Injectable()
 export class OrdersService {
@@ -13,6 +15,7 @@ export class OrdersService {
     private taxCalculator: TaxCalculatorService,
     private shippingCalculator: ShippingCalculatorService,
     private metricsService: MetricsService,
+    private emailService: EmailService,
   ) {}
 
   private async buildLineItems(items: { variantId: string; quantity: number }[]) {
@@ -143,6 +146,7 @@ export class OrdersService {
             lastName: true,
           },
         },
+        region: true,
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -175,12 +179,90 @@ export class OrdersService {
             lastName: true,
           },
         },
+        region: true,
       },
     });
 
     if (!order) {
       throw new NotFoundException(`Order ${id} not found`);
     }
+
+    return order;
+  }
+
+  async findOneAdmin(id: string) {
+    const order = await this.prisma.order.findUnique({
+      where: { id },
+      include: {
+        items: {
+          include: {
+            productVariant: {
+              include: {
+                product: true,
+              },
+            },
+          },
+        },
+        payment: true,
+        user: {
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+        region: true,
+      },
+    });
+
+    if (!order) {
+      throw new NotFoundException(`Order ${id} not found`);
+    }
+
+    return order;
+  }
+
+  async updateStatus(id: string, dto: UpdateOrderStatusDto) {
+    if (dto.status === 'SHIPPED' && !dto.trackingNumber) {
+      throw new BadRequestException('Tracking number is required when order is shipped');
+    }
+
+    const data: Prisma.OrderUpdateInput = {
+      status: dto.status,
+    };
+
+    if (dto.trackingNumber !== undefined) {
+      data.trackingNumber = dto.trackingNumber || null;
+    }
+
+    const order = await this.prisma.order.update({
+      where: { id },
+      data,
+      include: {
+        items: {
+          include: {
+            productVariant: {
+              include: {
+                product: true,
+              },
+            },
+          },
+        },
+        payment: true,
+        user: {
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+        region: true,
+      },
+    });
+
+    await this.emailService.sendOrderStatusUpdate(order);
 
     return order;
   }

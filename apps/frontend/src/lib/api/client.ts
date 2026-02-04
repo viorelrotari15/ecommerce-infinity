@@ -311,6 +311,50 @@ export async function createGuestCheckout(payload: {
   return apiService.post('/checkout', payload);
 }
 
+export interface PaymentIntentResponse {
+  clientSecret: string;
+  paymentIntentId: string;
+  order: any;
+}
+
+export async function createPaymentIntent(payload: {
+  orderId: string;
+  email: string;
+}): Promise<PaymentIntentResponse> {
+  return apiService.post('/payments/intent', payload);
+}
+
+export async function getAdminOrderById(orderId: string) {
+  return apiService.get(`/orders/admin/${orderId}`);
+}
+
+export async function updateAdminOrderStatus(orderId: string, payload: { status: string; trackingNumber?: string }) {
+  return apiService.patch(`/orders/admin/${orderId}`, payload);
+}
+
+export async function getUserOrderById(orderId: string) {
+  return apiService.get(`/orders/${orderId}`);
+}
+
+export interface StripePaymentHistoryItem {
+  id: string;
+  amount: number;
+  currency: string;
+  status: string;
+  created: number;
+  metadata: Record<string, string>;
+  order: any | null;
+}
+
+export async function listStripePayments(params?: { orderId?: string; email?: string; limit?: number }) {
+  const query = new URLSearchParams();
+  if (params?.orderId) query.set('orderId', params.orderId);
+  if (params?.email) query.set('email', params.email);
+  if (params?.limit) query.set('limit', String(params.limit));
+  const suffix = query.toString() ? `?${query.toString()}` : '';
+  return apiService.get<StripePaymentHistoryItem[]>(`/payments/stripe/history${suffix}`);
+}
+
 export async function listAdminRegions() {
   return apiService.get('/pricing/admin/regions');
 }
