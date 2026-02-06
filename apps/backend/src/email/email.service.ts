@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import type { Transporter } from 'nodemailer';
 import * as nodemailerNamespace from 'nodemailer';
 
 // Handle CJS/ESM interop: default import can be undefined in compiled output
@@ -42,7 +43,7 @@ type EmailOrder = {
 
 @Injectable()
 export class EmailService {
-  private transporter: nodemailer.Transporter | null = null;
+  private transporter: Transporter | null = null;
   private isConfigured = false;
 
   constructor(private configService: ConfigService) {

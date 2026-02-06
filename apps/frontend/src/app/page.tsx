@@ -5,16 +5,20 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { fetchFeaturedProducts } from '@/lib/api/server';
 import { formatPrice } from '@/lib/utils';
 import { getPrimaryProductImage, getImageUrl } from '@/lib/images';
+import { getServerLanguage } from '@/lib/utils/language';
 import Image from 'next/image';
+import { AdvertisementCarousel } from '@/components/client/home/advertisement-carousel';
 
 export const metadata: Metadata = {
   title: 'Home',
   description: 'Discover premium fragrances and luxury perfumes',
 };
 
-async function getFeaturedProducts() {
+export const dynamic = 'force-dynamic';
+
+async function getFeaturedProducts(language?: string) {
   try {
-    const products = await fetchFeaturedProducts(6);
+    const products = await fetchFeaturedProducts(6, language);
     return products;
   } catch (error) {
     console.error('Failed to fetch featured products:', error);
@@ -22,11 +26,19 @@ async function getFeaturedProducts() {
   }
 }
 
-export default async function HomePage() {
-  const featuredProducts = await getFeaturedProducts();
+export default async function HomePage({
+  searchParams,
+}: {
+  searchParams?: { [key: string]: string | string[] | undefined };
+}) {
+  const language = await getServerLanguage(searchParams);
+  const featuredProducts = await getFeaturedProducts(language);
 
   return (
     <div className="flex flex-col">
+      {/* Advertisement Carousel (full width, before hero) */}
+      <AdvertisementCarousel />
+
       {/* Hero Section */}
       <section className="w-full px-4 md:px-6 lg:px-8 py-20 md:py-32">
         <div className="mx-auto max-w-3xl text-center">

@@ -23,8 +23,12 @@ async function getCategories(language?: string) {
   }
 }
 
-export default async function CategoriesPage() {
-  const language = await getServerLanguage();
+export default async function CategoriesPage({
+  searchParams,
+}: {
+  searchParams?: { [key: string]: string | string[] | undefined };
+}) {
+  const language = await getServerLanguage(searchParams);
   const categories = await getCategories(language);
 
   return (

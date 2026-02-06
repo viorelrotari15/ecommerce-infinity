@@ -45,3 +45,9 @@ export const pricingQueryKeys = {
     [...pricingQueryKeys.all, 'shippingRules', shippingMethodId ?? 'all'] as const,
 };
 
+export const carouselQueryKeys = {
+  all: ['carousel'] as const,
+  list: () => [...carouselQueryKeys.all, 'list'] as const,
+  admin: () => [...carouselQueryKeys.all, 'admin'] as const,
+};
+

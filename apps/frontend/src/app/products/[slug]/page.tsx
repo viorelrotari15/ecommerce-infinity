@@ -25,10 +25,12 @@ async function getProduct(slug: string, language?: string) {
 
 export async function generateMetadata({
   params,
+  searchParams,
 }: {
   params: { slug: string };
+  searchParams?: { [key: string]: string | string[] | undefined };
 }): Promise<Metadata> {
-  const language = await getServerLanguage();
+  const language = await getServerLanguage(searchParams);
   const product = await getProduct(params.slug, language);
 
   if (!product) {
@@ -54,10 +56,12 @@ export async function generateMetadata({
 
 export default async function ProductPage({
   params,
+  searchParams,
 }: {
   params: { slug: string };
+  searchParams?: { [key: string]: string | string[] | undefined };
 }) {
-  const language = await getServerLanguage();
+  const language = await getServerLanguage(searchParams);
   const product = await getProduct(params.slug, language);
 
   if (!product) {

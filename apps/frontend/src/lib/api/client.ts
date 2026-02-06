@@ -211,6 +211,89 @@ export async function deleteImage(imageId: string): Promise<void> {
 }
 
 /**
+ * Carousel API
+ */
+export interface CarouselSlideResponse {
+  id: string;
+  order: number;
+  link: string | null;
+  desktopUrl: string;
+  mobileUrl: string | null;
+}
+
+export interface CarouselSlideAdminResponse extends CarouselSlideResponse {
+  desktopFilepath: string;
+  mobileFilepath: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export async function getCarouselSlides(): Promise<CarouselSlideResponse[]> {
+  const url = `${API_URL}/api/carousel`;
+  const language = getCurrentLanguage();
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: { 'x-language': language },
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.message || err.error || response.statusText);
+  }
+  return response.json();
+}
+
+export async function getCarouselSlidesAdmin(): Promise<CarouselSlideAdminResponse[]> {
+  return apiService.get<CarouselSlideAdminResponse[]>('/carousel/admin');
+}
+
+export async function createCarouselSlide(
+  formData: FormData,
+  token: string,
+): Promise<CarouselSlideResponse> {
+  const url = `${API_URL}/api/carousel`;
+  const language = getCurrentLanguage();
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'x-language': language,
+    },
+    body: formData,
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.message || err.error || response.statusText);
+  }
+  return response.json();
+}
+
+export async function updateCarouselSlide(
+  id: string,
+  formData: FormData,
+  token: string,
+): Promise<CarouselSlideResponse> {
+  const url = `${API_URL}/api/carousel/${id}`;
+  const language = getCurrentLanguage();
+  const response = await fetch(url, {
+    method: 'PATCH',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'x-language': language,
+    },
+    body: formData,
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.message || err.error || response.statusText);
+  }
+  return response.json();
+}
+
+export async function deleteCarouselSlide(id: string): Promise<void> {
+  return apiService.delete(`/carousel/${id}`).then(() => undefined);
+}
+
+/**
  * Set primary image
  */
 export async function setPrimaryImage(imageId: string): Promise<void> {
@@ -324,8 +407,32 @@ export async function createPaymentIntent(payload: {
   return apiService.post('/payments/intent', payload);
 }
 
-export async function getAdminOrderById(orderId: string) {
-  return apiService.get(`/orders/admin/${orderId}`);
+/** Admin order detail (GET /orders/admin/:id) */
+export interface AdminOrderResponse {
+  id: string;
+  status: string;
+  trackingNumber?: string | null;
+  total: string;
+  subtotal: string;
+  tax: string;
+  shipping: string;
+  guestEmail?: string | null;
+  shippingAddress: unknown;
+  billingAddress: unknown;
+  createdAt: string;
+  updatedAt: string;
+  items: Array<{
+    id: string;
+    quantity: number;
+    price: string;
+    productVariant: { id: string; name: string | null; sku: string; product: { id: string; name: string; slug: string } };
+  }>;
+  payment: { id: string; amount: string; status: string; method: string; transactionId: string | null; createdAt: string } | null;
+  user?: { id: string; email: string; firstName: string; lastName: string } | null;
+}
+
+export async function getAdminOrderById(orderId: string): Promise<AdminOrderResponse> {
+  return apiService.get<AdminOrderResponse>(`/orders/admin/${orderId}`);
 }
 
 export async function updateAdminOrderStatus(orderId: string, payload: { status: string; trackingNumber?: string }) {
