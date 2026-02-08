@@ -8,13 +8,18 @@ import {
   createCarouselSlide,
   updateCarouselSlide,
   deleteCarouselSlide,
+  type CarouselSlideResponse,
 } from '@/lib/api/client';
 import { carouselQueryKeys } from '@/lib/api/queries';
 
-export function useCarouselSlides() {
+const CAROUSEL_STALE_MS = 5 * 60 * 1000; // 5 minutes – carousel changes rarely
+
+export function useCarouselSlides(initialData?: CarouselSlideResponse[]) {
   return useQuery({
     queryKey: carouselQueryKeys.list(),
     queryFn: getCarouselSlides,
+    initialData,
+    staleTime: CAROUSEL_STALE_MS,
   });
 }
 

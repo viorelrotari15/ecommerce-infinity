@@ -2,12 +2,15 @@ import { Metadata } from 'next';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { fetchFeaturedProducts } from '@/lib/api/server';
+import { fetchFeaturedProducts, fetchCarouselSlides } from '@/lib/api/server';
 import { formatPrice } from '@/lib/utils';
 import { getPrimaryProductImage, getImageUrl } from '@/lib/images';
 import { getServerLanguage } from '@/lib/utils/language';
 import Image from 'next/image';
-import { AdvertisementCarousel } from '@/components/client/home/advertisement-carousel';
+import {
+  AdvertisementCarousel,
+  type CarouselSlideInitial,
+} from '@/components/client/home/advertisement-carousel';
 
 export const metadata: Metadata = {
   title: 'Home',
@@ -32,12 +35,15 @@ export default async function HomePage({
   searchParams?: { [key: string]: string | string[] | undefined };
 }) {
   const language = await getServerLanguage(searchParams);
-  const featuredProducts = await getFeaturedProducts(language);
+  const [featuredProducts, carouselSlides] = await Promise.all([
+    getFeaturedProducts(language),
+    fetchCarouselSlides(language),
+  ]);
 
   return (
     <div className="flex flex-col">
-      {/* Advertisement Carousel (full width, before hero) */}
-      <AdvertisementCarousel />
+      {/* Advertisement Carousel (full width, before hero) – data from server for fast first paint */}
+      <AdvertisementCarousel initialSlides={carouselSlides as CarouselSlideInitial} />
 
       {/* Hero Section */}
       <section className="w-full px-4 md:px-6 lg:px-8 py-20 md:py-32">

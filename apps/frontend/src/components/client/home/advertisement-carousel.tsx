@@ -11,9 +11,23 @@ import { useT, translationKeys } from '@/lib/utils/translations';
 const LOGO_SLIDE_SRC = '/branding/full_logo.svg';
 const AUTO_ADVANCE_MS = 15000; // Same as similar-products-carousel (15 seconds)
 
-export function AdvertisementCarousel() {
+/** Same shape as API; server and client can both pass this for fast first paint */
+export type CarouselSlideInitial = {
+  id: string;
+  order: number;
+  link: string | null;
+  desktopUrl: string;
+  mobileUrl: string | null;
+}[];
+
+interface AdvertisementCarouselProps {
+  /** Server-fetched slides for fast first paint; avoids client request and loading state */
+  initialSlides?: CarouselSlideInitial;
+}
+
+export function AdvertisementCarousel({ initialSlides }: AdvertisementCarouselProps) {
   const t = useT();
-  const { data: slides = [], isLoading } = useCarouselSlides();
+  const { data: slides = [], isLoading } = useCarouselSlides(initialSlides);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -73,7 +87,7 @@ export function AdvertisementCarousel() {
     }
   };
 
-  if (isLoading) return null;
+  if (isLoading && !initialSlides?.length) return null;
 
   return (
     <section className="w-full overflow-hidden" aria-label="Advertisement carousel">
@@ -107,8 +121,12 @@ export function AdvertisementCarousel() {
               </div>
             </div>
 
-            {/* Admin slides */}
-            {slides.map((slide) => {
+            {/* Admin slides – lazy-load off-screen images so only current (and adjacent) load eagerly */}
+            {slides.map((slide, index) => {
+              const slideIndex = index + 1; // 0 = logo
+              const isCurrentOrNext =
+                slideIndex === currentSlide ||
+                slideIndex === (currentSlide + 1) % totalSlides;
               const content = (
                 <div className="relative w-full h-full min-h-[180px] md:min-h-[280px] aspect-[5/2] bg-muted">
                   <picture className="block w-full h-full">
@@ -123,6 +141,8 @@ export function AdvertisementCarousel() {
                       alt=""
                       className="w-full h-full object-cover"
                       sizes="100vw"
+                      loading={isCurrentOrNext ? 'eager' : 'lazy'}
+                      decoding={isCurrentOrNext ? 'sync' : 'async'}
                     />
                   </picture>
                 </div>

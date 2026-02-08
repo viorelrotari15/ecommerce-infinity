@@ -368,3 +368,35 @@ export async function fetchFeaturedProducts(
   return data.data || [];
 }
 
+/**
+ * Carousel slide (public API shape)
+ */
+export interface CarouselSlideServer {
+  id: string;
+  order: number;
+  link: string | null;
+  desktopUrl: string;
+  mobileUrl: string | null;
+}
+
+/**
+ * Fetch carousel slides for the home page (server-side).
+ * Cache 5 minutes so the carousel can render with data on first paint.
+ */
+export async function fetchCarouselSlides(
+  language?: string,
+): Promise<CarouselSlideServer[]> {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...(language ? { 'x-language': language } : {}),
+  };
+  const response = await fetch(`${API_URL}/api/carousel`, {
+    next: { revalidate: 300 }, // 5 minutes
+    headers,
+  });
+  if (!response.ok) {
+    return [];
+  }
+  return response.json();
+}
+
