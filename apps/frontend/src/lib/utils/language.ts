@@ -2,14 +2,16 @@ import { cookies } from 'next/headers';
 
 /**
  * Get language from request (SSR)
- * Priority: query param > cookie > header > default
+ * Priority: query param (?lang=) > cookie (lang) > default
  */
 export async function getServerLanguage(
   searchParams?: { [key: string]: string | string[] | undefined },
 ): Promise<string> {
-  // 1. Check query param
-  if (searchParams?.lang && typeof searchParams.lang === 'string') {
-    return searchParams.lang;
+  // 1. Check query param (Next.js can give string or string[] for multiple ?lang=)
+  const langParam = searchParams?.lang;
+  if (langParam) {
+    const lang = Array.isArray(langParam) ? langParam[0] : langParam;
+    if (lang && typeof lang === 'string') return lang;
   }
 
   // 2. Check cookie
@@ -19,7 +21,7 @@ export async function getServerLanguage(
     return cookieLang;
   }
 
-  // 3. Default to 'en' (will be overridden by backend default)
+  // 3. Default to 'en'
   return 'en';
 }
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ProductCardCompact } from '@/components/server/products/product-card-compact';
@@ -17,67 +17,43 @@ export function SimilarProductsCarousel({ products, currentProductSlug }: Simila
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const [productsPerSlide, setProductsPerSlide] = useState(3);
-  const [containerWidth, setContainerWidth] = useState(0);
+  const [containerWidth, setContainerWidth] = useState(() =>
+    typeof window !== 'undefined' ? window.innerWidth : 0
+  );
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Calculate responsive products per slide based on container width
-  useEffect(() => {
-    const updateProductsPerSlide = () => {
-      if (!containerRef.current) return;
-      
-      const width = containerRef.current.offsetWidth;
-      setContainerWidth(width);
-      
-      // Calculate available width (subtract padding: px-2 sm:px-4 = 16px on mobile, 32px on desktop)
-      const padding = width >= 640 ? 32 : 16; // sm:px-4 = 32px, px-2 = 16px
-      const gap = width >= 640 ? 16 : 8; // sm:gap-4 = 16px, gap-2 = 8px
-      const availableWidth = width - padding;
-      
-      // Product card widths:
-      // - When all products fit: max 450px per product
-      // - When not all fit: max 200px per product
-      // We'll use 200px as base calculation, but allow up to 450px if space allows
-      const minProductWidth = 200; // Minimum width per product
-      const maxProductWidth = 450; // Maximum width when all products fit
-      
-      // Calculate how many products can fit with minimum width
-      const productsWithMinWidth = Math.floor((availableWidth + gap) / (minProductWidth + gap));
-      
-      // Calculate how many products can fit with maximum width (when all fit on one slide)
-      const productsWithMaxWidth = Math.floor((availableWidth + gap) / (maxProductWidth + gap));
-      
-      // Determine products per slide:
-      // - If 3 or more can fit with min width, use 3 (max allowed)
-      // - If 2 can fit, use 2
-      // - Otherwise use 1
-      let calculatedProductsPerSlide = 1;
-      
-      if (productsWithMinWidth >= 3) {
-        calculatedProductsPerSlide = 3;
-      } else if (productsWithMinWidth >= 2) {
-        calculatedProductsPerSlide = 2;
-      } else {
-        calculatedProductsPerSlide = 1;
-      }
-      
-      // However, if we have limited products and they can all fit with max width,
-      // we might want to show fewer per slide to make them bigger
-      // But the requirement is max 3 per slide, so we stick with the calculation above
-      
-      setProductsPerSlide(calculatedProductsPerSlide);
-    };
+  const updateProductsPerSlide = useRef(() => {
+    if (!containerRef.current) return;
+    const width = containerRef.current.offsetWidth;
+    setContainerWidth(width);
+    const padding = width >= 640 ? 32 : 16;
+    const gap = width >= 640 ? 16 : 8;
+    const availableWidth = width - padding;
+    const minProductWidth = 200;
+    const maxProductWidth = 450;
+    const productsWithMinWidth = Math.floor((availableWidth + gap) / (minProductWidth + gap));
+    let calculatedProductsPerSlide = 1;
+    if (productsWithMinWidth >= 3) calculatedProductsPerSlide = 3;
+    else if (productsWithMinWidth >= 2) calculatedProductsPerSlide = 2;
+    setProductsPerSlide(calculatedProductsPerSlide);
+  }).current;
 
+  // Run before first paint and again after paint so card borders/layout are correct on full-screen load
+  useLayoutEffect(() => {
     updateProductsPerSlide();
-    
     const resizeObserver = new ResizeObserver(updateProductsPerSlide);
-    if (containerRef.current) {
-      resizeObserver.observe(containerRef.current);
-    }
-
+    const el = containerRef.current;
+    if (el) resizeObserver.observe(el);
+    // Force a second layout pass after paint so container height (and card bottom border) is correct
+    const rafId = requestAnimationFrame(() => {
+      requestAnimationFrame(updateProductsPerSlide);
+    });
     return () => {
+      cancelAnimationFrame(rafId);
       resizeObserver.disconnect();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- updateProductsPerSlide is stable (ref)
   }, []);
 
   // Limit to max 9 products for calculations
@@ -172,8 +148,8 @@ export function SimilarProductsCarousel({ products, currentProductSlug }: Simila
           onMouseEnter={() => setIsPaused(true)}
           onMouseLeave={() => setIsPaused(false)}
         >
-          {/* Carousel Container */}
-          <div className="overflow-hidden">
+          {/* Carousel Container - pb-1 + min-height avoid clipping card bottom border on first paint */}
+          <div className="overflow-hidden pb-1 min-h-[260px]">
             <div
               className="flex transition-transform duration-500 ease-in-out"
               style={{ 

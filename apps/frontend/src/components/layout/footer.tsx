@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { useT, translationKeys } from '@/lib/utils/translations';
 import { getBranding } from '@/lib/branding';
 
@@ -14,9 +15,16 @@ export function Footer() {
       <div className="container py-10 md:py-12">
         <div className="grid gap-8 md:grid-cols-4">
           <div>
-            <h3 className="mb-4 text-lg font-semibold">
-              {t(translationKeys.footer.company.name, branding.name)}
-            </h3>
+            <Link href="/" className="inline-block mb-4">
+              <Image
+                src="/branding/mp_logo.svg"
+                alt={branding.name}
+                width={180}
+                height={110}
+                className="h-auto w-[180px]"
+                priority={false}
+              />
+            </Link>
             <p className="text-sm text-muted-foreground">
               {t(translationKeys.footer.company.tagline, branding.tagline)}
             </p>
@@ -102,10 +110,7 @@ export function Footer() {
           </div>
         </div>
         <div className="mt-8 border-t pt-8 text-center text-sm text-muted-foreground">
-          <p>
-            &copy; {new Date().getFullYear()} {t(translationKeys.footer.company.name, branding.name)}.{' '}
-            {t(translationKeys.footer.company.copyright, 'All rights reserved.')}
-          </p>
+          <p>© 2026 MISTICO.DE All rights reserved.</p>
         </div>
       </div>
     </footer>

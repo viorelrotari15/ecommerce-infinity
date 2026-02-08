@@ -7,6 +7,7 @@ import {
   getUserOrderById,
   listStripePayments,
   updateAdminOrderStatus,
+  type AdminOrderResponse,
 } from '@/lib/api/client';
 import { getAuthToken } from '@/lib/auth';
 
@@ -95,7 +96,7 @@ export function useAdminOrders() {
 export function useAdminOrder(orderId?: string) {
   const token = getAuthToken();
 
-  return useQuery({
+  return useQuery<AdminOrderResponse>({
     queryKey: ['admin', 'orders', orderId],
     queryFn: async () => {
       if (!orderId) {

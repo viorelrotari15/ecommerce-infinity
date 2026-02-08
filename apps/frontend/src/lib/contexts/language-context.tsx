@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
 import { useDefaultLanguage, useLanguages } from '../hooks/use-languages';
 import { clearCachedTranslations } from '../utils/translation-cache';
@@ -23,6 +23,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const { data: defaultLanguage, isLoading: defaultLoading } = useDefaultLanguage();
   const queryClient = useQueryClient();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { consent, hasConsented } = useCookieConsent();
 
   // Filter to active languages only (English is guaranteed to exist in DB)
@@ -55,25 +56,26 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     }
   }, [defaultLanguage, activeLanguages, currentLanguage, queryClient]);
 
-  // Handle consent changes - update cookie if preferences consent changed
+  // Sync ?lang= from URL to cookie when the page loads so that refresh (without ?lang= in URL) still has the cookie
   useEffect(() => {
-    if (hasConsented() && consent) {
-      if (consent.preferences) {
-        // User accepted preferences cookies - ensure language cookie is set
-        const cookieLang = document.cookie
-          .split('; ')
-          .find((row) => row.startsWith('lang='))
-          ?.split('=')[1];
-        
-        if (currentLanguage && cookieLang !== currentLanguage) {
-          document.cookie = `lang=${currentLanguage}; path=/; max-age=${365 * 24 * 60 * 60}; SameSite=Lax`;
-        }
-      } else {
-        // User rejected preferences cookies - remove language cookie
-        document.cookie = 'lang=; path=/; max-age=0';
+    const langFromUrl = searchParams.get('lang');
+    if (langFromUrl && activeLanguages.some((l) => l.code === langFromUrl)) {
+      document.cookie = `lang=${langFromUrl}; path=/; max-age=${365 * 24 * 60 * 60}; SameSite=Lax`;
+    }
+  }, [searchParams, activeLanguages]);
+
+  // When user accepted preferences, keep lang cookie in sync with current language. Do not clear lang when they reject preferences (language is essential).
+  useEffect(() => {
+    if (hasConsented() && consent?.preferences && currentLanguage) {
+      const cookieLang = document.cookie
+        .split('; ')
+        .find((row) => row.startsWith('lang='))
+        ?.split('=')[1];
+      if (cookieLang !== currentLanguage) {
+        document.cookie = `lang=${currentLanguage}; path=/; max-age=${365 * 24 * 60 * 60}; SameSite=Lax`;
       }
     }
-  }, [hasConsented, consent, currentLanguage]);
+  }, [hasConsented, consent?.preferences, currentLanguage]);
 
   const setLanguage = useCallback((lang: string) => {
     // Clear cache for previous language if it changed
@@ -87,18 +89,8 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     setPreviousLanguage(lang);
     setCurrentLanguageState(lang);
     
-    // Only set cookie if user has consented to preferences cookies
-    // If consent is pending, we'll set it after consent is given
-    if (hasConsented() && consent?.preferences) {
-      // Set cookie with SameSite attribute to ensure it's available immediately
-      document.cookie = `lang=${lang}; path=/; max-age=${365 * 24 * 60 * 60}; SameSite=Lax`; // 1 year
-    } else if (!hasConsented()) {
-      // If consent is pending, still set the cookie but it's considered necessary
-      // for basic functionality. User can reject preferences later if they want.
-      document.cookie = `lang=${lang}; path=/; max-age=${365 * 24 * 60 * 60}; SameSite=Lax`; // 1 year
-    }
-    // If user rejected preferences cookies, we don't set the cookie
-    // but we still update the language state for the current session
+    // Always set the language cookie so the server sees it after refresh (language is essential for the site to function)
+    document.cookie = `lang=${lang}; path=/; max-age=${365 * 24 * 60 * 60}; SameSite=Lax`;
     
     // Invalidate React Query cache for new language to force refetch
     queryClient.invalidateQueries({ queryKey: ['translations', lang] });
@@ -106,12 +98,18 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     // Invalidate all queries to refetch data with new language
     queryClient.invalidateQueries();
     
-    // Use Next.js router refresh to update server components without full page reload
-    // Small delay to ensure cookie is set before refresh
-    setTimeout(() => {
+    // Navigate to current page with ?lang= so the server definitely receives the new language on the next request.
+    // router.refresh() alone can run before the cookie is visible to the RSC request; URL param is reliable.
+    if (typeof window !== 'undefined') {
+      const pathname = window.location.pathname;
+      const params = new URLSearchParams(window.location.search);
+      params.set('lang', lang);
+      const url = `${pathname}?${params.toString()}${window.location.hash || ''}`;
+      router.replace(url);
+    } else {
       router.refresh();
-    }, 100);
-  }, [previousLanguage, queryClient, router, hasConsented, consent]);
+    }
+  }, [previousLanguage, queryClient, router]);
 
   const value: LanguageContextType = {
     currentLanguage,

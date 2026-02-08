@@ -30,22 +30,25 @@ export function ProductCardCompact({ product }: ProductCardCompactProps) {
     : '/placeholder-image.jpg';
 
   return (
-    <Link href={`/products/${product.slug}`} className="block h-full">
+    <Link href={`/products/${product.slug}`} className="block h-full min-w-0">
       <Card className="h-full transition-shadow hover:shadow-md">
         <CardHeader className="p-2 pb-1">
-          <div className="relative aspect-square w-full overflow-hidden rounded bg-muted">
-            {imageUrl && imageUrl !== '/placeholder-image.jpg' ? (
-              <Image
-                src={imageUrl}
-                alt={product.name}
-                fill
-                className="object-cover"
-              />
-            ) : (
-              <div className="flex h-full items-center justify-center">
-                <span className="text-muted-foreground text-[10px]">No Image</span>
-              </div>
-            )}
+          {/* padding-bottom: 100% reserves square height on first layout so bottom border isn't clipped */}
+          <div className="relative w-full overflow-hidden rounded bg-muted" style={{ paddingBottom: '100%' }}>
+            <div className="absolute inset-0">
+              {imageUrl && imageUrl !== '/placeholder-image.jpg' ? (
+                <Image
+                  src={imageUrl}
+                  alt={product.name}
+                  fill
+                  className="object-cover"
+                />
+              ) : (
+                <div className="flex h-full items-center justify-center">
+                  <span className="text-muted-foreground text-[10px]">No Image</span>
+                </div>
+              )}
+            </div>
           </div>
         </CardHeader>
         <CardContent className="p-2 pt-1">

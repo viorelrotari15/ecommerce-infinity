@@ -20,7 +20,7 @@ export default async function ProductsPage({
 }: {
   searchParams: { [key: string]: string | string[] | undefined };
 }) {
-  const language = await getServerLanguage();
+  const language = await getServerLanguage(searchParams);
   // Handle multiple brands
   const brandsParam = searchParams.brands;
   const brandIds = brandsParam

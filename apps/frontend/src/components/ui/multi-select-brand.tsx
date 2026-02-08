@@ -25,8 +25,13 @@ export function MultiSelectBrand({
 
   // Get all brand IDs
   const allBrandIds = React.useMemo(() => brands.map(b => b.id), [brands]);
+  // Only consider selected IDs that exist in the current brands list (avoids stale/incorrect counts)
+  const validSelectedIds = React.useMemo(
+    () => selectedIds.filter(id => allBrandIds.includes(id)),
+    [selectedIds, allBrandIds]
+  );
   const allSelected = allBrandIds.length > 0 && allBrandIds.every(id => selectedIds.includes(id));
-  const noneSelected = selectedIds.length === 0;
+  const noneSelected = validSelectedIds.length === 0;
 
   // Get brand name by ID
   const getBrandName = (brandId: string): string => {
@@ -61,7 +66,7 @@ export function MultiSelectBrand({
     onSelectionChange(selectedIds.filter(id => id !== brandId));
   };
 
-  const selectedBrands = selectedIds.map(id => ({
+  const selectedBrands = validSelectedIds.map(id => ({
     id,
     name: getBrandName(id),
   }));
@@ -142,14 +147,14 @@ export function MultiSelectBrand({
                   </span>
                 </span>
               ))}
-              {selectedIds.length > 1 && (
+              {selectedBrands.length > 1 && (
                 <span className="md:hidden inline-flex items-center px-2 py-1 text-sm text-foreground">
-                  +{selectedIds.length - 1} more
+                  +{selectedBrands.length - 1} more
                 </span>
               )}
-              {selectedIds.length > 2 && (
+              {selectedBrands.length > 2 && (
                 <span className="hidden md:inline-flex items-center px-2 py-1 text-sm text-foreground">
-                  +{selectedIds.length - 2} more
+                  +{selectedBrands.length - 2} more
                 </span>
               )}
             </>

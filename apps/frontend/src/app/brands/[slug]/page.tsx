@@ -12,10 +12,12 @@ export const dynamic = 'force-dynamic';
 
 export async function generateMetadata({
   params,
+  searchParams,
 }: {
   params: { slug: string };
+  searchParams?: { [key: string]: string | string[] | undefined };
 }): Promise<Metadata> {
-  const language = await getServerLanguage();
+  const language = await getServerLanguage(searchParams);
   const brand = await fetchBrand(params.slug, language);
 
   if (!brand) {
@@ -37,7 +39,7 @@ export default async function BrandDetailPage({
   params: { slug: string };
   searchParams: { [key: string]: string | string[] | undefined };
 }) {
-  const language = await getServerLanguage();
+  const language = await getServerLanguage(searchParams);
   const brand = await fetchBrand(params.slug, language);
 
   if (!brand) {
