@@ -125,6 +125,7 @@ export const translationKeys = {
   carousel: {
     previousSlide: 'carousel.previousSlide',
     nextSlide: 'carousel.nextSlide',
+    scrollDown: 'carousel.scrollDown',
   },
   // Cart
   cart: {
@@ -1275,6 +1276,7 @@ export function getEnglishTemplate(): Record<string, string> {
     // Carousel (public)
     'carousel.previousSlide': 'Previous slide',
     'carousel.nextSlide': 'Next slide',
+    'carousel.scrollDown': 'Scroll to explore',
     // Common
     'common.loading': 'Loading...',
     'common.error': 'An error occurred',

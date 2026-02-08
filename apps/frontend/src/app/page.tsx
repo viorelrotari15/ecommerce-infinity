@@ -11,6 +11,7 @@ import {
   AdvertisementCarousel,
   type CarouselSlideInitial,
 } from '@/components/client/home/advertisement-carousel';
+import { ScrollDownHint } from '@/components/client/home/scroll-down-hint';
 
 export const metadata: Metadata = {
   title: 'Home',
@@ -44,9 +45,10 @@ export default async function HomePage({
     <div className="flex flex-col">
       {/* Advertisement Carousel (full width, before hero) – data from server for fast first paint */}
       <AdvertisementCarousel initialSlides={carouselSlides as CarouselSlideInitial} />
+      <ScrollDownHint />
 
       {/* Hero Section */}
-      <section className="w-full px-4 md:px-6 lg:px-8 py-20 md:py-32">
+      <section id="hero" className="w-full px-4 md:px-6 lg:px-8 py-20 md:py-32">
         <div className="mx-auto max-w-3xl text-center">
           <h1 className="mb-6 text-4xl font-bold tracking-tight md:text-6xl">
             Discover Premium Fragrances
