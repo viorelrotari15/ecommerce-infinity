@@ -36,3 +36,5 @@ restart: ## Restart all services
 rebuild: ## Rebuild and restart all services
 	docker compose up --build -d
 
+backup: ## Run PostgreSQL dump to ./backups/postgres (or BACKUP_DIR)
+	bash scripts/backup-db.sh
