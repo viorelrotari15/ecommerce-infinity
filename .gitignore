@@ -50,3 +50,5 @@ next-env.d.ts
 # Docker
 .docker/
 
+# Local backups (dumps)
+backups/

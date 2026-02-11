@@ -10,7 +10,8 @@
     "dev": "docker compose up",
     "build": "docker compose build",
     "down": "docker compose down",
-    "clean": "docker compose down -v"
+    "clean": "docker compose down -v",
+    "setup:server": "bash scripts/setup-server.sh"
   },
   "devDependencies": {
     "typescript": "^5.3.3"
