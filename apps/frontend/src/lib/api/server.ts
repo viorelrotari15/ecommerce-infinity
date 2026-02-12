@@ -106,10 +106,13 @@ export async function fetchProducts(
   
   if (params.brandId) searchParams.append('brandId', params.brandId);
   
-  // Support both categoryId (single) and categoryIds (multiple)
-  const categoryIds = params.categoryIds || (params.categoryId ? [params.categoryId] : []);
-  if (categoryIds.length > 0) {
-    categoryIds.forEach(id => {
+  // Support both categoryId (single) and categoryIds (multiple); normalize to string[]
+  const rawCategories = params.categoryIds ?? (params.categoryId ? [params.categoryId] : []);
+  const categoryIdsArr = Array.isArray(rawCategories)
+    ? rawCategories.flatMap((id) => (typeof id === 'string' ? [id] : id))
+    : [rawCategories];
+  if (categoryIdsArr.length > 0) {
+    categoryIdsArr.forEach((id) => {
       if (id && id !== 'all') {
         searchParams.append('categoryIds', id);
       }
