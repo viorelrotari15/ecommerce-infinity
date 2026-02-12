@@ -151,6 +151,19 @@ open_firewall() {
   ok "Firewall updated. Check: sudo ufw status"
 }
 
+resolve_failed_migration() {
+  info "Resolving failed Prisma migration (add_taxes) so backend can start..."
+  if docker compose -f docker-compose.prod.yml -f docker-compose.tunnel.yml run --rm backend npx prisma migrate resolve --rolled-back "20260121182418_add_taxes" 2>/dev/null; then
+    ok "Migration marked as rolled back. Rebuilding and starting backend..."
+    docker compose -f docker-compose.prod.yml -f docker-compose.tunnel.yml up -d --build backend
+    ok "Backend should start and re-run migrations. Check with option 4 (Stack status)."
+  else
+    err "Resolve failed. Ensure you have the latest code (git pull) with the fixed migration, then run:"
+    echo "  docker compose -f docker-compose.prod.yml -f docker-compose.tunnel.yml run --rm backend npx prisma migrate resolve --rolled-back \"20260121182418_add_taxes\""
+    echo "  docker compose -f docker-compose.prod.yml -f docker-compose.tunnel.yml up -d --build backend"
+  fi
+}
+
 main_menu() {
   check_project
   while true; do
@@ -166,9 +179,10 @@ main_menu() {
     echo "  8) Backup database"
     echo "  9) View logs (follow)"
     echo " 10) Open firewall (ports 22,80,443,3000,3001,9000,9001)"
+    echo " 11) Resolve failed Prisma migration & restart backend"
     echo "  0) Exit"
     echo ""
-    read -p "Choice (0–10): " -r choice
+    read -p "Choice (0–11): " -r choice
     case "$choice" in
       1) install_docker ;;
       2) setup_env ;;
@@ -180,6 +194,7 @@ main_menu() {
       8) backup_db ;;
       9) show_logs ;;
       10) open_firewall ;;
+      11) resolve_failed_migration ;;
       0) ok "Bye."; exit 0 ;;
       *) warn "Invalid choice." ;;
     esac
