@@ -218,7 +218,7 @@ export default function CheckoutPaymentPage() {
 
   const appearance = useMemo(
     () => ({
-      theme: 'stripe',
+      theme: 'stripe' as const,
     }),
     [],
   );
