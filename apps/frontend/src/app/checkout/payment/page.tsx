@@ -99,6 +99,7 @@ function PaymentForm({ orderId, email }: { orderId: string; email: string }) {
 }
 
 export default function CheckoutPaymentPage() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
   const [clientSecret, setClientSecret] = useState<string | null>(null);
