@@ -27,7 +27,7 @@ EXCEPTION
 END $$;
 
 -- CreateTable
-CREATE TABLE "regions" (
+CREATE TABLE IF NOT EXISTS "regions" (
     "id" TEXT NOT NULL,
     "code" TEXT NOT NULL,
     "name" TEXT NOT NULL,
@@ -41,7 +41,7 @@ CREATE TABLE "regions" (
 );
 
 -- CreateTable
-CREATE TABLE "tax_rates" (
+CREATE TABLE IF NOT EXISTS "tax_rates" (
     "id" TEXT NOT NULL,
     "regionId" TEXT NOT NULL,
     "name" TEXT NOT NULL,
@@ -56,7 +56,7 @@ CREATE TABLE "tax_rates" (
 );
 
 -- CreateTable
-CREATE TABLE "shipping_methods" (
+CREATE TABLE IF NOT EXISTS "shipping_methods" (
     "id" TEXT NOT NULL,
     "regionId" TEXT NOT NULL,
     "code" TEXT NOT NULL,
@@ -71,7 +71,7 @@ CREATE TABLE "shipping_methods" (
 );
 
 -- CreateTable
-CREATE TABLE "shipping_rules" (
+CREATE TABLE IF NOT EXISTS "shipping_rules" (
     "id" TEXT NOT NULL,
     "shippingMethodId" TEXT NOT NULL,
     "minSubtotal" DECIMAL(10,2) NOT NULL,
@@ -85,7 +85,7 @@ CREATE TABLE "shipping_rules" (
 );
 
 -- CreateTable
-CREATE TABLE "users" (
+CREATE TABLE IF NOT EXISTS "users" (
     "id" TEXT NOT NULL,
     "email" TEXT NOT NULL,
     "password" TEXT NOT NULL,
@@ -100,7 +100,7 @@ CREATE TABLE "users" (
 );
 
 -- CreateTable
-CREATE TABLE "brands" (
+CREATE TABLE IF NOT EXISTS "brands" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "slug" TEXT NOT NULL,
@@ -114,7 +114,7 @@ CREATE TABLE "brands" (
 );
 
 -- CreateTable
-CREATE TABLE "categories" (
+CREATE TABLE IF NOT EXISTS "categories" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "slug" TEXT NOT NULL,
@@ -128,7 +128,7 @@ CREATE TABLE "categories" (
 );
 
 -- CreateTable
-CREATE TABLE "product_types" (
+CREATE TABLE IF NOT EXISTS "product_types" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "slug" TEXT NOT NULL,
@@ -140,7 +140,7 @@ CREATE TABLE "product_types" (
 );
 
 -- CreateTable
-CREATE TABLE "attributes" (
+CREATE TABLE IF NOT EXISTS "attributes" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "slug" TEXT NOT NULL,
@@ -152,7 +152,7 @@ CREATE TABLE "attributes" (
 );
 
 -- CreateTable
-CREATE TABLE "products" (
+CREATE TABLE IF NOT EXISTS "products" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "slug" TEXT NOT NULL,
@@ -173,7 +173,7 @@ CREATE TABLE "products" (
 );
 
 -- CreateTable
-CREATE TABLE "product_images" (
+CREATE TABLE IF NOT EXISTS "product_images" (
     "id" TEXT NOT NULL,
     "productId" TEXT NOT NULL,
     "bucket" TEXT NOT NULL,
@@ -190,7 +190,7 @@ CREATE TABLE "product_images" (
 );
 
 -- CreateTable
-CREATE TABLE "product_categories" (
+CREATE TABLE IF NOT EXISTS "product_categories" (
     "id" TEXT NOT NULL,
     "productId" TEXT NOT NULL,
     "categoryId" TEXT NOT NULL,
@@ -200,7 +200,7 @@ CREATE TABLE "product_categories" (
 );
 
 -- CreateTable
-CREATE TABLE "product_attributes" (
+CREATE TABLE IF NOT EXISTS "product_attributes" (
     "id" TEXT NOT NULL,
     "productId" TEXT NOT NULL,
     "attributeId" TEXT NOT NULL,
@@ -212,7 +212,7 @@ CREATE TABLE "product_attributes" (
 );
 
 -- CreateTable
-CREATE TABLE "product_variants" (
+CREATE TABLE IF NOT EXISTS "product_variants" (
     "id" TEXT NOT NULL,
     "productId" TEXT NOT NULL,
     "name" TEXT,
@@ -227,7 +227,7 @@ CREATE TABLE "product_variants" (
 );
 
 -- CreateTable
-CREATE TABLE "orders" (
+CREATE TABLE IF NOT EXISTS "orders" (
     "id" TEXT NOT NULL,
     "userId" TEXT,
     "guestEmail" TEXT,
@@ -247,7 +247,7 @@ CREATE TABLE "orders" (
 );
 
 -- CreateTable
-CREATE TABLE "order_items" (
+CREATE TABLE IF NOT EXISTS "order_items" (
     "id" TEXT NOT NULL,
     "orderId" TEXT NOT NULL,
     "productVariantId" TEXT NOT NULL,
@@ -259,7 +259,7 @@ CREATE TABLE "order_items" (
 );
 
 -- CreateTable
-CREATE TABLE "payments" (
+CREATE TABLE IF NOT EXISTS "payments" (
     "id" TEXT NOT NULL,
     "orderId" TEXT NOT NULL,
     "amount" DECIMAL(10,2) NOT NULL,
@@ -274,7 +274,7 @@ CREATE TABLE "payments" (
 );
 
 -- CreateTable
-CREATE TABLE "carts" (
+CREATE TABLE IF NOT EXISTS "carts" (
     "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -284,7 +284,7 @@ CREATE TABLE "carts" (
 );
 
 -- CreateTable
-CREATE TABLE "cart_items" (
+CREATE TABLE IF NOT EXISTS "cart_items" (
     "id" TEXT NOT NULL,
     "cartId" TEXT NOT NULL,
     "productVariantId" TEXT NOT NULL,
@@ -296,7 +296,7 @@ CREATE TABLE "cart_items" (
 );
 
 -- CreateTable
-CREATE TABLE "languages" (
+CREATE TABLE IF NOT EXISTS "languages" (
     "code" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "isDefault" BOOLEAN NOT NULL DEFAULT false,
@@ -308,7 +308,7 @@ CREATE TABLE "languages" (
 );
 
 -- CreateTable
-CREATE TABLE "ui_translations" (
+CREATE TABLE IF NOT EXISTS "ui_translations" (
     "id" TEXT NOT NULL,
     "key" TEXT NOT NULL,
     "language" TEXT NOT NULL,
@@ -318,7 +318,7 @@ CREATE TABLE "ui_translations" (
 );
 
 -- CreateTable
-CREATE TABLE "product_translations" (
+CREATE TABLE IF NOT EXISTS "product_translations" (
     "id" TEXT NOT NULL,
     "productId" TEXT NOT NULL,
     "language" TEXT NOT NULL,
@@ -334,7 +334,7 @@ CREATE TABLE "product_translations" (
 );
 
 -- CreateTable
-CREATE TABLE "category_translations" (
+CREATE TABLE IF NOT EXISTS "category_translations" (
     "id" TEXT NOT NULL,
     "categoryId" TEXT NOT NULL,
     "language" TEXT NOT NULL,
@@ -347,7 +347,7 @@ CREATE TABLE "category_translations" (
 );
 
 -- CreateTable
-CREATE TABLE "brand_translations" (
+CREATE TABLE IF NOT EXISTS "brand_translations" (
     "id" TEXT NOT NULL,
     "brandId" TEXT NOT NULL,
     "language" TEXT NOT NULL,
@@ -360,7 +360,7 @@ CREATE TABLE "brand_translations" (
 );
 
 -- CreateTable
-CREATE TABLE "product_type_translations" (
+CREATE TABLE IF NOT EXISTS "product_type_translations" (
     "id" TEXT NOT NULL,
     "productTypeId" TEXT NOT NULL,
     "language" TEXT NOT NULL,
@@ -373,7 +373,7 @@ CREATE TABLE "product_type_translations" (
 );
 
 -- CreateTable
-CREATE TABLE "attribute_translations" (
+CREATE TABLE IF NOT EXISTS "attribute_translations" (
     "id" TEXT NOT NULL,
     "attributeId" TEXT NOT NULL,
     "language" TEXT NOT NULL,
@@ -385,202 +385,286 @@ CREATE TABLE "attribute_translations" (
 );
 
 -- CreateIndex
-CREATE UNIQUE INDEX "regions_code_key" ON "regions"("code");
+CREATE UNIQUE INDEX IF NOT EXISTS "regions_code_key" ON "regions"("code");
 
 -- CreateIndex
-CREATE INDEX "tax_rates_regionId_idx" ON "tax_rates"("regionId");
+CREATE INDEX IF NOT EXISTS "tax_rates_regionId_idx" ON "tax_rates"("regionId");
 
 -- CreateIndex
-CREATE INDEX "tax_rates_categoryId_idx" ON "tax_rates"("categoryId");
+CREATE INDEX IF NOT EXISTS "tax_rates_categoryId_idx" ON "tax_rates"("categoryId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "shipping_methods_regionId_code_key" ON "shipping_methods"("regionId", "code");
+CREATE UNIQUE INDEX IF NOT EXISTS "shipping_methods_regionId_code_key" ON "shipping_methods"("regionId", "code");
 
 -- CreateIndex
-CREATE INDEX "shipping_rules_shippingMethodId_idx" ON "shipping_rules"("shippingMethodId");
+CREATE INDEX IF NOT EXISTS "shipping_rules_shippingMethodId_idx" ON "shipping_rules"("shippingMethodId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "users_email_key" ON "users"("email");
+CREATE UNIQUE INDEX IF NOT EXISTS "users_email_key" ON "users"("email");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "brands_name_key" ON "brands"("name");
+CREATE UNIQUE INDEX IF NOT EXISTS "brands_name_key" ON "brands"("name");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "brands_slug_key" ON "brands"("slug");
+CREATE UNIQUE INDEX IF NOT EXISTS "brands_slug_key" ON "brands"("slug");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "categories_slug_key" ON "categories"("slug");
+CREATE UNIQUE INDEX IF NOT EXISTS "categories_slug_key" ON "categories"("slug");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "product_types_name_key" ON "product_types"("name");
+CREATE UNIQUE INDEX IF NOT EXISTS "product_types_name_key" ON "product_types"("name");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "product_types_slug_key" ON "product_types"("slug");
+CREATE UNIQUE INDEX IF NOT EXISTS "product_types_slug_key" ON "product_types"("slug");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "attributes_slug_productTypeId_key" ON "attributes"("slug", "productTypeId");
+CREATE UNIQUE INDEX IF NOT EXISTS "attributes_slug_productTypeId_key" ON "attributes"("slug", "productTypeId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "products_slug_key" ON "products"("slug");
+CREATE UNIQUE INDEX IF NOT EXISTS "products_slug_key" ON "products"("slug");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "products_sku_key" ON "products"("sku");
+CREATE UNIQUE INDEX IF NOT EXISTS "products_sku_key" ON "products"("sku");
 
 -- CreateIndex
-CREATE INDEX "product_images_productId_idx" ON "product_images"("productId");
+CREATE INDEX IF NOT EXISTS "product_images_productId_idx" ON "product_images"("productId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "product_categories_productId_categoryId_key" ON "product_categories"("productId", "categoryId");
+CREATE UNIQUE INDEX IF NOT EXISTS "product_categories_productId_categoryId_key" ON "product_categories"("productId", "categoryId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "product_attributes_productId_attributeId_key" ON "product_attributes"("productId", "attributeId");
+CREATE UNIQUE INDEX IF NOT EXISTS "product_attributes_productId_attributeId_key" ON "product_attributes"("productId", "attributeId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "product_variants_sku_key" ON "product_variants"("sku");
+CREATE UNIQUE INDEX IF NOT EXISTS "product_variants_sku_key" ON "product_variants"("sku");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "payments_orderId_key" ON "payments"("orderId");
+CREATE UNIQUE INDEX IF NOT EXISTS "payments_orderId_key" ON "payments"("orderId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "payments_transactionId_key" ON "payments"("transactionId");
+CREATE UNIQUE INDEX IF NOT EXISTS "payments_transactionId_key" ON "payments"("transactionId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "carts_userId_key" ON "carts"("userId");
+CREATE UNIQUE INDEX IF NOT EXISTS "carts_userId_key" ON "carts"("userId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "cart_items_cartId_productVariantId_key" ON "cart_items"("cartId", "productVariantId");
+CREATE UNIQUE INDEX IF NOT EXISTS "cart_items_cartId_productVariantId_key" ON "cart_items"("cartId", "productVariantId");
 
 -- CreateIndex
-CREATE INDEX "ui_translations_language_idx" ON "ui_translations"("language");
+CREATE INDEX IF NOT EXISTS "ui_translations_language_idx" ON "ui_translations"("language");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "ui_translations_key_language_key" ON "ui_translations"("key", "language");
+CREATE UNIQUE INDEX IF NOT EXISTS "ui_translations_key_language_key" ON "ui_translations"("key", "language");
 
 -- CreateIndex
-CREATE INDEX "product_translations_productId_idx" ON "product_translations"("productId");
+CREATE INDEX IF NOT EXISTS "product_translations_productId_idx" ON "product_translations"("productId");
 
 -- CreateIndex
-CREATE INDEX "product_translations_language_idx" ON "product_translations"("language");
+CREATE INDEX IF NOT EXISTS "product_translations_language_idx" ON "product_translations"("language");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "product_translations_productId_language_key" ON "product_translations"("productId", "language");
+CREATE UNIQUE INDEX IF NOT EXISTS "product_translations_productId_language_key" ON "product_translations"("productId", "language");
 
 -- CreateIndex
-CREATE INDEX "category_translations_categoryId_idx" ON "category_translations"("categoryId");
+CREATE INDEX IF NOT EXISTS "category_translations_categoryId_idx" ON "category_translations"("categoryId");
 
 -- CreateIndex
-CREATE INDEX "category_translations_language_idx" ON "category_translations"("language");
+CREATE INDEX IF NOT EXISTS "category_translations_language_idx" ON "category_translations"("language");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "category_translations_categoryId_language_key" ON "category_translations"("categoryId", "language");
+CREATE UNIQUE INDEX IF NOT EXISTS "category_translations_categoryId_language_key" ON "category_translations"("categoryId", "language");
 
 -- CreateIndex
-CREATE INDEX "brand_translations_brandId_idx" ON "brand_translations"("brandId");
+CREATE INDEX IF NOT EXISTS "brand_translations_brandId_idx" ON "brand_translations"("brandId");
 
 -- CreateIndex
-CREATE INDEX "brand_translations_language_idx" ON "brand_translations"("language");
+CREATE INDEX IF NOT EXISTS "brand_translations_language_idx" ON "brand_translations"("language");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "brand_translations_brandId_language_key" ON "brand_translations"("brandId", "language");
+CREATE UNIQUE INDEX IF NOT EXISTS "brand_translations_brandId_language_key" ON "brand_translations"("brandId", "language");
 
 -- CreateIndex
-CREATE INDEX "product_type_translations_productTypeId_idx" ON "product_type_translations"("productTypeId");
+CREATE INDEX IF NOT EXISTS "product_type_translations_productTypeId_idx" ON "product_type_translations"("productTypeId");
 
 -- CreateIndex
-CREATE INDEX "product_type_translations_language_idx" ON "product_type_translations"("language");
+CREATE INDEX IF NOT EXISTS "product_type_translations_language_idx" ON "product_type_translations"("language");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "product_type_translations_productTypeId_language_key" ON "product_type_translations"("productTypeId", "language");
+CREATE UNIQUE INDEX IF NOT EXISTS "product_type_translations_productTypeId_language_key" ON "product_type_translations"("productTypeId", "language");
 
 -- CreateIndex
-CREATE INDEX "attribute_translations_attributeId_idx" ON "attribute_translations"("attributeId");
+CREATE INDEX IF NOT EXISTS "attribute_translations_attributeId_idx" ON "attribute_translations"("attributeId");
 
 -- CreateIndex
-CREATE INDEX "attribute_translations_language_idx" ON "attribute_translations"("language");
+CREATE INDEX IF NOT EXISTS "attribute_translations_language_idx" ON "attribute_translations"("language");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "attribute_translations_attributeId_language_key" ON "attribute_translations"("attributeId", "language");
+CREATE UNIQUE INDEX IF NOT EXISTS "attribute_translations_attributeId_language_key" ON "attribute_translations"("attributeId", "language");
 
 -- AddForeignKey
-ALTER TABLE "tax_rates" ADD CONSTRAINT "tax_rates_regionId_fkey" FOREIGN KEY ("regionId") REFERENCES "regions"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$ BEGIN
+  ALTER TABLE "tax_rates" ADD CONSTRAINT "tax_rates_regionId_fkey" FOREIGN KEY ("regionId") REFERENCES "regions"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "tax_rates" ADD CONSTRAINT "tax_rates_categoryId_fkey" FOREIGN KEY ("categoryId") REFERENCES "categories"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+DO $$ BEGIN
+  ALTER TABLE "tax_rates" ADD CONSTRAINT "tax_rates_categoryId_fkey" FOREIGN KEY ("categoryId") REFERENCES "categories"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "shipping_methods" ADD CONSTRAINT "shipping_methods_regionId_fkey" FOREIGN KEY ("regionId") REFERENCES "regions"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$ BEGIN
+  ALTER TABLE "shipping_methods" ADD CONSTRAINT "shipping_methods_regionId_fkey" FOREIGN KEY ("regionId") REFERENCES "regions"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "shipping_rules" ADD CONSTRAINT "shipping_rules_shippingMethodId_fkey" FOREIGN KEY ("shippingMethodId") REFERENCES "shipping_methods"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$ BEGIN
+  ALTER TABLE "shipping_rules" ADD CONSTRAINT "shipping_rules_shippingMethodId_fkey" FOREIGN KEY ("shippingMethodId") REFERENCES "shipping_methods"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "categories" ADD CONSTRAINT "categories_parentId_fkey" FOREIGN KEY ("parentId") REFERENCES "categories"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$ BEGIN
+  ALTER TABLE "categories" ADD CONSTRAINT "categories_parentId_fkey" FOREIGN KEY ("parentId") REFERENCES "categories"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "attributes" ADD CONSTRAINT "attributes_productTypeId_fkey" FOREIGN KEY ("productTypeId") REFERENCES "product_types"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$ BEGIN
+  ALTER TABLE "attributes" ADD CONSTRAINT "attributes_productTypeId_fkey" FOREIGN KEY ("productTypeId") REFERENCES "product_types"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "products" ADD CONSTRAINT "products_brandId_fkey" FOREIGN KEY ("brandId") REFERENCES "brands"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+DO $$ BEGIN
+  ALTER TABLE "products" ADD CONSTRAINT "products_brandId_fkey" FOREIGN KEY ("brandId") REFERENCES "brands"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "products" ADD CONSTRAINT "products_productTypeId_fkey" FOREIGN KEY ("productTypeId") REFERENCES "product_types"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+DO $$ BEGIN
+  ALTER TABLE "products" ADD CONSTRAINT "products_productTypeId_fkey" FOREIGN KEY ("productTypeId") REFERENCES "product_types"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "product_images" ADD CONSTRAINT "product_images_productId_fkey" FOREIGN KEY ("productId") REFERENCES "products"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$ BEGIN
+  ALTER TABLE "product_images" ADD CONSTRAINT "product_images_productId_fkey" FOREIGN KEY ("productId") REFERENCES "products"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "product_categories" ADD CONSTRAINT "product_categories_productId_fkey" FOREIGN KEY ("productId") REFERENCES "products"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$ BEGIN
+  ALTER TABLE "product_categories" ADD CONSTRAINT "product_categories_productId_fkey" FOREIGN KEY ("productId") REFERENCES "products"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "product_categories" ADD CONSTRAINT "product_categories_categoryId_fkey" FOREIGN KEY ("categoryId") REFERENCES "categories"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$ BEGIN
+  ALTER TABLE "product_categories" ADD CONSTRAINT "product_categories_categoryId_fkey" FOREIGN KEY ("categoryId") REFERENCES "categories"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "product_attributes" ADD CONSTRAINT "product_attributes_productId_fkey" FOREIGN KEY ("productId") REFERENCES "products"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$ BEGIN
+  ALTER TABLE "product_attributes" ADD CONSTRAINT "product_attributes_productId_fkey" FOREIGN KEY ("productId") REFERENCES "products"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "product_attributes" ADD CONSTRAINT "product_attributes_attributeId_fkey" FOREIGN KEY ("attributeId") REFERENCES "attributes"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$ BEGIN
+  ALTER TABLE "product_attributes" ADD CONSTRAINT "product_attributes_attributeId_fkey" FOREIGN KEY ("attributeId") REFERENCES "attributes"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "product_variants" ADD CONSTRAINT "product_variants_productId_fkey" FOREIGN KEY ("productId") REFERENCES "products"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$ BEGIN
+  ALTER TABLE "product_variants" ADD CONSTRAINT "product_variants_productId_fkey" FOREIGN KEY ("productId") REFERENCES "products"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "orders" ADD CONSTRAINT "orders_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+DO $$ BEGIN
+  ALTER TABLE "orders" ADD CONSTRAINT "orders_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "orders" ADD CONSTRAINT "orders_regionId_fkey" FOREIGN KEY ("regionId") REFERENCES "regions"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+DO $$ BEGIN
+  ALTER TABLE "orders" ADD CONSTRAINT "orders_regionId_fkey" FOREIGN KEY ("regionId") REFERENCES "regions"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "orders" ADD CONSTRAINT "orders_shippingMethodId_fkey" FOREIGN KEY ("shippingMethodId") REFERENCES "shipping_methods"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+DO $$ BEGIN
+  ALTER TABLE "orders" ADD CONSTRAINT "orders_shippingMethodId_fkey" FOREIGN KEY ("shippingMethodId") REFERENCES "shipping_methods"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "order_items" ADD CONSTRAINT "order_items_orderId_fkey" FOREIGN KEY ("orderId") REFERENCES "orders"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$ BEGIN
+  ALTER TABLE "order_items" ADD CONSTRAINT "order_items_orderId_fkey" FOREIGN KEY ("orderId") REFERENCES "orders"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "order_items" ADD CONSTRAINT "order_items_productVariantId_fkey" FOREIGN KEY ("productVariantId") REFERENCES "product_variants"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+DO $$ BEGIN
+  ALTER TABLE "order_items" ADD CONSTRAINT "order_items_productVariantId_fkey" FOREIGN KEY ("productVariantId") REFERENCES "product_variants"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "payments" ADD CONSTRAINT "payments_orderId_fkey" FOREIGN KEY ("orderId") REFERENCES "orders"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$ BEGIN
+  ALTER TABLE "payments" ADD CONSTRAINT "payments_orderId_fkey" FOREIGN KEY ("orderId") REFERENCES "orders"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "carts" ADD CONSTRAINT "carts_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$ BEGIN
+  ALTER TABLE "carts" ADD CONSTRAINT "carts_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "cart_items" ADD CONSTRAINT "cart_items_cartId_fkey" FOREIGN KEY ("cartId") REFERENCES "carts"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$ BEGIN
+  ALTER TABLE "cart_items" ADD CONSTRAINT "cart_items_cartId_fkey" FOREIGN KEY ("cartId") REFERENCES "carts"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "cart_items" ADD CONSTRAINT "cart_items_productVariantId_fkey" FOREIGN KEY ("productVariantId") REFERENCES "product_variants"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$ BEGIN
+  ALTER TABLE "cart_items" ADD CONSTRAINT "cart_items_productVariantId_fkey" FOREIGN KEY ("productVariantId") REFERENCES "product_variants"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "product_translations" ADD CONSTRAINT "product_translations_productId_fkey" FOREIGN KEY ("productId") REFERENCES "products"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$ BEGIN
+  ALTER TABLE "product_translations" ADD CONSTRAINT "product_translations_productId_fkey" FOREIGN KEY ("productId") REFERENCES "products"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "category_translations" ADD CONSTRAINT "category_translations_categoryId_fkey" FOREIGN KEY ("categoryId") REFERENCES "categories"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$ BEGIN
+  ALTER TABLE "category_translations" ADD CONSTRAINT "category_translations_categoryId_fkey" FOREIGN KEY ("categoryId") REFERENCES "categories"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "brand_translations" ADD CONSTRAINT "brand_translations_brandId_fkey" FOREIGN KEY ("brandId") REFERENCES "brands"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$ BEGIN
+  ALTER TABLE "brand_translations" ADD CONSTRAINT "brand_translations_brandId_fkey" FOREIGN KEY ("brandId") REFERENCES "brands"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "product_type_translations" ADD CONSTRAINT "product_type_translations_productTypeId_fkey" FOREIGN KEY ("productTypeId") REFERENCES "product_types"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$ BEGIN
+  ALTER TABLE "product_type_translations" ADD CONSTRAINT "product_type_translations_productTypeId_fkey" FOREIGN KEY ("productTypeId") REFERENCES "product_types"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "attribute_translations" ADD CONSTRAINT "attribute_translations_attributeId_fkey" FOREIGN KEY ("attributeId") REFERENCES "attributes"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$ BEGIN
+  ALTER TABLE "attribute_translations" ADD CONSTRAINT "attribute_translations_attributeId_fkey" FOREIGN KEY ("attributeId") REFERENCES "attributes"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
