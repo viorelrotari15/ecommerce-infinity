@@ -16,7 +16,7 @@ export function OrderSummary({ items, subtotal, shipping, total }: OrderSummaryP
   const t = useT();
 
   return (
-    <Card className="sticky top-24">
+    <Card>
       <CardHeader>
         <CardTitle>{t(translationKeys.checkout.orderSummary, 'Order Summary')}</CardTitle>
       </CardHeader>

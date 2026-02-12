@@ -830,13 +830,15 @@ export default function CheckoutPage() {
           </Card>
         </div>
 
-        <div className="lg:col-span-1 space-y-4">
-          <OrderSummary items={items} subtotal={subtotal} shipping={shippingCost} total={total} />
-          <Button type="submit" size="lg" className="w-full" disabled={isSubmitting}>
-            {isSubmitting
-              ? t(translationKeys.checkout.placingOrder, 'Placing order...')
-              : t(translationKeys.checkout.placeOrder, 'Place order')}
-          </Button>
+        <div className="lg:col-span-1">
+          <div className="sticky top-24 space-y-4">
+            <OrderSummary items={items} subtotal={subtotal} shipping={shippingCost} total={total} />
+            <Button type="submit" size="lg" className="w-full" disabled={isSubmitting}>
+              {isSubmitting
+                ? t(translationKeys.checkout.placingOrder, 'Placing order...')
+                : t(translationKeys.checkout.placeOrder, 'Place order')}
+            </Button>
+          </div>
         </div>
       </form>
     </div>

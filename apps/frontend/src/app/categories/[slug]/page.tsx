@@ -14,10 +14,12 @@ export const dynamic = 'force-dynamic';
 
 export async function generateMetadata({
   params,
+  searchParams,
 }: {
   params: { slug: string };
+  searchParams?: { [key: string]: string | string[] | undefined };
 }): Promise<Metadata> {
-  const language = await getServerLanguage();
+  const language = await getServerLanguage(searchParams);
   const category = await fetchCategory(params.slug, language);
 
   if (!category) {
@@ -51,7 +53,7 @@ export default async function CategoryDetailPage({
   params: { slug: string };
   searchParams: { [key: string]: string | string[] | undefined };
 }) {
-  const language = await getServerLanguage();
+  const language = await getServerLanguage(searchParams);
   const category = await fetchCategory(params.slug, language);
 
   if (!category) {

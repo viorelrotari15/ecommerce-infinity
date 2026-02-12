@@ -20,6 +20,7 @@ import { CheckoutModule } from './checkout/checkout.module';
 import { RedisModule } from './redis/redis.module';
 import { MetricsModule } from './metrics/metrics.module';
 import { MetricsInterceptor } from './metrics/metrics.interceptor';
+import { CarouselModule } from './carousel/carousel.module';
 
 @Module({
   imports: [
@@ -37,6 +38,7 @@ import { MetricsInterceptor } from './metrics/metrics.interceptor';
     PaymentsModule,
     StorageModule,
     ImagesModule,
+    CarouselModule,
     CartModule,
     LanguagesModule,
     TranslationsModule,

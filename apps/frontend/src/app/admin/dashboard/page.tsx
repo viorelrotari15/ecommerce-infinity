@@ -15,15 +15,27 @@ import {
   Receipt,
   Truck,
   Percent,
+  ImageIcon,
+  LayoutGrid,
+  Globe,
+  Settings,
 } from 'lucide-react';
 import { useT, translationKeys } from '@/lib/utils/translations';
+
+function SectionTitle({ icon: Icon, children }: { icon: React.ElementType; children: React.ReactNode }) {
+  return (
+    <h2 className="flex items-center gap-2 text-lg font-semibold text-muted-foreground mb-3 mt-8 first:mt-0">
+      <Icon className="h-4 w-4" />
+      {children}
+    </h2>
+  );
+}
 
 export default function AdminDashboard() {
   const router = useRouter();
   const t = useT();
 
   useEffect(() => {
-    // Check if user is admin
     if (!isAdmin()) {
       router.push('/auth/login');
       return;
@@ -39,8 +51,9 @@ export default function AdminDashboard() {
         </p>
       </div>
 
-      {/* Management Quick Links */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 mb-8">
+      {/* Catalog: Products, Brands, Categories, Attributes, Carousel */}
+      <SectionTitle icon={LayoutGrid}>Catalog</SectionTitle>
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Card className="group cursor-pointer hover:bg-accent hover:text-white transition-colors" onClick={() => router.push('/admin/products')}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -85,6 +98,22 @@ export default function AdminDashboard() {
             </CardDescription>
           </CardHeader>
         </Card>
+        <Card className="group cursor-pointer hover:bg-accent hover:text-white transition-colors" onClick={() => router.push('/admin/carousel')}>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <ImageIcon className="h-5 w-5" />
+              {t(translationKeys.admin.carousel.dashboardTitle, 'Carousel')}
+            </CardTitle>
+            <CardDescription className="group-hover:text-white">
+              {t(translationKeys.admin.carousel.dashboardDescription, 'Manage home page advertisement carousel')}
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      </div>
+
+      {/* Languages & Translations */}
+      <SectionTitle icon={Globe}>Languages & translations</SectionTitle>
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Card className="group cursor-pointer hover:bg-accent hover:text-white transition-colors" onClick={() => router.push('/admin/languages')}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -107,6 +136,11 @@ export default function AdminDashboard() {
             </CardDescription>
           </CardHeader>
         </Card>
+      </div>
+
+      {/* Others: Orders, Payments, Tax, Shipping */}
+      <SectionTitle icon={Settings}>Orders, payments & settings</SectionTitle>
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Card className="group cursor-pointer hover:bg-accent hover:text-white transition-colors" onClick={() => router.push('/admin/orders')}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">

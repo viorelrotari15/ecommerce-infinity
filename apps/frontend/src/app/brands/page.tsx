@@ -23,8 +23,12 @@ async function getBrands(language?: string) {
   }
 }
 
-export default async function BrandsPage() {
-  const language = await getServerLanguage();
+export default async function BrandsPage({
+  searchParams,
+}: {
+  searchParams?: { [key: string]: string | string[] | undefined };
+}) {
+  const language = await getServerLanguage(searchParams);
   const brands = await getBrands(language);
 
   return (

@@ -436,3 +436,17 @@ model AttributeTranslation {
   @@index([attributeId, language]) // Composite index for attribute translation lookups
   @@map("attribute_translations")
 }
+
+// Advertisement carousel (home page)
+model CarouselSlide {
+  id              String   @id @default(uuid())
+  order           Int      // display order 0..8 (max 9 slides)
+  link            String?  @db.Text
+  bucket          String
+  desktopFilepath String
+  mobileFilepath  String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("carousel_slides")
+}
