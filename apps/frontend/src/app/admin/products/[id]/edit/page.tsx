@@ -30,6 +30,7 @@ type ProductFormData = {
   description?: string;
   shortDescription?: string;
   brandId: string;
+  productTypeId?: string;
   categoryIds: string[];
   isActive: boolean;
   isFeatured: boolean;
