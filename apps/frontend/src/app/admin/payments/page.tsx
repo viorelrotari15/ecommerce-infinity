@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { formatPrice } from '@/lib/utils';
+import type { StripePaymentHistoryItem } from '@/lib/api/client';
 import { useStripePaymentHistory } from '@/lib/hooks/use-orders';
 import { useToast } from '@/hooks/use-toast';
 import { useT, translationKeys } from '@/lib/utils/translations';
@@ -77,7 +78,7 @@ export default function AdminPaymentsPage() {
     return Array.from(map.values()).sort((a, b) => b.total - a.total);
   }, [payments]);
 
-  const columns = useMemo<ColumnDef<(typeof payments)[number]>>(
+  const columns = useMemo<ColumnDef<StripePaymentHistoryItem>[]>(
     () => [
       {
         accessorKey: 'id',
