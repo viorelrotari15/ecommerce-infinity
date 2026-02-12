@@ -1,8 +1,6 @@
 # Override for Cloudflare Tunnel: nginx serves HTTP on 80 only (no HTTPS redirect).
 # Use: docker compose -f docker-compose.prod.yml -f docker-compose.tunnel.yml up -d
 # Then run cloudflared and point it at http://localhost:80
-version: '3.8'
-
 services:
   nginx:
     volumes:
