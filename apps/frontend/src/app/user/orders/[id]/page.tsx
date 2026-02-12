@@ -61,7 +61,7 @@ export default function UserOrderDetailsPage() {
     );
   }
 
-  const orderData = order as Order;
+  const orderData = order as unknown as Order;
 
   return (
     <div className="container py-8 space-y-6">
