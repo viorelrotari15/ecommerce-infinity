@@ -73,6 +73,7 @@ export default function NewProductPage() {
     description: yup.string().optional(),
     shortDescription: yup.string().optional(),
     brandId: yup.string().required(t(translationKeys.admin.products.brandRequired, 'Brand is required')),
+    productTypeId: yup.string().optional(),
     categoryIds: yup.array().of(yup.string()).min(1, t(translationKeys.admin.products.categoryRequired, 'At least one category is required')),
     isActive: yup.boolean().default(false),
     isFeatured: yup.boolean().default(false),
