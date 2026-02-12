@@ -86,7 +86,7 @@ export function MultiSelectCategory({
     }
   };
 
-  const removeCategory = (categoryId: string, e: React.MouseEvent) => {
+  const removeCategory = (categoryId: string, e: React.MouseEvent | React.KeyboardEvent) => {
     e.stopPropagation();
     onSelectionChange(selectedIds.filter(id => id !== categoryId));
   };
@@ -141,7 +141,7 @@ export function MultiSelectCategory({
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' || e.key === ' ') {
                         e.preventDefault();
-                        removeCategory(cat.id, e as any);
+                        removeCategory(cat.id, e);
                       }
                     }}
                     className="hover:bg-primary/20 rounded-full p-0.5 cursor-pointer focus:outline-none focus:ring-2 focus:ring-ring"
@@ -163,7 +163,7 @@ export function MultiSelectCategory({
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' || e.key === ' ') {
                         e.preventDefault();
-                        removeCategory(cat.id, e as any);
+                        removeCategory(cat.id, e);
                       }
                     }}
                     className="hover:bg-primary/20 rounded-full p-0.5 cursor-pointer focus:outline-none focus:ring-2 focus:ring-ring"

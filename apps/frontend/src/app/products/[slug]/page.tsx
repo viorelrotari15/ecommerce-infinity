@@ -91,31 +91,21 @@ export default async function ProductPage({
   try {
     // Extract category IDs from current product
     const categoryIds = product.categories
-      .map((cat) => {
-        // Try to get category ID from different possible structures
-        const category = cat.category as any;
-        return category?.id || (cat as any)?.categoryId;
-      })
+      .map((cat) => cat.category?.id ?? cat.categoryId)
       .filter((id): id is string => !!id);
 
     // Extract attribute information from current product
     const currentProductAttributeIds: string[] = [];
     product.attributes.forEach((attr) => {
-      const attrId = (attr.attribute as any)?.id;
+      const attrId = attr.attribute?.id ?? attr.attributeId;
       const attrValue = attr.value;
 
-      // Add the attribute ID
       if (attrId) currentProductAttributeIds.push(attrId);
-
-      // Add the value if it's an ID
       if (attrValue) currentProductAttributeIds.push(attrValue);
 
-      // Add subattribute IDs if they exist
-      const subattributes = (attr.attribute as any)?.subattributes || [];
-      if (subattributes.length > 0) {
-        subattributes.forEach((subattr: any) => {
-          if (subattr.id) currentProductAttributeIds.push(subattr.id);
-        });
+      const subattributes = attr.attribute?.subattributes ?? [];
+      for (const subattr of subattributes) {
+        if (subattr.id) currentProductAttributeIds.push(subattr.id);
       }
     });
 
@@ -143,10 +133,8 @@ export default async function ProductPage({
 
           // Check if product matches by category
           const hasMatchingCategory = candidateProduct.categories?.some((cat) => {
-            // Try to get category ID from different possible structures
-            const category = cat.category as any;
-            const catId = category?.id || (cat as any)?.categoryId;
-            return catId && categoryIds.includes(catId);
+            const catId = cat.category?.id ?? cat.categoryId;
+            return !!catId && categoryIds.includes(catId);
           });
 
           if (hasMatchingCategory) {
@@ -156,8 +144,8 @@ export default async function ProductPage({
           // Check if product matches by attributes
           if (currentProductAttributeIds.length > 0 && candidateProduct.attributes) {
             const candidateAttributeIds: string[] = [];
-            candidateProduct.attributes.forEach((attr: any) => {
-              const attrId = attr.attribute?.id || attr.attributeId;
+            candidateProduct.attributes.forEach((attr) => {
+              const attrId = attr.attribute?.id ?? attr.attributeId;
               const attrValue = attr.value;
 
               // Add the attribute ID
@@ -168,7 +156,7 @@ export default async function ProductPage({
 
               // Add subattribute IDs if they exist
               if (attr.attribute?.subattributes) {
-                attr.attribute.subattributes.forEach((subattr: any) => {
+                attr.attribute.subattributes.forEach((subattr) => {
                   if (subattr.id) candidateAttributeIds.push(subattr.id);
                 });
               }

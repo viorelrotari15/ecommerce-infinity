@@ -246,7 +246,7 @@ export default function AdminPaymentsPage() {
     toast({
       variant: 'destructive',
       title: t(translationKeys.admin.payments.loading, 'Failed to load payments'),
-      description: (error as any)?.message || t(translationKeys.common.tryAgain, 'Please try again.'),
+      description: (error instanceof Error ? error.message : String(error)) || t(translationKeys.common.tryAgain, 'Please try again.'),
     });
   }, [error, isMounted, t, toast]);
 

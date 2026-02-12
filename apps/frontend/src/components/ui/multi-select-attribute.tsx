@@ -92,7 +92,7 @@ export function MultiSelectAttribute({
     }
   };
 
-  const removeAttribute = (attributeId: string, e: React.MouseEvent) => {
+  const removeAttribute = (attributeId: string, e: React.MouseEvent | React.KeyboardEvent) => {
     e.stopPropagation();
     onSelectionChange(selectedIds.filter(id => id !== attributeId));
   };
@@ -147,7 +147,7 @@ export function MultiSelectAttribute({
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' || e.key === ' ') {
                         e.preventDefault();
-                        removeAttribute(attr.id, e as any);
+                        removeAttribute(attr.id, e);
                       }
                     }}
                     className="hover:bg-primary/20 rounded-full p-0.5 cursor-pointer focus:outline-none focus:ring-2 focus:ring-ring"
@@ -169,7 +169,7 @@ export function MultiSelectAttribute({
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' || e.key === ' ') {
                         e.preventDefault();
-                        removeAttribute(attr.id, e as any);
+                        removeAttribute(attr.id, e);
                       }
                     }}
                     className="hover:bg-primary/20 rounded-full p-0.5 cursor-pointer focus:outline-none focus:ring-2 focus:ring-ring"

@@ -61,7 +61,7 @@ export function MultiSelectBrand({
     onSelectionChange([]);
   };
 
-  const removeBrand = (brandId: string, e: React.MouseEvent) => {
+  const removeBrand = (brandId: string, e: React.MouseEvent | React.KeyboardEvent) => {
     e.stopPropagation();
     onSelectionChange(selectedIds.filter(id => id !== brandId));
   };
@@ -116,7 +116,7 @@ export function MultiSelectBrand({
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' || e.key === ' ') {
                         e.preventDefault();
-                        removeBrand(brand.id, e as any);
+                        removeBrand(brand.id, e);
                       }
                     }}
                     className="hover:bg-primary/20 rounded-full p-0.5 cursor-pointer focus:outline-none focus:ring-2 focus:ring-ring"
@@ -138,7 +138,7 @@ export function MultiSelectBrand({
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' || e.key === ' ') {
                         e.preventDefault();
-                        removeBrand(brand.id, e as any);
+                        removeBrand(brand.id, e);
                       }
                     }}
                     className="hover:bg-primary/20 rounded-full p-0.5 cursor-pointer focus:outline-none focus:ring-2 focus:ring-ring"

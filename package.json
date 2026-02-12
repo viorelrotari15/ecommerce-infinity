@@ -2,13 +2,13 @@
   "name": "ecommerce-infinity",
   "version": "1.0.0",
   "private": true,
-  "workspaces": [
-    "apps/*",
-    "packages/*"
-  ],
+  "workspaces": ["apps/*", "packages/*"],
   "scripts": {
     "dev": "docker compose up",
     "build": "docker compose build",
+    "build:backend": "npm run prisma:generate -w @ecommerce/backend && npm run build -w @ecommerce/backend",
+    "build:frontend": "npm run build -w @ecommerce/frontend",
+    "build:simulate": "npm run build:backend && npm run build:frontend",
     "down": "docker compose down",
     "clean": "docker compose down -v",
     "setup:server": "bash scripts/setup-server.sh"

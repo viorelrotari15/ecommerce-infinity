@@ -594,12 +594,12 @@ export default function ProductsPage() {
                       </div>
                     )}
                     <div className="absolute top-2 right-2 flex gap-2">
-                      {(product as any).isFeatured && (
+                      {product.isFeatured && (
                         <span className="bg-primary text-primary-foreground text-xs px-2 py-1 rounded">
                           {t(translationKeys.products.featured, 'Featured')}
                         </span>
                       )}
-                      {!(product as any).isActive && (
+                      {!product.isActive && (
                         <span className="bg-destructive text-destructive-foreground text-xs px-2 py-1 rounded">
                           {t(translationKeys.products.inactive, 'Inactive')}
                         </span>
@@ -609,7 +609,7 @@ export default function ProductsPage() {
                   <CardHeader>
                     <CardTitle className="line-clamp-2">{product.name}</CardTitle>
                     <CardDescription>
-                      {product.brand.name} • {t(translationKeys.admin.products.sku, 'SKU')}: {(product as any).sku || 'N/A'}
+                      {product.brand.name} • {t(translationKeys.admin.products.sku, 'SKU')}: {product.sku ?? 'N/A'}
                     </CardDescription>
                     <p className="text-lg font-semibold mt-2">{minPrice}</p>
                   </CardHeader>
@@ -638,8 +638,8 @@ export default function ProductsPage() {
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
-                        {!(product as any).isActive && (
-                          <Button
+{!product.isActive && (
+                            <Button
                             variant="default"
                             size="sm"
                             onClick={() => handleReactivate(product.id)}
