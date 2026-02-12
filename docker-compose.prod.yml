@@ -67,7 +67,11 @@ services:
   frontend:
     build:
       context: ./apps/frontend
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.prod
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+        NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
+        NEXT_PUBLIC_CDN_URL: ${NEXT_PUBLIC_CDN_URL}
     container_name: ecommerce-frontend
     environment:
       NODE_ENV: production
@@ -80,7 +84,6 @@ services:
         condition: service_healthy
     networks:
       - ecommerce-network
-    command: sh -c "npm install --include=dev && npm run build && npm run start"
 
   nginx:
     image: nginx:1.25-alpine
