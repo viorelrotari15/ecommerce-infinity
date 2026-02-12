@@ -154,8 +154,10 @@ open_firewall() {
 resolve_failed_migration() {
   info "Resolving failed Prisma migration (add_taxes) so backend can start..."
   if docker compose -f docker-compose.prod.yml -f docker-compose.tunnel.yml run --rm backend npx prisma migrate resolve --rolled-back "20260121182418_add_taxes" 2>/dev/null; then
-    ok "Migration marked as rolled back. Rebuilding and starting backend..."
-    docker compose -f docker-compose.prod.yml -f docker-compose.tunnel.yml up -d --build backend
+    ok "Migration marked as rolled back. Rebuilding backend (no cache) so fixed migration is in the image..."
+    docker compose -f docker-compose.prod.yml -f docker-compose.tunnel.yml build --no-cache backend
+    ok "Starting backend..."
+    docker compose -f docker-compose.prod.yml -f docker-compose.tunnel.yml up -d backend
     ok "Backend should start and re-run migrations. Check with option 4 (Stack status)."
   else
     err "Resolve failed. Ensure you have the latest code (git pull) with the fixed migration, then run:"
