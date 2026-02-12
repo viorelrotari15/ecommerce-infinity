@@ -5,6 +5,7 @@ import { fetchAPI, apiService } from '@/lib/api/client';
 import { getAuthToken } from '@/lib/auth';
 import { productQueryKeys, ProductFilters } from '@/lib/api/queries';
 import type { Product, ProductsResponse } from '@/lib/api/server';
+import { useLanguage } from '@/lib/contexts/language-context';
 
 /**
  * Query function for fetching products
@@ -39,12 +40,20 @@ export function fetchProductsQuery(filters: ProductFilters) {
 
 /**
  * Hook for fetching products
- * Accepts initialData from Server Component
+ * Accepts initialData from Server Component (with initialDataLanguage so we only use it when language matches).
+ * Query key includes current language so switching language refetches with correct content.
  */
-export function useProducts(filters: ProductFilters, initialData?: ProductsResponse) {
+export function useProducts(
+  filters: ProductFilters,
+  initialData?: ProductsResponse,
+  initialDataLanguage?: string,
+) {
+  const { currentLanguage } = useLanguage();
+  const useInitialData = initialDataLanguage != null && currentLanguage === initialDataLanguage;
   return useQuery({
     ...fetchProductsQuery(filters),
-    initialData,
+    queryKey: [...productQueryKeys.list(filters), currentLanguage],
+    initialData: useInitialData ? initialData : undefined,
     staleTime: 60 * 1000, // Consider data fresh for 60 seconds
     refetchOnWindowFocus: false, // Don't refetch on window focus
   });

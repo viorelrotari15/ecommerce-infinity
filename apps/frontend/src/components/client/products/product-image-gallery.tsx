@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, MouseEvent } from 'react';
+import { useState, useRef, useEffect, MouseEvent } from 'react';
 import Image from 'next/image';
 import { ChevronLeft, ChevronRight, ZoomIn } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -98,6 +98,15 @@ export function ProductImageGallery({
     setImageLoaded(true);
   };
 
+  // When image is already cached, load event can fire before onLoad is attached — sync state from DOM
+  useEffect(() => {
+    const img = imageWrapperRef.current?.querySelector('img');
+    if (img?.complete && img.naturalWidth > 0) {
+      setImageNaturalSize({ width: img.naturalWidth, height: img.naturalHeight });
+      setImageLoaded(true);
+    }
+  }, [selectedIndex, currentImage?.url]);
+
   if (!currentImage || images.length === 0) {
     return (
       <div className="relative w-full max-h-[600px] min-h-[400px] overflow-hidden rounded-lg bg-background border border-border flex items-center justify-center">
@@ -111,7 +120,7 @@ export function ProductImageGallery({
       {/* Main Image */}
       <div
         ref={imageContainerRef}
-        className="relative w-full max-h-[600px] min-h-[400px] overflow-hidden rounded-lg bg-background border border-border flex items-center justify-center"
+        className={`relative w-full max-h-[600px] min-h-[400px] overflow-hidden rounded-lg bg-background border border-border flex items-center justify-center ${isZooming && imageLoaded ? 'cursor-zoom-in' : ''}`}
         onMouseEnter={() => setIsZooming(true)}
         onMouseLeave={() => {
           setIsZooming(false);
@@ -157,7 +166,6 @@ export function ProductImageGallery({
                   backgroundPosition: `${zoomPosition.x}% ${zoomPosition.y}%`,
                   backgroundRepeat: 'no-repeat',
                   borderRadius: '8px',
-                  cursor: 'none',
                 }}
               />
             )}

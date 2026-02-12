@@ -72,7 +72,18 @@ export default function AdminOrdersPage() {
                     <span>
                       {t(translationKeys.admin.orders.orderId, 'Order')} #{order.id}
                     </span>
-                    <span className="text-sm font-normal text-muted-foreground">{order.status}</span>
+                    <span className="text-sm font-normal text-muted-foreground">
+                      {t(
+                        {
+                          PENDING: translationKeys.common.orderStatus.pending,
+                          PROCESSING: translationKeys.common.orderStatus.processing,
+                          SHIPPED: translationKeys.common.orderStatus.shipped,
+                          DELIVERED: translationKeys.common.orderStatus.delivered,
+                          CANCELLED: translationKeys.common.orderStatus.cancelled,
+                        }[order.status] ?? '',
+                        order.status,
+                      )}
+                    </span>
                   </CardTitle>
                   <CardDescription>
                     {t(translationKeys.admin.orders.customer, 'Customer')}: {customer}

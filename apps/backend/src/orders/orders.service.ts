@@ -110,7 +110,10 @@ export class OrdersService {
 
   async findByUser(userId: string) {
     return this.prisma.order.findMany({
-      where: { userId },
+      where: {
+        userId,
+        payment: { status: 'COMPLETED' },
+      },
       include: {
         items: {
           include: {
@@ -129,6 +132,9 @@ export class OrdersService {
 
   async findAll() {
     return this.prisma.order.findMany({
+      where: {
+        payment: { status: 'COMPLETED' },
+      },
       include: {
         items: {
           include: {

@@ -439,8 +439,30 @@ export async function updateAdminOrderStatus(orderId: string, payload: { status:
   return apiService.patch(`/orders/admin/${orderId}`, payload);
 }
 
-export async function getUserOrderById(orderId: string) {
-  return apiService.get(`/orders/${orderId}`);
+/** User order detail (GET /orders/:id) - same shape as admin minus sensitive fields */
+export interface UserOrderResponse {
+  id: string;
+  status: string;
+  trackingNumber?: string | null;
+  total: string;
+  subtotal: string;
+  tax: string;
+  shipping: string;
+  shippingAddress: unknown;
+  billingAddress: unknown;
+  createdAt: string;
+  updatedAt: string;
+  items: Array<{
+    id: string;
+    quantity: number;
+    price: string;
+    productVariant: { id: string; name: string | null; sku: string; product: { id: string; name: string; slug: string } };
+  }>;
+  payment: { id: string; amount: string; status: string; method: string; transactionId: string | null; createdAt: string } | null;
+}
+
+export async function getUserOrderById(orderId: string): Promise<UserOrderResponse> {
+  return apiService.get<UserOrderResponse>(`/orders/${orderId}`);
 }
 
 export interface StripePaymentHistoryItem {

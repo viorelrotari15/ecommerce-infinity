@@ -8,6 +8,19 @@ import {
 
 export type Translations = Record<string, any>;
 
+/**
+ * Fetch translations for a language from the API and update localStorage cache.
+ * Used by useTranslations and by language switch (prefetch + refresh).
+ */
+export async function fetchTranslationsForLanguage(lang: string): Promise<Translations> {
+  const url = `/translations?lang=${lang}`;
+  const response = await apiClient.get<Translations>(url);
+  if (typeof window !== 'undefined') {
+    setCachedTranslations(lang, response.data);
+  }
+  return response.data;
+}
+
 export function useTranslations(language?: string) {
   const effectiveLanguage = language || 'en';
   const queryClient = useQueryClient();
@@ -15,42 +28,21 @@ export function useTranslations(language?: string) {
   return useQuery({
     queryKey: ['translations', effectiveLanguage],
     queryFn: async () => {
-      // Try to get from browser cache first
       const cached = getCachedTranslations(effectiveLanguage);
-      
-      // Always fetch fresh data in background if cache exists
       if (cached) {
-        // Fetch fresh data in background
-        const url = `/translations?lang=${effectiveLanguage}`;
-        apiClient.get<Translations>(url)
-          .then((response) => {
-            // Update browser cache
-            setCachedTranslations(effectiveLanguage, response.data);
-            // Update React Query cache
-            queryClient.setQueryData(['translations', effectiveLanguage], response.data);
-          })
-          .catch((error) => {
-            console.error('Failed to refresh translations:', error);
-            // Keep using cached data if fetch fails
-          });
-        
-        // Return cached data immediately
+        fetchTranslationsForLanguage(effectiveLanguage)
+          .then((data) => queryClient.setQueryData(['translations', effectiveLanguage], data))
+          .catch((err) => console.error('Failed to refresh translations:', err));
         return cached;
       }
-      
-      // No cache, fetch from API
-      const url = `/translations?lang=${effectiveLanguage}`;
-      const response = await apiClient.get<Translations>(url);
-      
-      // Save to browser cache
-      setCachedTranslations(effectiveLanguage, response.data);
-      
-      return response.data;
+      return fetchTranslationsForLanguage(effectiveLanguage);
     },
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes in React Query
     gcTime: 24 * 60 * 60 * 1000, // Keep in memory for 24 hours
-    // Use cached data as initial data for instant loading
+    // Use cached data only for this language so switching language always gets fresh data
     initialData: () => getCachedTranslations(effectiveLanguage) || undefined,
+    // Ensure when language changes we refetch if cache was cleared (e.g. after setLanguage)
+    refetchOnMount: true,
   });
 }
 

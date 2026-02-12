@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
 import { useDefaultLanguage, useLanguages } from '../hooks/use-languages';
 import { clearCachedTranslations } from '../utils/translation-cache';
+import { fetchTranslationsForLanguage } from '../hooks/use-translations';
 import { useCookieConsent } from './cookie-consent-context';
 
 interface LanguageContextType {
@@ -78,38 +79,38 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   }, [hasConsented, consent?.preferences, currentLanguage]);
 
   const setLanguage = useCallback((lang: string) => {
-    // Clear cache for previous language if it changed
-    if (previousLanguage && previousLanguage !== lang) {
-      clearCachedTranslations(previousLanguage);
-    }
-    
-    // Invalidate React Query cache for old language
-    queryClient.removeQueries({ queryKey: ['translations', previousLanguage] });
-    
-    setPreviousLanguage(lang);
+    if (lang === currentLanguage) return;
+
+    const previous = currentLanguage;
+    clearCachedTranslations(previous);
+    clearCachedTranslations(lang);
+
+    // Only remove the previous language's query so UI stops reading it; keep new key ready for setQueryData
+    queryClient.removeQueries({ queryKey: ['translations', previous] });
+    setPreviousLanguage(previous);
     setCurrentLanguageState(lang);
-    
-    // Always set the language cookie so the server sees it after refresh (language is essential for the site to function)
+
     document.cookie = `lang=${lang}; path=/; max-age=${365 * 24 * 60 * 60}; SameSite=Lax`;
-    
-    // Invalidate React Query cache for new language to force refetch
-    queryClient.invalidateQueries({ queryKey: ['translations', lang] });
-    
-    // Invalidate all queries to refetch data with new language
-    queryClient.invalidateQueries();
-    
-    // Navigate to current page with ?lang= so the server definitely receives the new language on the next request.
-    // router.refresh() alone can run before the cookie is visible to the RSC request; URL param is reliable.
-    if (typeof window !== 'undefined') {
-      const pathname = window.location.pathname;
-      const params = new URLSearchParams(window.location.search);
-      params.set('lang', lang);
-      const url = `${pathname}?${params.toString()}${window.location.hash || ''}`;
-      router.replace(url);
-    } else {
-      router.refresh();
-    }
-  }, [previousLanguage, queryClient, router]);
+
+    fetchTranslationsForLanguage(lang)
+      .then((data) => {
+        queryClient.setQueryData(['translations', lang], data);
+        // Invalidate data that depends on language (products, categories, brands) so they refetch with new cookie
+        queryClient.invalidateQueries({ queryKey: ['products'] });
+        queryClient.invalidateQueries({ queryKey: ['categories'] });
+        queryClient.invalidateQueries({ queryKey: ['brands'] });
+        queryClient.invalidateQueries();
+        router.refresh();
+      })
+      .catch(() => {
+        queryClient.invalidateQueries({ queryKey: ['translations', lang] });
+        queryClient.invalidateQueries({ queryKey: ['products'] });
+        queryClient.invalidateQueries({ queryKey: ['categories'] });
+        queryClient.invalidateQueries({ queryKey: ['brands'] });
+        queryClient.invalidateQueries();
+        router.refresh();
+      });
+  }, [currentLanguage, queryClient, router]);
 
   const value: LanguageContextType = {
     currentLanguage,

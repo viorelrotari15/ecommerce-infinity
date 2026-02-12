@@ -214,91 +214,72 @@ export default async function ProductPage({
             <p className="text-lg text-muted-foreground">{product.shortDescription}</p>
           )}
 
-          {product.attributes.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Details</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <dl className="space-y-2">
-                  {product.attributes.map((attr, idx) => {
-                    // Try to find translated subattribute value
-                    let displayValue = attr.value;
-                    // Check if subattributes exist and are available
-                    const subattributes = attr.attribute?.subattributes || [];
-                    if (subattributes.length > 0) {
-                      // The value is stored as subattribute name (in the language used when creating/editing)
-                      // We need to match it to the translated subattribute
-                      // Helper function to normalize text for comparison (removes accents, special chars)
-                      const normalize = (text: string) => {
-                        return text
-                          .toLowerCase()
-                          .normalize('NFD')
-                          .replace(/[\u0300-\u036f]/g, '') // Remove accents
-                          .replace(/[^a-z0-9]/g, '') // Remove special chars
-                          .trim();
-                      };
-                      
-                      // Helper function to create a slug from text (similar to backend slugify)
-                      const slugify = (text: string) => {
-                        return text
-                          .toLowerCase()
-                          .normalize('NFD')
-                          .replace(/[\u0300-\u036f]/g, '') // Remove accents
-                          .trim()
-                          .replace(/\s+/g, '-')
-                          .replace(/[^\w\-]+/g, '')
-                          .replace(/\-\-+/g, '-')
-                          .replace(/^-+/, '')
-                          .replace(/-+$/, '');
-                      };
-                      
-                      const valueNormalized = normalize(attr.value);
-                      const valueSlug = slugify(attr.value);
-                      
-                      // Try matching by slug first (most reliable, language-independent)
-                      // Then by ID, then by normalized name comparison
-                      const subattr = subattributes.find(
-                        (sub) => {
-                          // Match by exact slug (normalized)
-                          if (sub.slug && normalize(sub.slug) === valueNormalized) return true;
-                          // Match by slug (direct, case-insensitive)
-                          if (sub.slug && sub.slug.toLowerCase().trim() === attr.value.toLowerCase().trim()) return true;
-                          // Match by slug from value (if stored value can be converted to slug)
-                          if (sub.slug && normalize(sub.slug) === valueNormalized) return true;
-                          if (sub.slug && sub.slug.toLowerCase().trim() === valueSlug) return true;
-                          // Match by ID
-                          if (sub.id && sub.id.trim() === attr.value.trim()) return true;
-                          // Match by exact name (normalized)
-                          if (sub.name && normalize(sub.name) === valueNormalized) return true;
-                          // Match by name (case-insensitive, direct)
-                          if (sub.name && sub.name.toLowerCase().trim() === attr.value.toLowerCase().trim()) return true;
-                          
-                          return false;
-                        }
-                      );
-                      
-                      if (subattr) {
-                        // Use the translated subattribute name
-                        displayValue = subattr.name;
-                      } else {
-                        // If no match found, the value might be a custom text value (not a subattribute)
-                        // or the subattribute might have been deleted. Keep the original value.
-                        displayValue = attr.value;
-                      }
-                    }
-                    
-                    return (
-                      <div key={idx} className="flex justify-between">
-                        <dt className="font-medium">{attr.attribute.name}:</dt>
-                        <dd className="text-muted-foreground">{displayValue}</dd>
+          {product.attributes.length > 0 && (() => {
+            // Helpers for resolving display value from subattributes
+            const normalize = (text: string) =>
+              text
+                .toLowerCase()
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .replace(/[^a-z0-9]/g, '')
+                .trim();
+            const slugify = (text: string) =>
+              text
+                .toLowerCase()
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .trim()
+                .replace(/\s+/g, '-')
+                .replace(/[^\w\-]+/g, '')
+                .replace(/\-\-+/g, '-')
+                .replace(/^-+/, '')
+                .replace(/-+$/, '');
+            const getDisplayValue = (attr: (typeof product.attributes)[number]): string => {
+              let displayValue = attr.value;
+              const subattributes = attr.attribute?.subattributes || [];
+              if (subattributes.length > 0) {
+                const valueNormalized = normalize(attr.value);
+                const valueSlug = slugify(attr.value);
+                const subattr = subattributes.find((sub: { slug?: string; id?: string; name?: string }) => {
+                  if (sub.slug && normalize(sub.slug) === valueNormalized) return true;
+                  if (sub.slug && sub.slug.toLowerCase().trim() === attr.value.toLowerCase().trim()) return true;
+                  if (sub.slug && sub.slug.toLowerCase().trim() === valueSlug) return true;
+                  if (sub.id && sub.id.trim() === attr.value.trim()) return true;
+                  if (sub.name && normalize(sub.name) === valueNormalized) return true;
+                  if (sub.name && sub.name.toLowerCase().trim() === attr.value.toLowerCase().trim()) return true;
+                  return false;
+                });
+                displayValue = subattr ? subattr.name : attr.value;
+              }
+              return displayValue;
+            };
+            // Group by attribute id so multiple subattributes of same attribute show on one line
+            const grouped = new Map<string, { attribute: (typeof product.attributes)[number]['attribute']; values: string[] }>();
+            for (const attr of product.attributes) {
+              const id = (attr.attribute as { id?: string })?.id ?? attr.attribute?.name ?? String(attr.value);
+              if (!grouped.has(id)) {
+                grouped.set(id, { attribute: attr.attribute, values: [] });
+              }
+              grouped.get(id)!.values.push(getDisplayValue(attr));
+            }
+            return (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Details</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <dl className="space-y-2">
+                    {Array.from(grouped.entries()).map(([id, { attribute, values }]) => (
+                      <div key={id} className="flex justify-between">
+                        <dt className="font-medium">{attribute.name}:</dt>
+                        <dd className="text-muted-foreground">{values.join(', ')}</dd>
                       </div>
-                    );
-                  })}
-                </dl>
-              </CardContent>
-            </Card>
-          )}
+                    ))}
+                  </dl>
+                </CardContent>
+              </Card>
+            );
+          })()}
 
           <ProductActions
             productId={product.id}

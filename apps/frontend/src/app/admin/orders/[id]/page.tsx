@@ -41,11 +41,11 @@ export default function AdminOrderDetailsPage() {
 
   const statusOptions = useMemo(
     () => [
-      { value: 'PENDING', label: t(translationKeys.common.orderStatus.pending, 'Receptionat') },
-      { value: 'PROCESSING', label: t(translationKeys.common.orderStatus.processing, 'In procesare') },
-      { value: 'SHIPPED', label: t(translationKeys.common.orderStatus.shipped, 'Trimis la posta') },
-      { value: 'DELIVERED', label: t(translationKeys.common.orderStatus.delivered, 'Livrat') },
-      { value: 'CANCELLED', label: t(translationKeys.common.orderStatus.cancelled, 'Anulat') },
+      { value: 'PENDING', label: t(translationKeys.common.orderStatus.pending, 'Pending') },
+      { value: 'PROCESSING', label: t(translationKeys.common.orderStatus.processing, 'Processing') },
+      { value: 'SHIPPED', label: t(translationKeys.common.orderStatus.shipped, 'Shipped') },
+      { value: 'DELIVERED', label: t(translationKeys.common.orderStatus.delivered, 'Delivered') },
+      { value: 'CANCELLED', label: t(translationKeys.common.orderStatus.cancelled, 'Cancelled') },
     ],
     [t],
   );

@@ -145,9 +145,13 @@ export default function AdminPaymentsPage() {
                     <span>
                       {t(translationKeys.admin.orderDetails.status, 'Status')}:{' '}
                       {t(
-                        translationKeys.common.orderStatus[
-                          row.original.order.status.toLowerCase() as keyof typeof translationKeys.common.orderStatus
-                        ],
+                        {
+                          PENDING: translationKeys.common.orderStatus.pending,
+                          PROCESSING: translationKeys.common.orderStatus.processing,
+                          SHIPPED: translationKeys.common.orderStatus.shipped,
+                          DELIVERED: translationKeys.common.orderStatus.delivered,
+                          CANCELLED: translationKeys.common.orderStatus.cancelled,
+                        }[row.original.order.status] ?? '',
                         row.original.order.status,
                       )}
                     </span>

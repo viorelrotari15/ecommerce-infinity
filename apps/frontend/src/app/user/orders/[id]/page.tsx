@@ -3,16 +3,10 @@
 import { useParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { formatPrice } from '@/lib/utils';
+import { formatPrice, formatOrderIdDisplay } from '@/lib/utils';
 import { useUserOrder } from '@/lib/hooks/use-orders';
-
-const statusLabels: Record<string, string> = {
-  PENDING: 'Receptionat',
-  PROCESSING: 'In procesare',
-  SHIPPED: 'Trimis la posta',
-  DELIVERED: 'Livrat',
-  CANCELLED: 'Anulat',
-};
+import { useT, translationKeys } from '@/lib/utils/translations';
+import type { UserOrderResponse } from '@/lib/api/client';
 
 const formatAddress = (address: any) => {
   if (!address) return 'N/A';
@@ -29,13 +23,25 @@ const formatAddress = (address: any) => {
   return parts.join(', ');
 };
 
+const statusKeyMap: Record<string, string> = {
+  PENDING: translationKeys.common.orderStatus.pending,
+  PROCESSING: translationKeys.common.orderStatus.processing,
+  SHIPPED: translationKeys.common.orderStatus.shipped,
+  DELIVERED: translationKeys.common.orderStatus.delivered,
+  CANCELLED: translationKeys.common.orderStatus.cancelled,
+};
+
 export default function UserOrderDetailsPage() {
   const router = useRouter();
   const params = useParams();
   const orderId = params?.id as string | undefined;
+  const t = useT();
   const { data, isLoading, error } = useUserOrder(orderId);
 
-  const order = data;
+  const order = data as UserOrderResponse | undefined;
+  const statusLabel = order
+    ? t(statusKeyMap[order.status] ?? '', order.status)
+    : '';
 
   if (isLoading) {
     return (
@@ -64,8 +70,8 @@ export default function UserOrderDetailsPage() {
   return (
     <div className="container py-8 space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Order #{order.id}</h1>
-        <p className="text-muted-foreground">Status: {statusLabels[order.status] || order.status}</p>
+        <h1 className="text-3xl font-bold">Order #{formatOrderIdDisplay(order.id)}</h1>
+        <p className="text-muted-foreground">Status: {statusLabel}</p>
       </div>
 
       {order.trackingNumber && (
@@ -96,7 +102,6 @@ export default function UserOrderDetailsPage() {
         <CardContent className="grid gap-2 text-sm text-muted-foreground md:grid-cols-2">
           <span>Subtotal: {formatPrice(order.subtotal)}</span>
           <span>Shipping: {formatPrice(order.shipping)}</span>
-          <span>Tax: {formatPrice(order.tax)}</span>
           <span>Total: {formatPrice(order.total)}</span>
         </CardContent>
       </Card>

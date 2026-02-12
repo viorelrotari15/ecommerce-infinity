@@ -104,15 +104,15 @@ export class EmailService {
   private getStatusLabel(status: string) {
     switch (status) {
       case 'PENDING':
-        return 'Receptionat';
+        return 'Pending';
       case 'PROCESSING':
-        return 'In procesare';
+        return 'Processing';
       case 'SHIPPED':
-        return 'Trimis la posta';
+        return 'Shipped';
       case 'DELIVERED':
-        return 'Livrat';
+        return 'Delivered';
       case 'CANCELLED':
-        return 'Anulat';
+        return 'Cancelled';
       default:
         return status;
     }

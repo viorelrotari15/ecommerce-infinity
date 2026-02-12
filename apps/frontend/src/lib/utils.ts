@@ -13,6 +13,13 @@ export function formatPrice(price: number | string): string {
   }).format(numPrice);
 }
 
+/** Short, user-friendly order ID for display (e.g. "3D4D1374" from a UUID). Links still use full id. */
+export function formatOrderIdDisplay(orderId: string): string {
+  if (!orderId) return orderId;
+  const short = orderId.replace(/-/g, '').slice(0, 8);
+  return short.toUpperCase();
+}
+
 export function slugify(text: string): string {
   return text
     .toString()
