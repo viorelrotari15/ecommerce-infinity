@@ -120,6 +120,7 @@ export const translationKeys = {
     description: 'categories.description',
     noCategories: 'categories.noCategories',
     subcategories: 'categories.subcategories',
+    loading: 'categories.loading',
   },
   // Carousel (public home page)
   carousel: {
@@ -852,6 +853,7 @@ export function getEnglishTemplate(): Record<string, string> {
     'categories.description': 'Browse our products by category',
     'categories.noCategories': 'No categories found.',
     'categories.subcategories': 'Subcategories:',
+    'categories.loading': 'Loading categories...',
     // Cart
     'cart.title': 'Shopping Cart',
     'cart.empty': 'Your cart is empty',
