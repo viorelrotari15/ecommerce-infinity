@@ -63,7 +63,10 @@ export interface ShippingRule {
 export function useAdminRegions() {
   return useQuery({
     queryKey: pricingQueryKeys.regions(),
-    queryFn: async (): Promise<Region[]> => listAdminRegions(),
+    queryFn: async (): Promise<Region[]> => {
+      const result = await listAdminRegions();
+      return result as Region[];
+    },
     staleTime: 5 * 60 * 1000,
   });
 }
@@ -71,7 +74,10 @@ export function useAdminRegions() {
 export function useAdminTaxRates(regionCode?: string) {
   return useQuery({
     queryKey: pricingQueryKeys.taxRates(regionCode),
-    queryFn: async (): Promise<TaxRate[]> => listAdminTaxRates(regionCode),
+    queryFn: async (): Promise<TaxRate[]> => {
+      const result = await listAdminTaxRates(regionCode);
+      return result as TaxRate[];
+    },
   });
 }
 
@@ -103,8 +109,10 @@ export function useDeleteAdminTaxRate() {
 export function useAdminShippingMethods(regionCode?: string) {
   return useQuery({
     queryKey: pricingQueryKeys.shippingMethods(regionCode),
-    queryFn: async (): Promise<ShippingMethod[]> =>
-      listAdminShippingMethods(regionCode),
+    queryFn: async (): Promise<ShippingMethod[]> => {
+      const result = await listAdminShippingMethods(regionCode);
+      return result as ShippingMethod[];
+    },
   });
 }
 
@@ -136,8 +144,10 @@ export function useDeleteAdminShippingMethod() {
 export function useAdminShippingRules(shippingMethodId?: string) {
   return useQuery({
     queryKey: pricingQueryKeys.shippingRules(shippingMethodId),
-    queryFn: async (): Promise<ShippingRule[]> =>
-      listAdminShippingRules(shippingMethodId),
+    queryFn: async (): Promise<ShippingRule[]> => {
+      const result = await listAdminShippingRules(shippingMethodId);
+      return result as ShippingRule[];
+    },
   });
 }
 
