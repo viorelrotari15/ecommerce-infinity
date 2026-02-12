@@ -501,6 +501,10 @@ CREATE INDEX IF NOT EXISTS "attribute_translations_language_idx" ON "attribute_t
 -- CreateIndex
 CREATE UNIQUE INDEX IF NOT EXISTS "attribute_translations_attributeId_language_key" ON "attribute_translations"("attributeId", "language");
 
+-- Ensure orders has region/shipping columns when it was created by an earlier migration (without these columns)
+ALTER TABLE "orders" ADD COLUMN IF NOT EXISTS "regionId" TEXT;
+ALTER TABLE "orders" ADD COLUMN IF NOT EXISTS "shippingMethodId" TEXT;
+
 -- AddForeignKey
 DO $$ BEGIN
   ALTER TABLE "tax_rates" ADD CONSTRAINT "tax_rates_regionId_fkey" FOREIGN KEY ("regionId") REFERENCES "regions"("id") ON DELETE CASCADE ON UPDATE CASCADE;
