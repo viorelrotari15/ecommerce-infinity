@@ -26,6 +26,14 @@ export interface ProductsResponse {
     productImages?: Array<{ filepath: string; url?: string; isPrimary?: boolean }>;
     brand: { name: string; slug: string };
     variants: Array<{ price: number | string }>;
+    categories?: Array<{ category: { id?: string; name: string; slug: string } }>;
+    attributes?: Array<{
+      attribute?: { id?: string; subattributes?: Array<{ id: string }> };
+      attributeId?: string;
+      value?: string;
+    }>;
+    metaTitle?: string | null;
+    metaDescription?: string | null;
   }>;
   meta: {
     total: number;

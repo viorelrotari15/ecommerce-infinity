@@ -132,7 +132,8 @@ export default async function ProductPage({
       // Filter products client-side
       const candidateProducts = productsResponse.data || [];
 
-      // Filter: exclude current product and match by category OR attributes
+      // Filter: exclude current product and match by category OR attributes.
+      // List API returns same shape as Product when using categoryIds; cast for SimilarProductsCarousel.
       similarProducts = candidateProducts
         .filter((candidateProduct) => {
           // Exclude current product
@@ -141,7 +142,7 @@ export default async function ProductPage({
           }
 
           // Check if product matches by category
-          const hasMatchingCategory = candidateProduct.categories.some((cat) => {
+          const hasMatchingCategory = candidateProduct.categories?.some((cat) => {
             // Try to get category ID from different possible structures
             const category = cat.category as any;
             const catId = category?.id || (cat as any)?.categoryId;
@@ -185,7 +186,7 @@ export default async function ProductPage({
 
           return false;
         })
-        .slice(0, 9); // Limit to 9 products
+        .slice(0, 9) as Product[]; // Limit to 9 products; list API returns Product-like shape
     }
   } catch (error) {
     console.error('Failed to fetch similar products:', error);
