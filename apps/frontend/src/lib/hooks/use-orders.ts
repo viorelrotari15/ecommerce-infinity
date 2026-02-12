@@ -115,12 +115,13 @@ export function useUserOrder(orderId?: string) {
 
   return useQuery<Order>({
     queryKey: ['user', 'orders', orderId],
-    queryFn: async () => {
+    queryFn: async (): Promise<Order> => {
       if (!orderId) {
         throw new Error('Order ID is required');
       }
       if (!token) throw new Error('Not authenticated');
-      return getUserOrderById(orderId);
+      const result = await getUserOrderById(orderId);
+      return result as Order;
     },
     enabled: !!token && !!orderId,
     staleTime: 60 * 1000,
