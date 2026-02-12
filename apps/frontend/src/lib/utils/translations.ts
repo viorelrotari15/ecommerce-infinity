@@ -413,6 +413,7 @@ export const translationKeys = {
       updateSuccess: 'admin.languages.updateSuccess',
       setDefaultSuccess: 'admin.languages.setDefaultSuccess',
       loading: 'admin.languages.loading',
+      noLanguages: 'admin.languages.noLanguages',
     },
     translations: {
       title: 'admin.translations.title',
@@ -1088,6 +1089,7 @@ export function getEnglishTemplate(): Record<string, string> {
     'admin.languages.updateSuccess': 'Language updated successfully!',
     'admin.languages.setDefaultSuccess': 'Default language updated!',
     'admin.languages.loading': 'Loading languages...',
+    'admin.languages.noLanguages': 'No languages available',
     // Admin Translations
     'admin.translations.title': 'UI Translations Management',
     'admin.translations.description': 'Manage all interface text translations for your application',
