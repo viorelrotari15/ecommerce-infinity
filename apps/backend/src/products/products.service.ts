@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateProductDto } from './dto/create-product.dto';
@@ -8,6 +8,8 @@ import { LanguageHelperService } from '../languages/language-helper.service';
 
 @Injectable()
 export class ProductsService {
+  private readonly logger = new Logger(ProductsService.name);
+
   constructor(
     private prisma: PrismaService,
     private storageService: StorageService,
@@ -712,6 +714,19 @@ export class ProductsService {
       throw new BadRequestException('One or more categories not found');
     }
 
+    // Verify attributes exist when provided
+    if (createProductDto.attributes?.length) {
+      const attributeIds = [...new Set(createProductDto.attributes.map((a) => a.attributeId))];
+      const existingAttrs = await this.prisma.attribute.findMany({
+        where: { id: { in: attributeIds } },
+      });
+      if (existingAttrs.length !== attributeIds.length) {
+        throw new BadRequestException(
+          'One or more attributes not found. Ensure attributes exist in this environment.',
+        );
+      }
+    }
+
     // Always auto-generate SKU (ignore any user input)
     const productSku = await this.generateProductSku(createProductDto.brandId);
 
@@ -733,57 +748,73 @@ export class ProductsService {
       }),
     );
 
-    const product = await this.prisma.product.create({
-      data: {
-        ...productData,
-        sku: productSku,
-        slug: productSlug,
-        isActive: productData.isActive ?? true,
-        isFeatured: productData.isFeatured ?? false,
-        variants: {
-          create: variantsWithSku.map((variant) => ({
-            ...variant,
-            isActive: variant.isActive ?? true,
-          })),
+    let product;
+    try {
+      product = await this.prisma.product.create({
+        data: {
+          ...productData,
+          sku: productSku,
+          slug: productSlug,
+          isActive: productData.isActive ?? true,
+          isFeatured: productData.isFeatured ?? false,
+          variants: {
+            create: variantsWithSku.map((variant) => ({
+              ...variant,
+              isActive: variant.isActive ?? true,
+            })),
+          },
+          categories: {
+            create: categoryIds.map((categoryId) => ({
+              categoryId,
+            })),
+          },
+          attributes: attributes
+            ? {
+                create: attributes.map((attr) => ({
+                  attributeId: attr.attributeId,
+                  value: attr.value,
+                })),
+              }
+            : undefined,
         },
-        categories: {
-          create: categoryIds.map((categoryId) => ({
-            categoryId,
-          })),
-        },
-        attributes: attributes
-          ? {
-              create: attributes.map((attr) => ({
-                attributeId: attr.attributeId,
-                value: attr.value,
-              })),
-            }
-          : undefined,
-      },
-      include: {
-        brand: true,
-        categories: {
-          include: {
-            category: true,
+        include: {
+          brand: true,
+          categories: {
+            include: {
+              category: true,
+            },
+          },
+          variants: true,
+          attributes: {
+            include: {
+              attribute: true,
+            },
+          },
+          productImages: {
+            orderBy: { order: 'asc' },
           },
         },
-        variants: true,
-        attributes: {
-          include: {
-            attribute: true,
-          },
-        },
-        productImages: {
-          orderBy: { order: 'asc' },
-        },
-      },
-    });
+      });
+    } catch (err: any) {
+      if (err?.code === 'P2002') {
+        throw new BadRequestException(
+          'A product with this slug or SKU already exists. Try a different name.',
+        );
+      }
+      if (err?.code === 'P2003') {
+        throw new BadRequestException(
+          'Invalid reference (brand, category, or attribute). Check that all IDs exist in this environment.',
+        );
+      }
+      this.logger.error(`Product create failed: ${err?.message}`, err?.stack);
+      throw err;
+    }
 
     // Add URLs to product images and convert legacy images
     const bucket = this.storageService.getBucketName();
     const productWithImageUrls = {
       ...product,
-      images: this.convertLegacyImages(product.images),
+      images: this.convertLegacyImages(product.images ?? []),
       productImages: (product.productImages || []).map((image) => ({
         ...image,
         url: this.storageService.getPublicUrl(bucket, image.filepath),
