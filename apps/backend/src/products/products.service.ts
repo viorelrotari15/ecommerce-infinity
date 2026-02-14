@@ -102,6 +102,24 @@ export class ProductsService {
   }
 
   /**
+   * Get or create the default product type (required by DB schema).
+   */
+  private async getOrCreateDefaultProductTypeId(): Promise<string> {
+    const existing = await this.prisma.productType.findFirst({
+      orderBy: { createdAt: 'asc' },
+    });
+    if (existing) return existing.id;
+    const created = await this.prisma.productType.create({
+      data: {
+        name: 'Default',
+        slug: 'default',
+        description: 'Default product type',
+      },
+    });
+    return created.id;
+  }
+
+  /**
    * Generate a unique SKU for a product
    */
   private async generateProductSku(brandId: string): Promise<string> {
@@ -734,6 +752,9 @@ export class ProductsService {
         }
       }
 
+      // Resolve product type (required by DB; use default if none specified)
+      const productTypeId = await this.getOrCreateDefaultProductTypeId();
+
       // Always auto-generate SKU (ignore any user input)
       const productSku = await this.generateProductSku(createProductDto.brandId);
 
@@ -760,6 +781,7 @@ export class ProductsService {
         product = await this.prisma.product.create({
           data: {
             ...productData,
+            productTypeId,
             sku: productSku,
             slug: productSlug,
             isActive: productData.isActive ?? true,
@@ -786,6 +808,7 @@ export class ProductsService {
           },
           include: {
             brand: true,
+            productType: true,
             categories: {
               include: {
                 category: true,
