@@ -325,6 +325,20 @@ async function main() {
     },
   });
 
+  // Get or create default product type (required by Product model)
+  let defaultProductType = await prisma.productType.findFirst({
+    where: { slug: 'default' },
+  });
+  if (!defaultProductType) {
+    defaultProductType = await prisma.productType.create({
+      data: {
+        name: 'Default',
+        slug: 'default',
+        description: 'Default product type',
+      },
+    });
+  }
+
   // Create Products
   const products = [
     {
@@ -443,6 +457,7 @@ async function main() {
       update: {},
       create: {
         ...productFields,
+        productTypeId: defaultProductType.id,
         variants: {
           create: variants,
         },
