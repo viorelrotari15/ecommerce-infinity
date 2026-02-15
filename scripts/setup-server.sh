@@ -96,14 +96,19 @@ run_quick_tunnel() {
     return 1
   fi
   info "Starting Quick Tunnel to http://localhost:80 ..."
-  info "Copy the https://....trycloudflare.com URL, then use menu option 7 to set it in .env and restart frontend."
+  info "Copy the https://....trycloudflare.com URL, then use menu option 7 to set it (app + API + Next CDN) and rebuild frontend."
   echo ""
   cloudflared tunnel --url http://localhost:80
 }
 
+# Sets tunnel URL as app URL, API URL, and Next CDN URL (for product images).
+# Rebuilds frontend so Next.js image config allows the new host (domains from NEXT_PUBLIC_APP_URL).
 set_tunnel_url_and_restart() {
   [[ ! -f .env ]] && { err ".env not found. Run 'Setup .env' first."; return 1; }
-  read -p "Enter public URL (e.g. https://xxx.trycloudflare.com, no trailing slash): " -r url
+  echo ""
+  info "Enter your public URL (e.g. from Quick Tunnel: https://xxx.trycloudflare.com)"
+  info "This sets: app URL, API URL, and Next CDN URL (for product images). No trailing slash."
+  read -p "Public URL: " -r url
   [[ -z "$url" ]] && return
   url_api="${url}/api"
   for key in NEXT_PUBLIC_APP_URL NEXT_PUBLIC_CDN_URL MINIO_PUBLIC_URL; do
@@ -119,10 +124,16 @@ set_tunnel_url_and_restart() {
     echo "NEXT_PUBLIC_API_URL=${url_api}" >> .env
   fi
   rm -f .env.bak
-  ok "Updated .env with $url"
-  info "Restarting frontend..."
-  docker compose -f docker-compose.prod.yml -f docker-compose.tunnel.yml restart frontend 2>/dev/null || docker compose restart frontend 2>/dev/null || warn "Restart frontend manually."
-  ok "Done. Open $url in a browser."
+  ok "Updated .env with $url (app, API, Next CDN for images)"
+  info "Rebuilding frontend so Next.js allows image URLs from this host..."
+  if docker compose -f docker-compose.prod.yml -f docker-compose.tunnel.yml build --no-cache frontend 2>/dev/null; then
+    docker compose -f docker-compose.prod.yml -f docker-compose.tunnel.yml up -d frontend 2>/dev/null || true
+    ok "Frontend rebuilt and restarted. Open $url in a browser."
+  else
+    warn "Rebuild failed or not using tunnel stack. Restarting frontend only..."
+    docker compose -f docker-compose.prod.yml -f docker-compose.tunnel.yml restart frontend 2>/dev/null || docker compose restart frontend 2>/dev/null || warn "Restart frontend manually."
+    ok "Done. If product images still 400, rebuild frontend with: docker compose -f docker-compose.prod.yml -f docker-compose.tunnel.yml build --no-cache frontend && docker compose -f docker-compose.prod.yml -f docker-compose.tunnel.yml up -d frontend"
+  fi
 }
 
 backup_db() {
@@ -177,7 +188,7 @@ main_menu() {
     echo "  4) Stack status"
     echo "  5) Install cloudflared (for tunnel)"
     echo "  6) Run Quick Tunnel (get public URL)"
-    echo "  7) Set tunnel URL in .env and restart frontend"
+    echo "  7) Set tunnel URL in .env (app + API + Next CDN) and rebuild frontend"
     echo "  8) Backup database"
     echo "  9) View logs (follow)"
     echo " 10) Open firewall (ports 22,80,443,3000,3001,9000,9001)"
