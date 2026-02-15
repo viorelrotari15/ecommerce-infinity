@@ -13,6 +13,17 @@ function getImageDomains() {
   return list;
 }
 
+// Use unoptimized images when: dev, tunnel, or no custom domain at build time.
+// Avoids "url parameter is not allowed" when the image host isn't in the allow list.
+function useUnoptimizedImages() {
+  if (process.env.NODE_ENV === 'development') return true;
+  if (process.env.NEXT_PUBLIC_IMAGE_UNOPTIMIZED === 'true') return true;
+  const appUrl = (process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_CDN_URL || '').toLowerCase();
+  // Tunnel or local: use unoptimized so product images always work
+  if (!appUrl || appUrl.includes('trycloudflare.com') || appUrl.includes('localhost')) return true;
+  return false;
+}
+
 const nextConfig = {
   reactStrictMode: true,
   typescript: {
@@ -33,8 +44,7 @@ const nextConfig = {
         pathname: '/**',
       },
     ],
-    // Disable image optimization in development to avoid issues with MinIO
-    unoptimized: process.env.NODE_ENV === 'development',
+    unoptimized: useUnoptimizedImages(),
   },
 };
 
