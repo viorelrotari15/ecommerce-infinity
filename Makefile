@@ -38,3 +38,9 @@ rebuild: ## Rebuild and restart all services
 
 backup: ## Run PostgreSQL dump to ./backups/postgres (or BACKUP_DIR)
 	bash scripts/backup-db.sh
+
+migrate-deploy: ## Run pending Prisma migrations (e.g. on deploy). Use backend container or local: cd apps/backend && npx prisma migrate deploy
+	docker compose run --rm backend npx prisma migrate deploy
+
+fix-orders-schema: ## Fix orders table missing columns (guestEmail, etc.) if /api/orders returns 500. Idempotent.
+	bash scripts/fix-orders-schema.sh

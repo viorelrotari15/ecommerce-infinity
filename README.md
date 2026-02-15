@@ -106,12 +106,16 @@ The database uses a flexible, future-proof design:
 
 ### Migrations
 
-Migrations are handled automatically by Prisma in Docker. For manual migration:
+Migrations are handled automatically by Prisma in Docker. Production runs `npx prisma migrate deploy` on backend startup. For manual migration:
 
 ```bash
 cd apps/backend
 npx prisma migrate dev
 ```
+
+To run pending migrations in Docker: `make migrate-deploy`.
+
+**If `/api/orders` returns 500** (e.g. "column orders.guestEmail does not exist"): the DB is missing columns added by a later migration. Apply the fix once: `make fix-orders-schema`, or run `scripts/fix-orders-schema.sh`. Idempotent and safe on every environment.
 
 ### Seeding
 

@@ -1,6 +1,6 @@
 -- Add missing columns to orders table (guest checkout, region, shipping method, tracking).
--- Safe to run on DBs where orders was created by the initial migration (no guestEmail etc).
--- All information_schema checks use table_schema = 'public' for stability.
+-- Run this manually if production DB still has 500 on /api/orders (e.g. migrate deploy not run or failed).
+-- Same logic as migration 20260215180000_add_orders_guest_email_and_region (idempotent).
 
 DO $$
 BEGIN

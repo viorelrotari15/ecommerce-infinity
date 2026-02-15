@@ -276,6 +276,33 @@ resolve_failed_migration() {
   fi
 }
 
+# Fix orders table missing columns (guestEmail, regionId, etc.) when /api/orders returns 500. Idempotent.
+fix_orders_schema() {
+  local sqlfile="$PROJECT_ROOT/scripts/fix-orders-schema.sql"
+  [[ ! -f "$sqlfile" ]] && { err "Not found: $sqlfile"; return 1; }
+  local db_name="ecommerce"
+  [[ -f .env ]] && grep -q "^DB_NAME=" .env && db_name=$(grep "^DB_NAME=" .env | cut -d= -f2- | tr -d '\r" ')
+  info "Applying orders schema fix (guestEmail, regionId, etc.) to DB: $db_name ..."
+  if docker compose exec -T postgres psql -U postgres -d "$db_name" -f - < "$sqlfile" 2>/dev/null; then
+    ok "Orders schema fix applied (dev stack)."
+    return 0
+  fi
+  if docker compose -f docker-compose.prod.yml exec -T postgres psql -U postgres -d "$db_name" -f - < "$sqlfile" 2>/dev/null; then
+    ok "Orders schema fix applied (prod stack)."
+    return 0
+  fi
+  if docker compose -f docker-compose.prod.yml -f docker-compose.tunnel.yml exec -T postgres psql -U postgres -d "$db_name" -f - < "$sqlfile" 2>/dev/null; then
+    ok "Orders schema fix applied (prod+tunnel stack)."
+    return 0
+  fi
+  if docker compose -f docker-compose.prod.yml -f docker-compose.tunnel.yml -f docker-compose.monitoring.yml exec -T postgres psql -U postgres -d "$db_name" -f - < "$sqlfile" 2>/dev/null; then
+    ok "Orders schema fix applied (prod+tunnel+monitoring stack)."
+    return 0
+  fi
+  err "Could not apply fix. Is the stack running? Start with option 3."
+  return 1
+}
+
 main_menu() {
   check_project
   while true; do
@@ -295,9 +322,10 @@ main_menu() {
     echo " 12) Open firewall (ports 22,80,443,3000,3001,3002,9000,9001)"
     echo " 13) Resolve failed Prisma migration & restart backend"
     echo " 14) Configure Grafana (public URL, admin password)"
+    echo " 15) Fix orders schema (if /api/orders returns 500)"
     echo "  0) Exit"
     echo ""
-    read -p "Choice (0–14): " -r choice
+    read -p "Choice (0–15): " -r choice
     case "$choice" in
       1) install_docker ;;
       2) setup_env ;;
@@ -313,6 +341,7 @@ main_menu() {
       12) open_firewall ;;
       13) resolve_failed_migration ;;
       14) configure_grafana ;;
+      15) fix_orders_schema ;;
       0) ok "Bye."; exit 0 ;;
       *) warn "Invalid choice." ;;
     esac
