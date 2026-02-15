@@ -9,10 +9,14 @@
 
 ## Run with the main app
 
+**You must start both the app and the monitoring stack** so nginx can reach Grafana:
+
 ```bash
-# From project root (use prod + monitoring)
-docker compose -f docker-compose.prod.yml -f docker-compose.monitoring.yml up -d
+# From project root – tunnel + monitoring (so /grafana/ is available)
+docker compose -f docker-compose.prod.yml -f docker-compose.tunnel.yml -f docker-compose.monitoring.yml up -d
 ```
+
+If you only run prod + tunnel (without monitoring), the Grafana container does not exist and `/grafana/` will not work.
 
 ---
 
