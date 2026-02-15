@@ -21,6 +21,7 @@ import { RedisModule } from './redis/redis.module';
 import { MetricsModule } from './metrics/metrics.module';
 import { MetricsInterceptor } from './metrics/metrics.interceptor';
 import { CarouselModule } from './carousel/carousel.module';
+import { LogsModule } from './logs/logs.module';
 
 @Module({
   imports: [
@@ -45,6 +46,7 @@ import { CarouselModule } from './carousel/carousel.module';
     CheckoutModule,
     RedisModule,
     MetricsModule,
+    LogsModule,
   ],
   providers: [
     {

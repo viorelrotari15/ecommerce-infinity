@@ -1,0 +1,28 @@
+# Promtail: collect Docker container logs and send to Loki
+# On Linux host, mount: - /var/lib/docker/containers:/var/lib/docker/containers:ro
+# On Docker Desktop (Mac/Windows) use the optional path or run Promtail on the host.
+
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+  - job_name: containers
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: containerlogs
+        __path__: /var/lib/docker/containers/*/*-json.log
+    pipeline_stages:
+      - docker: {}
+      - labels:
+          stream:
+      - output:
+          source: log

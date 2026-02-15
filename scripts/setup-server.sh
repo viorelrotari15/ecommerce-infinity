@@ -55,7 +55,8 @@ start_stack() {
   echo "  1) Dev (ports 3000, 3001, 9000...) – for LAN or port-forward"
   echo "  2) Prod (nginx 80/443) – need domain + SSL later"
   echo "  3) Tunnel (nginx 80 only) – for Cloudflare Tunnel"
-  read -p "Choice (1–3): " -r choice
+  echo "  4) Tunnel + Monitoring (tunnel + Prometheus, Grafana, Loki, Promtail)"
+  read -p "Choice (1–4): " -r choice
   case "$choice" in
     1) docker compose up -d
        ok "Dev stack started. Frontend: http://$(hostname -I | awk '{print $1}'):3000"
@@ -65,6 +66,9 @@ start_stack() {
        ;;
     3) docker compose -f docker-compose.prod.yml -f docker-compose.tunnel.yml up -d
        ok "Tunnel stack started. Run 'Install cloudflared' then 'Run Quick Tunnel' and set the URL in .env."
+       ;;
+    4) docker compose -f docker-compose.prod.yml -f docker-compose.tunnel.yml -f docker-compose.monitoring.yml up -d
+       ok "Tunnel + Monitoring started. Set tunnel URL (option 7), then configure Grafana (option 14). Grafana: http://$(hostname -I | awk '{print $1}'):3002 or https://YOUR_TUNNEL/grafana/"
        ;;
     *) warn "Invalid choice."
        ;;
@@ -149,17 +153,112 @@ show_logs() {
   docker compose logs -f 2>/dev/null || docker compose -f docker-compose.prod.yml logs -f
 }
 
+show_logs_last() {
+  local lines="${1:-200}"
+  info "Last $lines lines of logs (all services):"
+  echo ""
+  docker compose logs --tail="$lines" 2>/dev/null || docker compose -f docker-compose.prod.yml logs --tail="$lines" 2>/dev/null || true
+}
+
+save_logs_to_file() {
+  local logfile="docker-logs-$(date +%Y%m%d-%H%M%S).txt"
+  info "Saving all logs to $logfile ..."
+  if docker compose logs --no-log-prefix > "$logfile" 2>/dev/null || docker compose -f docker-compose.prod.yml logs --no-log-prefix > "$logfile" 2>/dev/null; then
+    ok "Saved to $PROJECT_ROOT/$logfile"
+    info "Download via scp: scp user@server:$PROJECT_ROOT/$logfile ."
+  info "Or view in browser (admin): https://YOUR_URL/api/admin/logs (tail=500 or download=1)"
+  else
+    err "Failed to save logs."
+  fi
+}
+
 stack_status() {
   docker compose ps 2>/dev/null || docker compose -f docker-compose.prod.yml ps 2>/dev/null || true
 }
 
 open_firewall() {
-  info "Opening common ports: 22, 80, 443, 3000, 3001, 9000, 9001..."
-  for p in 22 80 443 3000 3001 9000 9001; do
+  info "Opening common ports: 22, 80, 443, 3000, 3001, 3002, 9000, 9001..."
+  for p in 22 80 443 3000 3001 3002 9000 9001; do
     sudo ufw allow "$p/tcp" 2>/dev/null || true
   done
   sudo ufw --force enable 2>/dev/null || true
   ok "Firewall updated. Check: sudo ufw status"
+  info "Port 3002 = Grafana (local access when not using public /grafana/)"
+}
+
+# Configure Grafana: public URL (under /grafana/) and/or admin password.
+# Run monitoring stack first: docker compose -f docker-compose.prod.yml -f docker-compose.monitoring.yml up -d
+configure_grafana() {
+  [[ ! -f .env ]] && { err ".env not found. Run 'Setup .env' first."; return 1; }
+  echo ""
+  info "Grafana can be: (1) Public at https://YOUR_URL/grafana/ or (2) Local only at http://SERVER_IP:3002"
+  read -p "Expose Grafana at a public URL? (y/N): " -r pub
+  if [[ $pub =~ ^[yY]$ ]]; then
+    base_url=""
+    if grep -q "^NEXT_PUBLIC_APP_URL=" .env 2>/dev/null; then
+      base_url=$(grep "^NEXT_PUBLIC_APP_URL=" .env | sed 's/^NEXT_PUBLIC_APP_URL=//' | tr -d '\r')
+    fi
+    [[ -z "$base_url" ]] && read -p "Enter base URL (e.g. https://xxx.trycloudflare.com, no trailing slash): " -r base_url
+    if [[ -n "$base_url" ]]; then
+      grafana_url="${base_url}/grafana"
+      for key in GRAFANA_ROOT_URL; do
+        if grep -q "^${key}=" .env 2>/dev/null; then
+          sed -i.bak "s|^${key}=.*|${key}=${grafana_url}|" .env
+        else
+          echo "${key}=${grafana_url}" >> .env
+        fi
+      done
+      if grep -q "^GRAFANA_SERVE_FROM_SUB_PATH=" .env 2>/dev/null; then
+        sed -i.bak "s|^GRAFANA_SERVE_FROM_SUB_PATH=.*|GRAFANA_SERVE_FROM_SUB_PATH=true|" .env
+      else
+        echo "GRAFANA_SERVE_FROM_SUB_PATH=true" >> .env
+      fi
+      rm -f .env.bak
+      ok "Grafana will be available at: $grafana_url/"
+    fi
+  else
+    # Local only: ensure subpath is false
+    if grep -q "^GRAFANA_SERVE_FROM_SUB_PATH=" .env 2>/dev/null; then
+      sed -i.bak "s|^GRAFANA_SERVE_FROM_SUB_PATH=.*|GRAFANA_SERVE_FROM_SUB_PATH=false|" .env
+      rm -f .env.bak
+    fi
+    ok "Grafana set to local only. Access at http://$(hostname -I | awk '{print $1}'):3002"
+  fi
+  echo ""
+  read -p "Set Grafana admin password? (strongly recommended if public) (y/N): " -r pwd
+  if [[ $pwd =~ ^[yY]$ ]]; then
+    read -sp "Enter new Grafana admin password: " -r newpass
+    echo ""
+    if [[ -n "$newpass" ]]; then
+      if grep -q "^GRAFANA_ADMIN_PASSWORD=" .env 2>/dev/null; then
+        sed -i.bak "s|^GRAFANA_ADMIN_PASSWORD=.*|GRAFANA_ADMIN_PASSWORD=${newpass}|" .env
+      else
+        echo "GRAFANA_ADMIN_PASSWORD=${newpass}" >> .env
+      fi
+      rm -f .env.bak
+      ok "Grafana admin password updated."
+    fi
+  fi
+  read -p "Set Grafana admin username? (default: admin) (y/N): " -r user
+  if [[ $user =~ ^[yY]$ ]]; then
+    read -p "Enter Grafana admin username: " -r adminuser
+    if [[ -n "$adminuser" ]]; then
+      if grep -q "^GRAFANA_ADMIN_USER=" .env 2>/dev/null; then
+        sed -i.bak "s|^GRAFANA_ADMIN_USER=.*|GRAFANA_ADMIN_USER=${adminuser}|" .env
+      else
+        echo "GRAFANA_ADMIN_USER=${adminuser}" >> .env
+      fi
+      rm -f .env.bak
+      ok "Grafana admin user set to: $adminuser"
+    fi
+  fi
+  echo ""
+  info "Restarting Grafana to apply config (if monitoring stack is running)..."
+  if docker compose -f docker-compose.prod.yml -f docker-compose.monitoring.yml restart grafana 2>/dev/null; then
+    ok "Grafana restarted. Open Grafana (public URL or http://SERVER_IP:3002)."
+  else
+    warn "Monitoring stack not running. Start it with: docker compose -f docker-compose.prod.yml -f docker-compose.monitoring.yml up -d"
+  fi
 }
 
 resolve_failed_migration() {
@@ -191,11 +290,14 @@ main_menu() {
     echo "  7) Set tunnel URL in .env (app + API + Next CDN) and rebuild frontend"
     echo "  8) Backup database"
     echo "  9) View logs (follow)"
-    echo " 10) Open firewall (ports 22,80,443,3000,3001,9000,9001)"
-    echo " 11) Resolve failed Prisma migration & restart backend"
+    echo " 10) View last 200 lines of logs"
+    echo " 11) Save logs to file (for download via scp)"
+    echo " 12) Open firewall (ports 22,80,443,3000,3001,3002,9000,9001)"
+    echo " 13) Resolve failed Prisma migration & restart backend"
+    echo " 14) Configure Grafana (public URL, admin password)"
     echo "  0) Exit"
     echo ""
-    read -p "Choice (0–11): " -r choice
+    read -p "Choice (0–14): " -r choice
     case "$choice" in
       1) install_docker ;;
       2) setup_env ;;
@@ -206,8 +308,11 @@ main_menu() {
       7) set_tunnel_url_and_restart ;;
       8) backup_db ;;
       9) show_logs ;;
-      10) open_firewall ;;
-      11) resolve_failed_migration ;;
+      10) show_logs_last ;;
+      11) save_logs_to_file ;;
+      12) open_firewall ;;
+      13) resolve_failed_migration ;;
+      14) configure_grafana ;;
       0) ok "Bye."; exit 0 ;;
       *) warn "Invalid choice." ;;
     esac

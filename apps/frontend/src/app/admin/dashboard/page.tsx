@@ -19,6 +19,7 @@ import {
   LayoutGrid,
   Globe,
   Settings,
+  ScrollText,
 } from 'lucide-react';
 import { useT, translationKeys } from '@/lib/utils/translations';
 
@@ -182,6 +183,17 @@ export default function AdminDashboard() {
             </CardTitle>
             <CardDescription className="group-hover:text-white">
               {t(translationKeys.admin.dashboard.manageShipping, 'Configure shipping methods')}
+            </CardDescription>
+          </CardHeader>
+        </Card>
+        <Card className="group cursor-pointer hover:bg-accent hover:text-white transition-colors" onClick={() => router.push('/admin/logs')}>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <ScrollText className="h-5 w-5" />
+              Backend logs
+            </CardTitle>
+            <CardDescription className="group-hover:text-white">
+              View or download backend application logs
             </CardDescription>
           </CardHeader>
         </Card>
