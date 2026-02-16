@@ -130,6 +130,21 @@ npm run prisma:seed
 - Admin: `admin@example.com` / `admin123`
 - User: `user@example.com` / `user123`
 
+**Create or update an admin user** (email, password, optional first/last name):
+
+```bash
+# From project root with Docker (dev stack)
+docker compose exec backend npm run create-admin -- your@email.com YourPassword "First" "Last"
+
+# With production stack
+docker compose -f docker-compose.prod.yml exec backend npm run create-admin -- your@email.com YourPassword "First" "Last"
+
+# Local (from apps/backend, with DATABASE_URL set)
+cd apps/backend && npm run create-admin -- your@email.com YourPassword "First" "Last"
+```
+
+Defaults if omitted: email `admin@example.com`, password `admin123`, name "Admin" "User".
+
 ## 🎨 Theming & Rebranding
 
 The frontend uses a CSS variable-based theme system for easy rebranding.

@@ -303,6 +303,35 @@ fix_orders_schema() {
   return 1
 }
 
+create_admin_user() {
+  echo ""
+  info "Create or update an admin user (email, password, optional first/last name)."
+  read -p "Admin email: " -r email
+  [[ -z "$email" ]] && { warn "Email required."; return 1; }
+  read -sp "Admin password: " -r password
+  echo ""
+  [[ -z "$password" ]] && { warn "Password required."; return 1; }
+  read -p "First name (optional, default Admin): " -r first
+  read -p "Last name (optional, default User): " -r last
+  first="${first:-Admin}"
+  last="${last:-User}"
+  info "Running create-admin..."
+  if docker compose exec -T backend npm run create-admin -- "$email" "$password" "$first" "$last" 2>/dev/null; then
+    ok "Admin user created/updated."
+    return 0
+  fi
+  if docker compose -f docker-compose.prod.yml exec -T backend npm run create-admin -- "$email" "$password" "$first" "$last" 2>/dev/null; then
+    ok "Admin user created/updated (prod)."
+    return 0
+  fi
+  if docker compose -f docker-compose.prod.yml -f docker-compose.tunnel.yml exec -T backend npm run create-admin -- "$email" "$password" "$first" "$last" 2>/dev/null; then
+    ok "Admin user created/updated (prod+tunnel)."
+    return 0
+  fi
+  err "Could not run create-admin. Is the backend container running?"
+  return 1
+}
+
 main_menu() {
   check_project
   while true; do
@@ -323,9 +352,10 @@ main_menu() {
     echo " 13) Resolve failed Prisma migration & restart backend"
     echo " 14) Configure Grafana (public URL, admin password)"
     echo " 15) Fix orders schema (if /api/orders returns 500)"
+    echo " 16) Create admin user"
     echo "  0) Exit"
     echo ""
-    read -p "Choice (0–15): " -r choice
+    read -p "Choice (0–16): " -r choice
     case "$choice" in
       1) install_docker ;;
       2) setup_env ;;
@@ -342,6 +372,7 @@ main_menu() {
       13) resolve_failed_migration ;;
       14) configure_grafana ;;
       15) fix_orders_schema ;;
+      16) create_admin_user ;;
       0) ok "Bye."; exit 0 ;;
       *) warn "Invalid choice." ;;
     esac

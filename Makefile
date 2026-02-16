@@ -44,3 +44,9 @@ migrate-deploy: ## Run pending Prisma migrations (e.g. on deploy). Use backend c
 
 fix-orders-schema: ## Fix orders table missing columns (guestEmail, etc.) if /api/orders returns 500. Idempotent.
 	bash scripts/fix-orders-schema.sh
+
+create-admin: ## Create or update admin user (dev). Usage: make create-admin EMAIL=admin@example.com PASS=secret [FIRST=Admin] [LAST=User]
+	docker compose exec backend npm run create-admin -- "$(EMAIL)" "$(PASS)" "$(FIRST)" "$(LAST)"
+
+create-admin-prod: ## Create or update admin user on production. Usage: make create-admin-prod EMAIL=admin@example.com PASS=secret [FIRST=Admin] [LAST=User]
+	docker compose -f docker-compose.prod.yml exec backend npm run create-admin -- "$(EMAIL)" "$(PASS)" "$(FIRST)" "$(LAST)"
