@@ -474,7 +474,7 @@ export default function TranslationsPage() {
         {!isMounted || isLoading ? (
           <div className="py-10 text-center text-muted-foreground">{t(translationKeys.admin.translations.loading, 'Loading translations...')}</div>
         ) : languages.length === 0 ? (
-          <div className="py-10 text-center text-muted-foreground">{t(translationKeys.admin.languages.noLanguages || 'admin.translations.noLanguages', 'No languages available')}</div>
+          <div className="py-10 text-center text-muted-foreground">{t(translationKeys.admin.languages.noLanguages, 'No languages available')}</div>
         ) : (
           <>
             {languages

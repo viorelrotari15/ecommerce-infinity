@@ -32,12 +32,17 @@ export function ProductList({ initialData, filters, initialDataLanguage }: Produ
   // Client-side filtering: OR within each filter type, AND between filter types
   
   // Filter by multiple categories (OR logic - product must have ANY selected category)
-  if (filters.categoryIds && filters.categoryIds.length > 0) {
+  const categoryIdsArr = Array.isArray(filters.categoryIds)
+    ? filters.categoryIds
+    : filters.categoryIds
+      ? [filters.categoryIds]
+      : [];
+  if (categoryIdsArr.length > 0) {
     products = products.filter((product: any) => {
       if (!product.categories || product.categories.length === 0) return false;
       const productCategoryIds = product.categories.map((cat: any) => cat.category?.id || cat.categoryId);
       // Product must have ANY selected category
-      return filters.categoryIds!.some(selectedCatId => productCategoryIds.includes(selectedCatId));
+      return categoryIdsArr.some(selectedCatId => productCategoryIds.includes(selectedCatId));
     });
   }
   

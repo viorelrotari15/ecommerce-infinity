@@ -102,6 +102,7 @@ export default function UserOrderDetailsPage() {
         <CardContent className="grid gap-2 text-sm text-muted-foreground md:grid-cols-2">
           <span>Subtotal: {formatPrice(order.subtotal)}</span>
           <span>Shipping: {formatPrice(order.shipping)}</span>
+          <span>Tax: {formatPrice(order.tax)}</span>
           <span>Total: {formatPrice(order.total)}</span>
         </CardContent>
       </Card>

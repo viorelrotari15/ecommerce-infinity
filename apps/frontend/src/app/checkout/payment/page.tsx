@@ -99,6 +99,7 @@ function PaymentForm({ orderId, email }: { orderId: string; email: string }) {
 }
 
 export default function CheckoutPaymentPage() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
   const [clientSecret, setClientSecret] = useState<string | null>(null);
@@ -150,9 +151,9 @@ export default function CheckoutPaymentPage() {
           throw new Error('Email is missing. Please return to checkout.');
         }
 
-        let createdOrder;
+        let createdOrder: { id: string };
         if (payload.isGuest) {
-          createdOrder = await apiService.post('/checkout', {
+          createdOrder = await apiService.post<{ id: string }>('/checkout', {
             items: payload.items,
             shippingAddress: payload.shippingAddress,
             billingAddress: payload.billingAddress,
@@ -161,7 +162,7 @@ export default function CheckoutPaymentPage() {
             regionCode: payload.regionCode,
           });
         } else {
-          createdOrder = await apiService.post('/orders', {
+          createdOrder = await apiService.post<{ id: string }>('/orders', {
             items: payload.items,
             shippingAddress: payload.shippingAddress,
             billingAddress: payload.billingAddress,
@@ -217,7 +218,7 @@ export default function CheckoutPaymentPage() {
 
   const appearance = useMemo(
     () => ({
-      theme: 'stripe',
+      theme: 'stripe' as const,
     }),
     [],
   );

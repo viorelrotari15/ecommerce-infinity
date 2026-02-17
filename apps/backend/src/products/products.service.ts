@@ -1,4 +1,10 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  InternalServerErrorException,
+  Logger,
+} from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateProductDto } from './dto/create-product.dto';
@@ -8,6 +14,8 @@ import { LanguageHelperService } from '../languages/language-helper.service';
 
 @Injectable()
 export class ProductsService {
+  private readonly logger = new Logger(ProductsService.name);
+
   constructor(
     private prisma: PrismaService,
     private storageService: StorageService,
@@ -91,6 +99,24 @@ export class ProductsService {
       slug = `${baseSlug}-${counter}`;
       counter++;
     }
+  }
+
+  /**
+   * Get or create the default product type (required by DB schema).
+   */
+  private async getOrCreateDefaultProductTypeId(): Promise<string> {
+    const existing = await this.prisma.productType.findFirst({
+      orderBy: { createdAt: 'asc' },
+    });
+    if (existing) return existing.id;
+    const created = await this.prisma.productType.create({
+      data: {
+        name: 'Default',
+        slug: 'default',
+        description: 'Default product type',
+      },
+    });
+    return created.id;
   }
 
   /**
@@ -696,101 +722,150 @@ export class ProductsService {
   }
 
   async create(createProductDto: CreateProductDto) {
-    // Verify brand exists
-    const brand = await this.prisma.brand.findUnique({
-      where: { id: createProductDto.brandId },
-    });
-    if (!brand) {
-      throw new NotFoundException(`Brand with ID ${createProductDto.brandId} not found`);
-    }
+    try {
+      // Verify brand exists
+      const brand = await this.prisma.brand.findUnique({
+        where: { id: createProductDto.brandId },
+      });
+      if (!brand) {
+        throw new NotFoundException(`Brand with ID ${createProductDto.brandId} not found`);
+      }
 
-    // Verify categories exist
-    const categories = await this.prisma.category.findMany({
-      where: { id: { in: createProductDto.categoryIds } },
-    });
-    if (categories.length !== createProductDto.categoryIds.length) {
-      throw new BadRequestException('One or more categories not found');
-    }
+      // Verify categories exist
+      const categories = await this.prisma.category.findMany({
+        where: { id: { in: createProductDto.categoryIds } },
+      });
+      if (categories.length !== createProductDto.categoryIds.length) {
+        throw new BadRequestException('One or more categories not found');
+      }
 
-    // Always auto-generate SKU (ignore any user input)
-    const productSku = await this.generateProductSku(createProductDto.brandId);
+      // Verify attributes exist when provided
+      if (createProductDto.attributes?.length) {
+        const attributeIds = [...new Set(createProductDto.attributes.map((a) => a.attributeId))];
+        const existingAttrs = await this.prisma.attribute.findMany({
+          where: { id: { in: attributeIds } },
+        });
+        if (existingAttrs.length !== attributeIds.length) {
+          throw new BadRequestException(
+            'One or more attributes not found. Ensure attributes exist in this environment.',
+          );
+        }
+      }
 
-    // Always auto-generate slug from product name (ignore any user input)
-    const baseSlug = this.slugify(createProductDto.name);
-    const productSlug = await this.generateUniqueSlug(baseSlug);
+      // Resolve product type (required by DB; use default if none specified)
+      const productTypeId = await this.getOrCreateDefaultProductTypeId();
 
-    // Create product with variants, categories, and attributes
-    const { categoryIds, variants, attributes, ...productData } = createProductDto;
+      // Always auto-generate SKU (ignore any user input)
+      const productSku = await this.generateProductSku(createProductDto.brandId);
 
-    // Always auto-generate variant SKUs (ignore any user input)
-    const variantsWithSku = await Promise.all(
-      variants.map(async (variant) => {
-        const variantSku = await this.generateVariantSku(productSku, variant.name);
-        return {
-          ...variant,
-          sku: variantSku,
-        };
-      }),
-    );
+      // Always auto-generate slug from product name (ignore any user input)
+      const baseSlug = this.slugify(createProductDto.name);
+      const productSlug = await this.generateUniqueSlug(baseSlug);
 
-    const product = await this.prisma.product.create({
-      data: {
-        ...productData,
-        sku: productSku,
-        slug: productSlug,
-        isActive: productData.isActive ?? true,
-        isFeatured: productData.isFeatured ?? false,
-        variants: {
-          create: variantsWithSku.map((variant) => ({
+      // Create product with variants, categories, and attributes
+      const { categoryIds, variants, attributes, ...productData } = createProductDto;
+
+      // Always auto-generate variant SKUs (ignore any user input)
+      const variantsWithSku = await Promise.all(
+        variants.map(async (variant) => {
+          const variantSku = await this.generateVariantSku(productSku, variant.name);
+          return {
             ...variant,
-            isActive: variant.isActive ?? true,
-          })),
-        },
-        categories: {
-          create: categoryIds.map((categoryId) => ({
-            categoryId,
-          })),
-        },
-        attributes: attributes
-          ? {
-              create: attributes.map((attr) => ({
-                attributeId: attr.attributeId,
-                value: attr.value,
+            sku: variantSku,
+          };
+        }),
+      );
+
+      let product;
+      try {
+        product = await this.prisma.product.create({
+          data: {
+            ...productData,
+            productTypeId,
+            sku: productSku,
+            slug: productSlug,
+            isActive: productData.isActive ?? true,
+            isFeatured: productData.isFeatured ?? false,
+            variants: {
+              create: variantsWithSku.map((variant) => ({
+                ...variant,
+                isActive: variant.isActive ?? true,
               })),
-            }
-          : undefined,
-      },
-      include: {
-        brand: true,
-        categories: {
-          include: {
-            category: true,
+            },
+            categories: {
+              create: categoryIds.map((categoryId) => ({
+                categoryId,
+              })),
+            },
+            attributes: attributes
+              ? {
+                  create: attributes.map((attr) => ({
+                    attributeId: attr.attributeId,
+                    value: attr.value,
+                  })),
+                }
+              : undefined,
           },
-        },
-        variants: true,
-        attributes: {
           include: {
-            attribute: true,
+            brand: true,
+            productType: true,
+            categories: {
+              include: {
+                category: true,
+              },
+            },
+            variants: true,
+            attributes: {
+              include: {
+                attribute: true,
+              },
+            },
+            productImages: {
+              orderBy: { order: 'asc' },
+            },
           },
-        },
-        productImages: {
-          orderBy: { order: 'asc' },
-        },
-      },
-    });
+        });
+      } catch (err: any) {
+        if (err?.code === 'P2002') {
+          throw new BadRequestException(
+            'A product with this slug or SKU already exists. Try a different name.',
+          );
+        }
+        if (err?.code === 'P2003') {
+          throw new BadRequestException(
+            'Invalid reference (brand, category, or attribute). Check that all IDs exist in this environment.',
+          );
+        }
+        this.logger.error(`Product create failed (Prisma): ${err?.message}`, err?.stack);
+        throw err;
+      }
 
-    // Add URLs to product images and convert legacy images
-    const bucket = this.storageService.getBucketName();
-    const productWithImageUrls = {
-      ...product,
-      images: this.convertLegacyImages(product.images),
-      productImages: (product.productImages || []).map((image) => ({
-        ...image,
-        url: this.storageService.getPublicUrl(bucket, image.filepath),
-      })),
-    };
+      // Add URLs to product images and convert legacy images
+      const bucket = this.storageService.getBucketName();
+      const productWithImageUrls = {
+        ...product,
+        images: this.convertLegacyImages(product.images ?? []),
+        productImages: (product.productImages || []).map((image) => ({
+          ...image,
+          url: this.storageService.getPublicUrl(bucket, image.filepath),
+        })),
+      };
 
-    return productWithImageUrls;
+      return productWithImageUrls;
+    } catch (err: any) {
+      // Re-throw HTTP exceptions so client gets correct status and message
+      if (err?.status && typeof err.getResponse === 'function') {
+        throw err;
+      }
+      // Log full error for debugging (check backend logs in prod)
+      this.logger.error(
+        `Product create error: ${err?.message ?? err}`,
+        err?.stack ?? undefined,
+      );
+      throw new InternalServerErrorException(
+        'Failed to create product. Check server logs for details.',
+      );
+    }
   }
 
   async update(id: string, updateProductDto: UpdateProductDto) {

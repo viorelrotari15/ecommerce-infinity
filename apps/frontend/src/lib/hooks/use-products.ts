@@ -17,10 +17,13 @@ export function fetchProductsQuery(filters: ProductFilters) {
       const params = new URLSearchParams();
       if (filters.brandId) params.append('brandId', filters.brandId);
       
-      // Support both categoryId (single) and categoryIds (multiple)
-      const categoryIds = filters.categoryIds || (filters.categoryId ? [filters.categoryId] : []);
-      if (categoryIds.length > 0) {
-        categoryIds.forEach(id => {
+      // Support both categoryId (single) and categoryIds (multiple); normalize to string[]
+      const rawCategories = filters.categoryIds ?? (filters.categoryId ? [filters.categoryId] : []);
+      const categoryIdsArr = Array.isArray(rawCategories)
+        ? rawCategories.flatMap((id) => (typeof id === 'string' ? [id] : id))
+        : [rawCategories];
+      if (categoryIdsArr.length > 0) {
+        categoryIdsArr.forEach((id) => {
           if (id && id !== 'all') {
             params.append('categoryIds', id);
           }

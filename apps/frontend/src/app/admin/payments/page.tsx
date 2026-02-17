@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { formatPrice } from '@/lib/utils';
+import type { StripePaymentHistoryItem } from '@/lib/api/client';
 import { useStripePaymentHistory } from '@/lib/hooks/use-orders';
 import { useToast } from '@/hooks/use-toast';
 import { useT, translationKeys } from '@/lib/utils/translations';
@@ -77,7 +78,7 @@ export default function AdminPaymentsPage() {
     return Array.from(map.values()).sort((a, b) => b.total - a.total);
   }, [payments]);
 
-  const columns = useMemo<ColumnDef<(typeof payments)[number]>>(
+  const columns = useMemo<ColumnDef<StripePaymentHistoryItem>[]>(
     () => [
       {
         accessorKey: 'id',
@@ -249,7 +250,7 @@ export default function AdminPaymentsPage() {
     toast({
       variant: 'destructive',
       title: t(translationKeys.admin.payments.loading, 'Failed to load payments'),
-      description: (error as any)?.message || t(translationKeys.common.tryAgain, 'Please try again.'),
+      description: (error instanceof Error ? error.message : String(error)) || t(translationKeys.common.tryAgain, 'Please try again.'),
     });
   }, [error, isMounted, t, toast]);
 

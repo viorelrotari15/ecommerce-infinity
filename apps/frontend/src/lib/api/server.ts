@@ -22,10 +22,21 @@ export interface ProductsResponse {
     slug: string;
     description?: string | null;
     shortDescription?: string | null;
+    sku?: string;
+    isActive?: boolean;
+    isFeatured?: boolean;
     images: string[];
     productImages?: Array<{ filepath: string; url?: string; isPrimary?: boolean }>;
     brand: { name: string; slug: string };
     variants: Array<{ price: number | string }>;
+    categories?: Array<{ category: { id?: string; name: string; slug: string }; categoryId?: string }>;
+    attributes?: Array<{
+      attribute?: { id?: string; subattributes?: Array<{ id: string }> };
+      attributeId?: string;
+      value?: string;
+    }>;
+    metaTitle?: string | null;
+    metaDescription?: string | null;
   }>;
   meta: {
     total: number;
@@ -47,7 +58,7 @@ export interface Product {
   isActive?: boolean;
   isFeatured?: boolean;
   brand: { name: string; slug: string };
-  categories: Array<{ category: { name: string; slug: string } }>;
+  categories: Array<{ category: { id?: string; name: string; slug: string }; categoryId?: string }>;
   variants: Array<{
     id: string;
     name: string;
@@ -56,8 +67,9 @@ export interface Product {
     isActive: boolean;
   }>;
   attributes: Array<{
-    attribute: { 
-      name: string; 
+    attribute: {
+      id?: string;
+      name: string;
       slug: string;
       subattributes?: Array<{
         id: string;
@@ -65,6 +77,7 @@ export interface Product {
         slug: string;
       }>;
     };
+    attributeId?: string;
     value: string;
   }>;
   metaTitle: string | null;
@@ -98,10 +111,13 @@ export async function fetchProducts(
   
   if (params.brandId) searchParams.append('brandId', params.brandId);
   
-  // Support both categoryId (single) and categoryIds (multiple)
-  const categoryIds = params.categoryIds || (params.categoryId ? [params.categoryId] : []);
-  if (categoryIds.length > 0) {
-    categoryIds.forEach(id => {
+  // Support both categoryId (single) and categoryIds (multiple); normalize to string[]
+  const rawCategories = params.categoryIds ?? (params.categoryId ? [params.categoryId] : []);
+  const categoryIdsArr = Array.isArray(rawCategories)
+    ? rawCategories.flatMap((id) => (typeof id === 'string' ? [id] : id))
+    : [rawCategories];
+  if (categoryIdsArr.length > 0) {
+    categoryIdsArr.forEach((id) => {
       if (id && id !== 'all') {
         searchParams.append('categoryIds', id);
       }

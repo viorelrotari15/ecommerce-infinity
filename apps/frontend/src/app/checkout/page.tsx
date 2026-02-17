@@ -663,7 +663,7 @@ export default function CheckoutPage() {
                     const checked = event.target.checked;
                     setBillingSameAsShipping(checked);
                     setValue('billingSameAsShipping', checked);
-                    setValue('billingAddress', checked ? undefined : ({ ...shippingAddress } as any));
+                    setValue('billingAddress', checked ? undefined : ({ ...shippingAddress } as CheckoutFormData['billingAddress']));
                   }}
                   className="h-4 w-4"
                 />

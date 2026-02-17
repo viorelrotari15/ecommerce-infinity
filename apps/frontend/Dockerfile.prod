@@ -1,0 +1,41 @@
+# Production: build at image build time so the container only runs next start (fast startup, no 502).
+FROM node:20-slim AS builder
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm config set fetch-retries 5 && \
+    npm config set fetch-retry-mintimeout 20000 && \
+    npm config set fetch-retry-maxtimeout 120000 && \
+    npm install --include=dev
+
+COPY . .
+
+# NEXT_PUBLIC_* are inlined at build time; pass as build-args in compose.
+ARG NEXT_PUBLIC_API_URL
+ARG NEXT_PUBLIC_APP_URL
+ARG NEXT_PUBLIC_CDN_URL
+ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+ENV NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL}
+ENV NEXT_PUBLIC_CDN_URL=${NEXT_PUBLIC_CDN_URL}
+ENV NODE_ENV=production
+
+RUN npm run build
+
+# Runner: only run the server (no build at runtime)
+FROM node:20-slim AS runner
+
+WORKDIR /app
+
+ENV NODE_ENV=production
+ENV PORT=3000
+ENV HOSTNAME=0.0.0.0
+
+COPY --from=builder /app/package*.json ./
+COPY --from=builder /app/.next ./.next
+COPY --from=builder /app/public ./public
+RUN npm ci --omit=dev
+
+EXPOSE 3000
+
+CMD ["sh", "-c", "HOSTNAME=0.0.0.0 exec npm run start"]

@@ -120,6 +120,7 @@ export const translationKeys = {
     description: 'categories.description',
     noCategories: 'categories.noCategories',
     subcategories: 'categories.subcategories',
+    loading: 'categories.loading',
   },
   // Carousel (public home page)
   carousel: {
@@ -413,6 +414,7 @@ export const translationKeys = {
       updateSuccess: 'admin.languages.updateSuccess',
       setDefaultSuccess: 'admin.languages.setDefaultSuccess',
       loading: 'admin.languages.loading',
+      noLanguages: 'admin.languages.noLanguages',
     },
     translations: {
       title: 'admin.translations.title',
@@ -851,6 +853,7 @@ export function getEnglishTemplate(): Record<string, string> {
     'categories.description': 'Browse our products by category',
     'categories.noCategories': 'No categories found.',
     'categories.subcategories': 'Subcategories:',
+    'categories.loading': 'Loading categories...',
     // Cart
     'cart.title': 'Shopping Cart',
     'cart.empty': 'Your cart is empty',
@@ -1088,6 +1091,7 @@ export function getEnglishTemplate(): Record<string, string> {
     'admin.languages.updateSuccess': 'Language updated successfully!',
     'admin.languages.setDefaultSuccess': 'Default language updated!',
     'admin.languages.loading': 'Loading languages...',
+    'admin.languages.noLanguages': 'No languages available',
     // Admin Translations
     'admin.translations.title': 'UI Translations Management',
     'admin.translations.description': 'Manage all interface text translations for your application',

@@ -26,6 +26,9 @@
     "create-users": "ts-node -r tsconfig-paths/register scripts/create-users.ts",
     "add-languages": "ts-node -r tsconfig-paths/register scripts/add-default-languages.ts"
   },
+  "prisma": {
+    "seed": "ts-node prisma/seed.ts"
+  },
   "dependencies": {
     "@nestjs/common": "^10.3.0",
     "@nestjs/config": "^3.1.1",

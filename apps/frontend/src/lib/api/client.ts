@@ -7,6 +7,11 @@ import { logout } from '@/lib/auth';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
+/** Base URL for API (origin only, no trailing /api) so env can be origin or origin/api */
+function getApiBase(): string {
+  return (API_URL || '').replace(/\/api\/?$/, '') || API_URL;
+}
+
 const AUTH_REDIRECT_PATH = '/auth/login';
 
 /**
@@ -74,7 +79,7 @@ function handleUnauthorized() {
 }
 
 export async function fetchAPI<T>(endpoint: string, options?: RequestInit): Promise<T> {
-  const url = `${API_URL}/api${endpoint}`;
+  const url = `${getApiBase()}/api${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
   const language = getCurrentLanguage();
   
   const response = await fetch(url, {
@@ -180,7 +185,7 @@ export async function uploadImage(
     formData.append('order', options.order.toString());
   }
 
-  const url = `${API_URL}/api/images/products/${productId}`;
+  const url = `${getApiBase()}/api/images/products/${productId}`;
   const response = await fetch(url, {
     method: 'POST',
     headers: {
@@ -229,7 +234,7 @@ export interface CarouselSlideAdminResponse extends CarouselSlideResponse {
 }
 
 export async function getCarouselSlides(): Promise<CarouselSlideResponse[]> {
-  const url = `${API_URL}/api/carousel`;
+  const url = `${getApiBase()}/api/carousel`;
   const language = getCurrentLanguage();
   const response = await fetch(url, {
     method: 'GET',
@@ -250,7 +255,7 @@ export async function createCarouselSlide(
   formData: FormData,
   token: string,
 ): Promise<CarouselSlideResponse> {
-  const url = `${API_URL}/api/carousel`;
+  const url = `${getApiBase()}/api/carousel`;
   const language = getCurrentLanguage();
   const response = await fetch(url, {
     method: 'POST',
@@ -272,7 +277,7 @@ export async function updateCarouselSlide(
   formData: FormData,
   token: string,
 ): Promise<CarouselSlideResponse> {
-  const url = `${API_URL}/api/carousel/${id}`;
+  const url = `${getApiBase()}/api/carousel/${id}`;
   const language = getCurrentLanguage();
   const response = await fetch(url, {
     method: 'PATCH',

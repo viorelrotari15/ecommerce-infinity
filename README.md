@@ -106,12 +106,16 @@ The database uses a flexible, future-proof design:
 
 ### Migrations
 
-Migrations are handled automatically by Prisma in Docker. For manual migration:
+Migrations are handled automatically by Prisma in Docker. Production runs `npx prisma migrate deploy` on backend startup. For manual migration:
 
 ```bash
 cd apps/backend
 npx prisma migrate dev
 ```
+
+To run pending migrations in Docker: `make migrate-deploy`.
+
+**If `/api/orders` returns 500** (e.g. "column orders.guestEmail does not exist"): the DB is missing columns added by a later migration. Apply the fix once: `make fix-orders-schema`, or run `scripts/fix-orders-schema.sh`. Idempotent and safe on every environment.
 
 ### Seeding
 
@@ -125,6 +129,21 @@ npm run prisma:seed
 **Demo Accounts:**
 - Admin: `admin@example.com` / `admin123`
 - User: `user@example.com` / `user123`
+
+**Create or update an admin user** (email, password, optional first/last name):
+
+```bash
+# From project root with Docker (dev stack)
+docker compose exec backend npm run create-admin -- your@email.com YourPassword "First" "Last"
+
+# With production stack
+docker compose -f docker-compose.prod.yml exec backend npm run create-admin -- your@email.com YourPassword "First" "Last"
+
+# Local (from apps/backend, with DATABASE_URL set)
+cd apps/backend && npm run create-admin -- your@email.com YourPassword "First" "Last"
+```
+
+Defaults if omitted: email `admin@example.com`, password `admin123`, name "Admin" "User".
 
 ## 🎨 Theming & Rebranding
 

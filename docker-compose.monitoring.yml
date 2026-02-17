@@ -1,6 +1,37 @@
+# Optional: run with main stack to get metrics + logs in Grafana.
+# Usage: docker compose -f docker-compose.prod.yml -f docker-compose.monitoring.yml up -d
+# Grafana: http://localhost:3002 (default admin/admin). Add Loki datasource for logs.
+# On Linux, Promtail reads Docker container logs from /var/lib/docker/containers.
+# On Docker Desktop (Mac/Windows), that path may not be available; use admin logs or save-log script for logs.
+
 version: '3.8'
 
 services:
+  loki:
+    image: grafana/loki:2.9.3
+    container_name: ecommerce-loki
+    command: -config.file=/etc/loki/loki-config.yml
+    volumes:
+      - ./monitoring/loki/loki-config.yml:/etc/loki/loki-config.yml:ro
+      - loki_data:/loki
+    ports:
+      - "${LOKI_PORT:-3100}:3100"
+    networks:
+      - ecommerce-network
+
+  promtail:
+    image: grafana/promtail:2.9.3
+    container_name: ecommerce-promtail
+    command: -config.file=/etc/promtail/config.yml
+    volumes:
+      - ./monitoring/promtail/promtail-config.yml:/etc/promtail/config.yml:ro
+      # Mount Docker container logs (Linux host). On Docker Desktop, this path may not exist.
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+    depends_on:
+      - loki
+    networks:
+      - ecommerce-network
+
   prometheus:
     image: prom/prometheus:v2.52.0
     container_name: ecommerce-prometheus
@@ -24,7 +55,9 @@ services:
       GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
       GF_USERS_ALLOW_SIGN_UP: "false"
+      # Public URL: set GRAFANA_ROOT_URL=https://YOUR_TUNNEL/grafana and use nginx /grafana/
       GF_SERVER_ROOT_URL: ${GRAFANA_ROOT_URL:-http://localhost:3002}
+      GF_SERVER_SERVE_FROM_SUB_PATH: ${GRAFANA_SERVE_FROM_SUB_PATH:-false}
     volumes:
       - grafana_data:/var/lib/grafana
       - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
@@ -33,6 +66,7 @@ services:
       - "${GRAFANA_PORT:-3002}:3000"
     depends_on:
       - prometheus
+      - loki
     networks:
       - ecommerce-network
 
@@ -103,3 +137,4 @@ services:
 volumes:
   prometheus_data:
   grafana_data:
+  loki_data:

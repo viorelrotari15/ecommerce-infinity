@@ -116,7 +116,7 @@ export function useUserOrder(orderId?: string) {
 
   return useQuery<UserOrderResponse>({
     queryKey: ['user', 'orders', orderId],
-    queryFn: async () => {
+    queryFn: async (): Promise<UserOrderResponse> => {
       if (!orderId) {
         throw new Error('Order ID is required');
       }

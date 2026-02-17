@@ -30,6 +30,7 @@ type ProductFormData = {
   description?: string;
   shortDescription?: string;
   brandId: string;
+  productTypeId?: string;
   categoryIds: string[];
   isActive: boolean;
   isFeatured: boolean;
@@ -100,6 +101,7 @@ export default function EditProductPage() {
     description: yup.string().optional(),
     shortDescription: yup.string().optional(),
     brandId: yup.string().required(t(translationKeys.admin.products.brandRequired, 'Brand is required')),
+    productTypeId: yup.string().optional(),
     categoryIds: yup.array().of(yup.string().required()).min(1, t(translationKeys.admin.products.categoryRequired, 'At least one category is required')).required(),
     isActive: yup.boolean().default(true),
     isFeatured: yup.boolean().default(false),

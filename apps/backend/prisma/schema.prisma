@@ -172,6 +172,18 @@ model Attribute {
   @@map("attributes")
 }
 
+model ProductType {
+  id          String    @id @default(uuid())
+  name        String
+  slug        String    @unique
+  description String?   @db.Text
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  products    Product[]
+
+  @@map("product_types")
+}
+
 model Product {
   id               String               @id @default(uuid())
   name             String
@@ -181,6 +193,8 @@ model Product {
   sku              String               @unique
   brandId          String
   brand            Brand                @relation(fields: [brandId], references: [id])
+  productTypeId    String
+  productType      ProductType          @relation(fields: [productTypeId], references: [id], onDelete: Restrict)
   images           String[]             @default([]) // Legacy field, kept for backward compatibility
   productImages    ProductImage[] // New relation to ProductImage model
   isActive         Boolean              @default(true)

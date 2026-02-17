@@ -1,0 +1,93 @@
+# Cloudflare Tunnel: HTTP on 80 only (no HTTPS redirect).
+# Tunnel terminates SSL at Cloudflare; traffic to nginx is HTTP.
+# Use Docker's embedded DNS so hostnames are re-resolved when containers are recreated.
+server {
+    listen 80;
+    server_name _;
+    resolver 127.0.0.11 valid=10s ipv6=off;
+
+    client_max_body_size 20m;
+
+    location /nginx_status {
+        stub_status;
+        access_log off;
+        allow 0.0.0.0/0;
+    }
+
+    # Next.js API routes (vitals, metrics) – proxy to frontend, not backend
+    location ~ ^/api/(vitals|metrics) {
+        set $frontend_upstream frontend:3000;
+        proxy_pass http://$frontend_upstream$request_uri;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location /api/ {
+        set $backend_upstream backend:3001;
+        # With a variable in proxy_pass, path replacement is not applied; pass full URI so backend receives /api/...
+        proxy_pass http://$backend_upstream$request_uri;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+
+    # Grafana – must run with monitoring stack: docker compose -f ... -f docker-compose.monitoring.yml up -d
+    location = /grafana {
+        return 301 $scheme://$host/grafana/;
+    }
+    location ^~ /grafana/ {
+        set $grafana_upstream grafana:3000;
+        proxy_pass http://$grafana_upstream$request_uri;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_read_timeout 86400;
+    }
+
+    # Product images only (MinIO): /products/category/brand/id/filename.ext – not /products/slug (product page)
+    location ~ ^/products/[^/]+/[^/]+/ {
+        set $minio_upstream minio:9000;
+        proxy_pass http://$minio_upstream$request_uri;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_buffering off;
+    }
+
+    # Product image with extension (e.g. /products/.../image.avif)
+    location ~ ^/products/.*\.(avif|webp|jpg|jpeg|png|gif|ico)(\?.*)?$ {
+        set $minio_upstream minio:9000;
+        proxy_pass http://$minio_upstream$request_uri;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_buffering off;
+    }
+
+    location / {
+        set $frontend_upstream frontend:3000;
+        proxy_pass http://$frontend_upstream;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+}

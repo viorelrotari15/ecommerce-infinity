@@ -1,10 +1,12 @@
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
+import { ValidationPipe, Logger } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { raw } from 'body-parser';
 import { AppModule } from './app.module';
+import { FileLogger } from './logs/file-logger';
 
 async function bootstrap() {
+  Logger.overrideLogger(new FileLogger());
   const app = await NestFactory.create(AppModule);
 
   // Stripe webhook needs raw body
