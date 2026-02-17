@@ -110,9 +110,7 @@ export function useAdminOrder(orderId?: string) {
 }
 
 export function useUserOrder(orderId?: string) {
-  const token = getAuthToken();
-
-  return useQuery({
+  const token = getAuthToken();  return useQuery({
     queryKey: ['user', 'orders', orderId],
     queryFn: async () => {
       if (!orderId) {

@@ -36,9 +36,7 @@ export function useUserProfile() {
 
 export function useUpdateProfile() {
   const queryClient = useQueryClient();
-  const token = getAuthToken();
-
-  return useMutation({
+  const token = getAuthToken();  return useMutation({
     mutationFn: async (
       payload: Partial<
         Pick<
@@ -57,4 +55,3 @@ export function useUpdateProfile() {
     },
   });
 }
-
