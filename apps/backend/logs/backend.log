@@ -1,0 +1,150 @@
+[2026-02-17T13:01:05.391Z] LOG Starting Nest application... NestFactory
+[2026-02-17T13:01:05.414Z] LOG PrismaModule dependencies initialized InstanceLoader
+[2026-02-17T13:01:05.414Z] LOG PassportModule dependencies initialized InstanceLoader
+[2026-02-17T13:01:05.415Z] LOG ConfigHostModule dependencies initialized InstanceLoader
+[2026-02-17T13:01:05.416Z] LOG AppModule dependencies initialized InstanceLoader
+[2026-02-17T13:01:05.416Z] LOG MetricsModule dependencies initialized InstanceLoader
+[2026-02-17T13:01:05.416Z] LOG ConfigModule dependencies initialized InstanceLoader
+[2026-02-17T13:01:05.417Z] LOG ConfigModule dependencies initialized InstanceLoader
+[2026-02-17T13:01:05.417Z] LOG MinIO client initialized: minio:9000 StorageService
+[2026-02-17T13:01:05.421Z] LOG LogsModule dependencies initialized InstanceLoader
+[2026-02-17T13:01:05.421Z] LOG RedisModule dependencies initialized InstanceLoader
+[2026-02-17T13:01:05.421Z] LOG StorageModule dependencies initialized InstanceLoader
+[2026-02-17T13:01:05.422Z] LOG EmailModule dependencies initialized InstanceLoader
+[2026-02-17T13:01:05.422Z] LOG CheckoutModule dependencies initialized InstanceLoader
+[2026-02-17T13:01:05.424Z] LOG UsersModule dependencies initialized InstanceLoader
+[2026-02-17T13:01:05.424Z] LOG JwtModule dependencies initialized InstanceLoader
+[2026-02-17T13:01:05.424Z] LOG PricingModule dependencies initialized InstanceLoader
+[2026-02-17T13:01:05.425Z] LOG LanguagesModule dependencies initialized InstanceLoader
+[2026-02-17T13:01:05.426Z] LOG AttributesModule dependencies initialized InstanceLoader
+[2026-02-17T13:01:05.427Z] LOG BrandsModule dependencies initialized InstanceLoader
+[2026-02-17T13:01:05.428Z] LOG CategoriesModule dependencies initialized InstanceLoader
+[2026-02-17T13:01:05.428Z] LOG ImagesModule dependencies initialized InstanceLoader
+[2026-02-17T13:01:05.428Z] LOG CarouselModule dependencies initialized InstanceLoader
+[2026-02-17T13:01:05.428Z] LOG CartModule dependencies initialized InstanceLoader
+[2026-02-17T13:01:05.429Z] LOG PaymentsModule dependencies initialized InstanceLoader
+[2026-02-17T13:01:05.429Z] LOG ProductsModule dependencies initialized InstanceLoader
+[2026-02-17T13:01:05.429Z] LOG OrdersModule dependencies initialized InstanceLoader
+[2026-02-17T13:01:05.430Z] LOG TranslationsModule dependencies initialized InstanceLoader
+[2026-02-17T13:01:05.431Z] LOG AuthModule dependencies initialized InstanceLoader
+[2026-02-17T13:01:05.460Z] LOG AuthController {/api/auth}: RoutesResolver
+[2026-02-17T13:01:05.461Z] LOG Mapped {/api/auth/login, POST} route RouterExplorer
+[2026-02-17T13:01:05.462Z] LOG Mapped {/api/auth/register, POST} route RouterExplorer
+[2026-02-17T13:01:05.462Z] LOG Mapped {/api/auth/profile, GET} route RouterExplorer
+[2026-02-17T13:01:05.462Z] LOG Mapped {/api/auth/profile, PATCH} route RouterExplorer
+[2026-02-17T13:01:05.464Z] LOG Mapped {/api/auth/create-admin, POST} route RouterExplorer
+[2026-02-17T13:01:05.464Z] LOG UsersController {/api/users}: RoutesResolver
+[2026-02-17T13:01:05.464Z] LOG Mapped {/api/users, GET} route RouterExplorer
+[2026-02-17T13:01:05.465Z] LOG Mapped {/api/users/:id, GET} route RouterExplorer
+[2026-02-17T13:01:05.465Z] LOG BrandsController {/api/brands}: RoutesResolver
+[2026-02-17T13:01:05.466Z] LOG Mapped {/api/brands, GET} route RouterExplorer
+[2026-02-17T13:01:05.466Z] LOG Mapped {/api/brands/id/:id, GET} route RouterExplorer
+[2026-02-17T13:01:05.467Z] LOG Mapped {/api/brands/:slug, GET} route RouterExplorer
+[2026-02-17T13:01:05.468Z] LOG Mapped {/api/brands, POST} route RouterExplorer
+[2026-02-17T13:01:05.468Z] LOG Mapped {/api/brands/:id, PATCH} route RouterExplorer
+[2026-02-17T13:01:05.468Z] LOG Mapped {/api/brands/:id, DELETE} route RouterExplorer
+[2026-02-17T13:01:05.469Z] LOG Mapped {/api/brands/:id/translations, GET} route RouterExplorer
+[2026-02-17T13:01:05.469Z] LOG Mapped {/api/brands/:id/translations/:language, POST} route RouterExplorer
+[2026-02-17T13:01:05.469Z] LOG Mapped {/api/brands/:id/translations/:language, DELETE} route RouterExplorer
+[2026-02-17T13:01:05.469Z] LOG LanguagesController {/api/languages}: RoutesResolver
+[2026-02-17T13:01:05.470Z] LOG Mapped {/api/languages, GET} route RouterExplorer
+[2026-02-17T13:01:05.470Z] LOG Mapped {/api/languages/default, GET} route RouterExplorer
+[2026-02-17T13:01:05.470Z] LOG Mapped {/api/languages/:code, GET} route RouterExplorer
+[2026-02-17T13:01:05.470Z] LOG Mapped {/api/languages, POST} route RouterExplorer
+[2026-02-17T13:01:05.471Z] LOG Mapped {/api/languages/:code, PATCH} route RouterExplorer
+[2026-02-17T13:01:05.471Z] LOG Mapped {/api/languages/:code/set-default, POST} route RouterExplorer
+[2026-02-17T13:01:05.471Z] LOG Mapped {/api/languages/:code, DELETE} route RouterExplorer
+[2026-02-17T13:01:05.472Z] LOG CategoriesController {/api/categories}: RoutesResolver
+[2026-02-17T13:01:05.473Z] LOG Mapped {/api/categories, GET} route RouterExplorer
+[2026-02-17T13:01:05.473Z] LOG Mapped {/api/categories/id/:id, GET} route RouterExplorer
+[2026-02-17T13:01:05.473Z] LOG Mapped {/api/categories/:slug, GET} route RouterExplorer
+[2026-02-17T13:01:05.473Z] LOG Mapped {/api/categories, POST} route RouterExplorer
+[2026-02-17T13:01:05.474Z] LOG Mapped {/api/categories/:id, PATCH} route RouterExplorer
+[2026-02-17T13:01:05.474Z] LOG Mapped {/api/categories/:id, DELETE} route RouterExplorer
+[2026-02-17T13:01:05.474Z] LOG Mapped {/api/categories/:id/translations, GET} route RouterExplorer
+[2026-02-17T13:01:05.475Z] LOG Mapped {/api/categories/:id/translations/:language, POST} route RouterExplorer
+[2026-02-17T13:01:05.475Z] LOG Mapped {/api/categories/:id/translations/:language, DELETE} route RouterExplorer
+[2026-02-17T13:01:05.475Z] LOG ProductsController {/api/products}: RoutesResolver
+[2026-02-17T13:01:05.475Z] LOG Mapped {/api/products, GET} route RouterExplorer
+[2026-02-17T13:01:05.476Z] LOG Mapped {/api/products/id/:id, GET} route RouterExplorer
+[2026-02-17T13:01:05.476Z] LOG Mapped {/api/products/:slug, GET} route RouterExplorer
+[2026-02-17T13:01:05.476Z] LOG Mapped {/api/products, POST} route RouterExplorer
+[2026-02-17T13:01:05.477Z] LOG Mapped {/api/products/:id, PATCH} route RouterExplorer
+[2026-02-17T13:01:05.477Z] LOG Mapped {/api/products/:id, DELETE} route RouterExplorer
+[2026-02-17T13:01:05.477Z] LOG Mapped {/api/products/:id/translations, GET} route RouterExplorer
+[2026-02-17T13:01:05.477Z] LOG Mapped {/api/products/:id/translations/:language, POST} route RouterExplorer
+[2026-02-17T13:01:05.478Z] LOG Mapped {/api/products/:id/translations/:language, DELETE} route RouterExplorer
+[2026-02-17T13:01:05.478Z] LOG AttributesController {/api/attributes}: RoutesResolver
+[2026-02-17T13:01:05.478Z] LOG Mapped {/api/attributes, GET} route RouterExplorer
+[2026-02-17T13:01:05.478Z] LOG Mapped {/api/attributes/id/:id, GET} route RouterExplorer
+[2026-02-17T13:01:05.479Z] LOG Mapped {/api/attributes, POST} route RouterExplorer
+[2026-02-17T13:01:05.479Z] LOG Mapped {/api/attributes/:id, PATCH} route RouterExplorer
+[2026-02-17T13:01:05.479Z] LOG Mapped {/api/attributes/:id, DELETE} route RouterExplorer
+[2026-02-17T13:01:05.480Z] LOG Mapped {/api/attributes/:id/translations, GET} route RouterExplorer
+[2026-02-17T13:01:05.480Z] LOG Mapped {/api/attributes/:id/translations/:language, POST} route RouterExplorer
+[2026-02-17T13:01:05.480Z] LOG Mapped {/api/attributes/:id/translations/:language, DELETE} route RouterExplorer
+[2026-02-17T13:01:05.480Z] LOG OrdersController {/api/orders}: RoutesResolver
+[2026-02-17T13:01:05.481Z] LOG Mapped {/api/orders, POST} route RouterExplorer
+[2026-02-17T13:01:05.481Z] LOG Mapped {/api/orders, GET} route RouterExplorer
+[2026-02-17T13:01:05.481Z] LOG Mapped {/api/orders/admin, GET} route RouterExplorer
+[2026-02-17T13:01:05.482Z] LOG Mapped {/api/orders/admin/:id, GET} route RouterExplorer
+[2026-02-17T13:01:05.482Z] LOG Mapped {/api/orders/admin/:id, PATCH} route RouterExplorer
+[2026-02-17T13:01:05.482Z] LOG Mapped {/api/orders/:id, GET} route RouterExplorer
+[2026-02-17T13:01:05.482Z] LOG PricingAdminController {/api/pricing/admin}: RoutesResolver
+[2026-02-17T13:01:05.483Z] LOG Mapped {/api/pricing/admin/regions, GET} route RouterExplorer
+[2026-02-17T13:01:05.483Z] LOG Mapped {/api/pricing/admin/tax-rates, GET} route RouterExplorer
+[2026-02-17T13:01:05.484Z] LOG Mapped {/api/pricing/admin/tax-rates, POST} route RouterExplorer
+[2026-02-17T13:01:05.485Z] LOG Mapped {/api/pricing/admin/tax-rates/:id, PATCH} route RouterExplorer
+[2026-02-17T13:01:05.485Z] LOG Mapped {/api/pricing/admin/tax-rates/:id, DELETE} route RouterExplorer
+[2026-02-17T13:01:05.486Z] LOG Mapped {/api/pricing/admin/shipping-methods, GET} route RouterExplorer
+[2026-02-17T13:01:05.487Z] LOG Mapped {/api/pricing/admin/shipping-methods, POST} route RouterExplorer
+[2026-02-17T13:01:05.488Z] LOG Mapped {/api/pricing/admin/shipping-methods/:id, PATCH} route RouterExplorer
+[2026-02-17T13:01:05.488Z] LOG Mapped {/api/pricing/admin/shipping-methods/:id, DELETE} route RouterExplorer
+[2026-02-17T13:01:05.488Z] LOG Mapped {/api/pricing/admin/shipping-rules, GET} route RouterExplorer
+[2026-02-17T13:01:05.489Z] LOG Mapped {/api/pricing/admin/shipping-rules, POST} route RouterExplorer
+[2026-02-17T13:01:05.489Z] LOG Mapped {/api/pricing/admin/shipping-rules/:id, PATCH} route RouterExplorer
+[2026-02-17T13:01:05.490Z] LOG Mapped {/api/pricing/admin/shipping-rules/:id, DELETE} route RouterExplorer
+[2026-02-17T13:01:05.491Z] LOG PricingController {/api/pricing}: RoutesResolver
+[2026-02-17T13:01:05.491Z] LOG Mapped {/api/pricing/shipping-options, GET} route RouterExplorer
+[2026-02-17T13:01:05.491Z] LOG MetricsController {/api}: RoutesResolver
+[2026-02-17T13:01:05.491Z] LOG Mapped {/metrics, GET} route RouterExplorer
+[2026-02-17T13:01:05.492Z] LOG PaymentsController {/api/payments}: RoutesResolver
+[2026-02-17T13:01:05.492Z] LOG Mapped {/api/payments/intent, POST} route RouterExplorer
+[2026-02-17T13:01:05.492Z] LOG Mapped {/api/payments/webhook, POST} route RouterExplorer
+[2026-02-17T13:01:05.493Z] LOG Mapped {/api/payments/stripe/history, GET} route RouterExplorer
+[2026-02-17T13:01:05.494Z] LOG Mapped {/api/payments/order/:orderId, POST} route RouterExplorer
+[2026-02-17T13:01:05.494Z] LOG Mapped {/api/payments/order/:orderId, GET} route RouterExplorer
+[2026-02-17T13:01:05.495Z] LOG ImagesController {/api/images}: RoutesResolver
+[2026-02-17T13:01:05.495Z] LOG Mapped {/api/images/products/:productId, POST} route RouterExplorer
+[2026-02-17T13:01:05.495Z] LOG Mapped {/api/images/products/:productId, GET} route RouterExplorer
+[2026-02-17T13:01:05.496Z] LOG Mapped {/api/images/:imageId, DELETE} route RouterExplorer
+[2026-02-17T13:01:05.496Z] LOG Mapped {/api/images/:imageId/primary, PATCH} route RouterExplorer
+[2026-02-17T13:01:05.497Z] LOG Mapped {/api/images/reorder, PATCH} route RouterExplorer
+[2026-02-17T13:01:05.497Z] LOG CarouselController {/api/carousel}: RoutesResolver
+[2026-02-17T13:01:05.497Z] LOG Mapped {/api/carousel, GET} route RouterExplorer
+[2026-02-17T13:01:05.498Z] LOG Mapped {/api/carousel/admin, GET} route RouterExplorer
+[2026-02-17T13:01:05.498Z] LOG Mapped {/api/carousel, POST} route RouterExplorer
+[2026-02-17T13:01:05.499Z] LOG Mapped {/api/carousel/:id, PATCH} route RouterExplorer
+[2026-02-17T13:01:05.499Z] LOG Mapped {/api/carousel/:id, DELETE} route RouterExplorer
+[2026-02-17T13:01:05.500Z] LOG CartController {/api/cart}: RoutesResolver
+[2026-02-17T13:01:05.500Z] LOG Mapped {/api/cart, GET} route RouterExplorer
+[2026-02-17T13:01:05.500Z] LOG Mapped {/api/cart, PUT} route RouterExplorer
+[2026-02-17T13:01:05.501Z] LOG Mapped {/api/cart, DELETE} route RouterExplorer
+[2026-02-17T13:01:05.501Z] LOG TranslationsController {/api/translations}: RoutesResolver
+[2026-02-17T13:01:05.501Z] LOG Mapped {/api/translations, GET} route RouterExplorer
+[2026-02-17T13:01:05.502Z] LOG Mapped {/api/translations/keys, GET} route RouterExplorer
+[2026-02-17T13:01:05.502Z] LOG Mapped {/api/translations/all, GET} route RouterExplorer
+[2026-02-17T13:01:05.503Z] LOG Mapped {/api/translations, POST} route RouterExplorer
+[2026-02-17T13:01:05.503Z] LOG Mapped {/api/translations/bulk, POST} route RouterExplorer
+[2026-02-17T13:01:05.503Z] LOG Mapped {/api/translations/:key/:language, PATCH} route RouterExplorer
+[2026-02-17T13:01:05.504Z] LOG Mapped {/api/translations/:key/:language, DELETE} route RouterExplorer
+[2026-02-17T13:01:05.504Z] LOG CheckoutController {/api/checkout}: RoutesResolver
+[2026-02-17T13:01:05.505Z] LOG Mapped {/api/checkout/estimate, POST} route RouterExplorer
+[2026-02-17T13:01:05.505Z] LOG Mapped {/api/checkout, POST} route RouterExplorer
+[2026-02-17T13:01:05.506Z] LOG LogsController {/api/admin/logs}: RoutesResolver
+[2026-02-17T13:01:05.506Z] LOG Mapped {/api/admin/logs, GET} route RouterExplorer
+[2026-02-17T13:01:05.635Z] LOG Bucket 'products' already exists StorageService
+[2026-02-17T13:01:05.640Z] LOG Nest application successfully started NestApplication
+[2026-02-17T13:01:05.642Z] LOG Redis Client Connecting... RedisService
+[2026-02-17T13:01:05.645Z] LOG Redis Client Ready RedisService
+[2026-02-17T13:01:05.646Z] LOG Redis Client Connected RedisService
