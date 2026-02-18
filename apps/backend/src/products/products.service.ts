@@ -904,6 +904,13 @@ export class ProductsService {
 
     const { categoryIds, variants, attributes, brandId, ...productData } = updateProductDto;
 
+    // Deduplicate attributes by attributeId (unique constraint on productId+attributeId); last wins
+    const attributesDeduped =
+      attributes &&
+      Array.from(
+        new Map(attributes.map((attr) => [attr.attributeId, { attributeId: attr.attributeId, value: attr.value }])).values(),
+      );
+
     // Always auto-generate variant SKUs (ignore any user input)
     let variantsWithSku:
       | Array<{
@@ -929,55 +936,60 @@ export class ProductsService {
       );
     }
 
-    // Update product
-    const updatedProduct = await this.prisma.product.update({
-      where: { id },
-      data: {
-        ...productData,
-        sku: productSku,
-        slug: productSlug,
-        ...(brandId && { brand: { connect: { id: brandId } } }),
-        ...(categoryIds && {
+    // Update product. Use a transaction so we delete product attributes first, then update;
+    // Prisma's nested deleteMany+create in one update can run in an order that hits the unique constraint.
+    const updatedProduct = await this.prisma.$transaction(async (tx) => {
+      if (attributes !== undefined) {
+        await tx.productAttribute.deleteMany({ where: { productId: id } });
+      }
+      return tx.product.update({
+        where: { id },
+        data: {
+          ...productData,
+          sku: productSku,
+          slug: productSlug,
+          ...(brandId && { brand: { connect: { id: brandId } } }),
+          ...(categoryIds && {
+            categories: {
+              deleteMany: {},
+              create: categoryIds.map((categoryId) => ({
+                categoryId,
+              })),
+            },
+          }),
+          ...(variantsWithSku && {
+            variants: {
+              deleteMany: {},
+              create: variantsWithSku,
+            },
+          }),
+          ...(attributesDeduped && attributesDeduped.length > 0 && {
+            attributes: {
+              create: attributesDeduped.map((attr: { attributeId: string; value: string }) => ({
+                attributeId: attr.attributeId,
+                value: attr.value,
+              })),
+            },
+          }),
+        },
+        include: {
+          brand: true,
           categories: {
-            deleteMany: {},
-            create: categoryIds.map((categoryId) => ({
-              categoryId,
-            })),
+            include: {
+              category: true,
+            },
           },
-        }),
-        ...(variantsWithSku && {
-          variants: {
-            deleteMany: {},
-            create: variantsWithSku,
-          },
-        }),
-        ...(attributes && {
+          variants: true,
           attributes: {
-            deleteMany: {},
-            create: attributes.map((attr) => ({
-              attributeId: attr.attributeId,
-              value: attr.value,
-            })),
+            include: {
+              attribute: true,
+            },
           },
-        }),
-      },
-      include: {
-        brand: true,
-        categories: {
-          include: {
-            category: true,
+          productImages: {
+            orderBy: { order: 'asc' },
           },
         },
-        variants: true,
-        attributes: {
-          include: {
-            attribute: true,
-          },
-        },
-        productImages: {
-          orderBy: { order: 'asc' },
-        },
-      },
+      });
     });
 
     // Add URLs to product images and convert legacy images
