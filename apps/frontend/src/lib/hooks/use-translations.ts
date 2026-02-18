@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { apiClient } from '../api/client';
+import { apiClient, apiService } from '../api/client';
 import {
   getCachedTranslations,
   setCachedTranslations,
@@ -9,16 +9,63 @@ import {
 export type Translations = Record<string, any>;
 
 /**
+ * Try to upload built-in Russian translations to the backend so the database is populated.
+ * Fire-and-forget: does not block. Succeeds only if user is admin and language "ru" exists in Admin → Languages.
+ */
+function uploadRussianToBackend(flat: Record<string, string>): void {
+  if (!flat || Object.keys(flat).length === 0) return;
+  apiService
+    .post<{ success: boolean; count: number }>('/translations/bulk', {
+      language: 'ru',
+      translations: flat,
+    })
+    .catch(() => {
+      // Ignore: user may not be admin, or "ru" may not exist in Languages yet
+    });
+}
+
+/**
  * Fetch translations for a language from the API and update localStorage cache.
  * Used by useTranslations and by language switch (prefetch + refresh).
+ * For Russian (ru), if the API fails or returns empty, built-in Russian translations are used
+ * and an attempt is made to upload them to the backend to populate the database.
  */
 export async function fetchTranslationsForLanguage(lang: string): Promise<Translations> {
-  const url = `/translations?lang=${lang}`;
-  const response = await apiClient.get<Translations>(url);
-  if (typeof window !== 'undefined') {
-    setCachedTranslations(lang, response.data);
+  try {
+    const url = `/translations?lang=${lang}`;
+    const response = await apiClient.get<Translations>(url);
+    const data = response.data;
+    const isEmpty =
+      !data || typeof data !== 'object' || Object.keys(data).length === 0;
+    if (lang === 'ru' && isEmpty) {
+      return await getBuiltInRussianTranslations();
+    }
+    if (typeof window !== 'undefined') {
+      setCachedTranslations(lang, data);
+    }
+    return data;
+  } catch (err) {
+    if (lang === 'ru') {
+      return await getBuiltInRussianTranslations();
+    }
+    throw err;
   }
-  return response.data;
+}
+
+/**
+ * Built-in Russian translations (same as getRussianTemplate + flatToNested).
+ * Used when backend has no Russian translations or API fails. Lazy-loaded to avoid circular deps.
+ * Also triggers a fire-and-forget upload to the backend so the DB gets populated (if admin and "ru" exists).
+ */
+async function getBuiltInRussianTranslations(): Promise<Translations> {
+  const { getRussianTemplate, flatToNested } = await import('../utils/translations');
+  const flat = getRussianTemplate();
+  uploadRussianToBackend(flat);
+  const nested = flatToNested(flat) as Translations;
+  if (typeof window !== 'undefined') {
+    setCachedTranslations('ru', nested);
+  }
+  return nested;
 }
 
 export function useTranslations(language?: string) {
