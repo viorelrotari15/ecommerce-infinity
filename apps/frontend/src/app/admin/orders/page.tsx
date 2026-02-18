@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { formatPrice } from '@/lib/utils';
+import { formatPrice, formatOrderIdDisplay } from '@/lib/utils';
 import { isAdmin } from '@/lib/auth';
 import Link from 'next/link';
 import { useAdminOrders } from '@/lib/hooks/use-orders';
@@ -70,7 +70,7 @@ export default function AdminOrdersPage() {
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">
                     <span>
-                      {t(translationKeys.admin.orders.orderId, 'Order')} #{order.id}
+                      {t(translationKeys.admin.orders.orderId, 'Order')} #{formatOrderIdDisplay(order.id)}
                     </span>
                     <span className="text-sm font-normal text-muted-foreground">
                       {t(

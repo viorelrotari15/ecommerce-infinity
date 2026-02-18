@@ -7,7 +7,7 @@ import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ShoppingCart, LogOut, LayoutDashboard, User, Search, Menu, X } from 'lucide-react';
-import { getCurrentUser, isAdmin, isAuthenticated, logout } from '@/lib/auth';
+import { getCurrentUser, isAdmin, isAuthenticated, logout, AUTH_STATE_CHANGED } from '@/lib/auth';
 import { useQueryClient } from '@tanstack/react-query';
 import { useCartStore } from '@/lib/store/cart-store';
 import { LanguageSelector } from '@/components/layout/language-selector';
@@ -42,6 +42,7 @@ export function Header() {
     }
   }, [searchParams]);
 
+  // Sync auth state from localStorage on mount
   useEffect(() => {
     setMounted(true);
     const currentUser = getCurrentUser();
@@ -53,6 +54,20 @@ export function Header() {
     if (isAuthenticated()) {
       loadFromServer().catch(console.error);
     }
+  }, [loadFromServer]);
+
+  // Re-sync auth state when login/register completes (avoids needing a full page refresh)
+  useEffect(() => {
+    const onAuthStateChanged = () => {
+      setUser(getCurrentUser());
+      setIsUserAdmin(isAdmin());
+      setIsLoggedIn(isAuthenticated());
+      if (isAuthenticated()) {
+        loadFromServer().catch(console.error);
+      }
+    };
+    window.addEventListener(AUTH_STATE_CHANGED, onAuthStateChanged);
+    return () => window.removeEventListener(AUTH_STATE_CHANGED, onAuthStateChanged);
   }, [loadFromServer]);
 
   const handleLogout = () => {
@@ -365,7 +380,7 @@ export function Header() {
                   >
                     <ShoppingCart className="h-5 w-5" />
                     {t(translationKeys.header.menu.cart, 'Cart')}
-                    {cartItemCount > 0 && (
+                    {mounted && cartItemCount > 0 && (
                       <span className="ml-auto px-2 py-0.5 rounded-full bg-primary text-xs font-bold text-primary-foreground">
                         {cartItemCount > 99 ? '99+' : cartItemCount}
                       </span>

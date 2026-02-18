@@ -11,6 +11,7 @@ import { fetchAPI } from '@/lib/api';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { notifyAuthStateChanged } from '@/lib/auth';
 
 const registerSchema = yup.object({
   email: yup.string().email('Invalid email address').required('Email is required'),
@@ -74,6 +75,9 @@ export default function RegisterPage() {
 
       // Invalidate all queries to refetch data
       queryClient.invalidateQueries();
+
+      // Notify header to show logged-in state without page refresh
+      notifyAuthStateChanged();
 
       // Redirect to home (new users are always regular users)
       router.push('/');

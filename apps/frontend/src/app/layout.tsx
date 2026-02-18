@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import type { CSSProperties } from 'react';
+import { Suspense } from 'react';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import { Providers } from './providers';
@@ -56,7 +57,15 @@ export default function RootLayout({
         <Providers>
           <WebVitalsReporter />
           <div className="flex min-h-screen flex-col">
-            <Header />
+            <Suspense
+              fallback={
+                <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+                  <div className="container mx-auto px-4 flex h-16 items-center justify-between max-w-full" />
+                </header>
+              }
+            >
+              <Header />
+            </Suspense>
             <main className="flex-1">{children}</main>
             <Footer />
           </div>

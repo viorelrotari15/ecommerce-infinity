@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Elements, PaymentElement, useElements, useStripe } from '@stripe/react-stripe-js';
@@ -8,7 +8,7 @@ import { loadStripe } from '@stripe/stripe-js';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { apiService, createPaymentIntent } from '@/lib/api/client';
+import { apiService, confirmPaymentSuccess, createPaymentIntent } from '@/lib/api/client';
 import { useCartStore } from '@/lib/store/cart-store';
 import { formatPrice } from '@/lib/utils';
 import { isAuthenticated } from '@/lib/auth';
@@ -52,6 +52,11 @@ function PaymentForm({ orderId, email }: { orderId: string; email: string }) {
     }
 
     if (paymentIntent?.status === 'succeeded') {
+      try {
+        await confirmPaymentSuccess(orderId);
+      } catch {
+        // Webhook may have already run; non-fatal
+      }
       await clearCart();
       setIsSuccess(true);
       toast({
@@ -108,6 +113,7 @@ export default function CheckoutPaymentPage() {
   const [email, setEmail] = useState<string>('');
   const [isPreparing, setIsPreparing] = useState(true);
   const [prepError, setPrepError] = useState<string | null>(null);
+  const creatingOrderRef = useRef(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -151,6 +157,11 @@ export default function CheckoutPaymentPage() {
           throw new Error('Email is missing. Please return to checkout.');
         }
 
+        if (creatingOrderRef.current) {
+          return;
+        }
+        creatingOrderRef.current = true;
+
         let createdOrder: { id: string };
         if (payload.isGuest) {
           createdOrder = await apiService.post<{ id: string }>('/checkout', {
@@ -171,6 +182,7 @@ export default function CheckoutPaymentPage() {
           });
         }
 
+        creatingOrderRef.current = false;
         localStorage.setItem('checkoutOrderId', createdOrder.id);
         localStorage.setItem('checkoutEmail', customerEmail);
 
@@ -179,6 +191,7 @@ export default function CheckoutPaymentPage() {
         setEmail(customerEmail);
         setIsPreparing(false);
       } catch (error: any) {
+        creatingOrderRef.current = false;
         if (!isMounted) return;
         setPrepError(error.message || 'Failed to prepare payment.');
         setIsPreparing(false);

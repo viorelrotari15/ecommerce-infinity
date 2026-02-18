@@ -1,6 +1,7 @@
 import { Body, Controller, Get, Headers, HttpCode, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { PaymentsService } from './payments.service';
+import { ConfirmPaymentSuccessDto } from './dto/confirm-payment-success.dto';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 import { CreatePaymentIntentDto } from './dto/create-payment-intent.dto';
 import { StripeHistoryQueryDto } from './dto/stripe-history.dto';
@@ -18,6 +19,12 @@ export class PaymentsController {
   @ApiOperation({ summary: 'Create Stripe payment intent for order' })
   createIntent(@Body() dto: CreatePaymentIntentDto) {
     return this.paymentsService.createPaymentIntent(dto);
+  }
+
+  @Post('confirm-success')
+  @ApiOperation({ summary: 'Confirm payment success (after client-side Stripe success)' })
+  confirmSuccess(@Body() dto: ConfirmPaymentSuccessDto) {
+    return this.paymentsService.confirmPaymentSuccess(dto.orderId);
   }
 
   @Post('webhook')

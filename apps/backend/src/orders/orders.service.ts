@@ -7,6 +7,7 @@ import { ShippingCalculatorService } from '../pricing/shipping-calculator.servic
 import { TaxCalculatorService } from '../pricing/tax-calculator.service';
 import { MetricsService } from '../metrics/metrics.service';
 import { EmailService } from '../email/email.service';
+import { PaymentsService } from '../payments/payments.service';
 
 @Injectable()
 export class OrdersService {
@@ -16,6 +17,7 @@ export class OrdersService {
     private shippingCalculator: ShippingCalculatorService,
     private metricsService: MetricsService,
     private emailService: EmailService,
+    private paymentsService: PaymentsService,
   ) {}
 
   private async buildLineItems(items: { variantId: string; quantity: number }[]) {
@@ -109,18 +111,13 @@ export class OrdersService {
   }
 
   async findByUser(userId: string) {
-    return this.prisma.order.findMany({
-      where: {
-        userId,
-        payment: { status: 'COMPLETED' },
-      },
+    let orders = await this.prisma.order.findMany({
+      where: { userId },
       include: {
         items: {
           include: {
             productVariant: {
-              include: {
-                product: true,
-              },
+              include: { product: true },
             },
           },
         },
@@ -128,6 +125,33 @@ export class OrdersService {
       },
       orderBy: { createdAt: 'desc' },
     });
+
+    const toSync = orders.filter(
+      (o) => o.payment?.status === 'PENDING' && o.payment?.transactionId,
+    );
+    if (toSync.length > 0) {
+      await Promise.all(
+        toSync.map((o) =>
+          this.paymentsService.syncPaymentStatusFromStripe(o.id).catch(() => {}),
+        ),
+      );
+      orders = await this.prisma.order.findMany({
+        where: { userId },
+        include: {
+          items: {
+            include: {
+              productVariant: {
+                include: { product: true },
+              },
+            },
+          },
+          payment: true,
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+    }
+
+    return orders;
   }
 
   async findAll() {
@@ -164,15 +188,13 @@ export class OrdersService {
       where.userId = userId;
     }
 
-    const order = await this.prisma.order.findFirst({
+    let order = await this.prisma.order.findFirst({
       where,
       include: {
         items: {
           include: {
             productVariant: {
-              include: {
-                product: true,
-              },
+              include: { product: true },
             },
           },
         },
@@ -193,7 +215,33 @@ export class OrdersService {
       throw new NotFoundException(`Order ${id} not found`);
     }
 
-    return order;
+    if (order.payment?.status === 'PENDING' && order.payment?.transactionId) {
+      await this.paymentsService.syncPaymentStatusFromStripe(order.id).catch(() => {});
+      order = await this.prisma.order.findFirst({
+        where,
+        include: {
+          items: {
+            include: {
+              productVariant: {
+                include: { product: true },
+              },
+            },
+          },
+          payment: true,
+          user: {
+            select: {
+              id: true,
+              email: true,
+              firstName: true,
+              lastName: true,
+            },
+          },
+          region: true,
+        },
+      });
+    }
+
+    return order!;
   }
 
   async findOneAdmin(id: string) {

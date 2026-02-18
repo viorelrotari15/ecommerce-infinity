@@ -3,23 +3,19 @@ import { observeWebVital } from '@/lib/metrics';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-const allowedNames = new Set(['CLS', 'LCP', 'INP', 'FCP', 'TTFB']);
+const allowedNames = new Set(['CLS', 'LCP', 'INP', 'FCP', 'TTFB', 'FID']);
 const allowedRatings = new Set(['good', 'needs-improvement', 'poor']);
+const defaultRating = 'good';
 
 export async function POST(request: Request) {
-  // sendBeacon may send Blob without Content-Type; try json first, then text
+  // sendBeacon may send Blob with or without Content-Type; read body once then parse
+  const raw = await request.text().catch(() => '');
   let body: unknown = null;
-  const contentType = request.headers.get('content-type') || '';
-  if (contentType.includes('application/json')) {
-    body = await request.json().catch(() => null);
-  } else {
-    const text = await request.text().catch(() => '');
-    if (text) {
-      try {
-        body = JSON.parse(text);
-      } catch {
-        body = null;
-      }
+  if (raw) {
+    try {
+      body = JSON.parse(raw);
+    } catch {
+      body = null;
     }
   }
 
@@ -27,17 +23,20 @@ export async function POST(request: Request) {
     return Response.json({ error: 'Invalid payload' }, { status: 400 });
   }
 
-  const name = String((body as Record<string, unknown>).name ?? '');
-  const rating = String((body as Record<string, unknown>).rating ?? '');
+  const name = String((body as Record<string, unknown>).name ?? '').trim();
+  const rawRating = (body as Record<string, unknown>).rating;
+  const rating = allowedRatings.has(String(rawRating ?? '')) ? String(rawRating) : defaultRating;
   const value = Number((body as Record<string, unknown>).value);
   const page = typeof (body as Record<string, unknown>).page === 'string' ? (body as Record<string, unknown>).page : 'unknown';
 
-  if (!allowedNames.has(name) || !allowedRatings.has(rating) || Number.isNaN(value)) {
+  if (!allowedNames.has(name) || Number.isNaN(value)) {
     return Response.json({ error: 'Invalid metric fields' }, { status: 400 });
   }
 
+  const vitalName = name === 'FID' ? 'INP' : name;
+
   observeWebVital({
-    name: name as 'CLS' | 'LCP' | 'INP' | 'FCP' | 'TTFB',
+    name: vitalName as 'CLS' | 'LCP' | 'INP' | 'FCP' | 'TTFB',
     rating: rating as 'good' | 'needs-improvement' | 'poor',
     value,
     page,

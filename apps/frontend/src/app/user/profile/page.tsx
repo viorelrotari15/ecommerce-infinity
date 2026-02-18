@@ -9,22 +9,28 @@ import { formatPrice, formatOrderIdDisplay } from '@/lib/utils';
 import { Loader2, User, Mail, Phone, Calendar, Package, MapPin } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { isAuthenticated } from '@/lib/auth';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useT, translationKeys } from '@/lib/utils/translations';
 
 export default function UserProfilePage() {
   const router = useRouter();
+  const [mounted, setMounted] = useState(false);
   const { data: profile, isLoading: profileLoading, error: profileError } = useUserProfile();
   const { data: orders, isLoading: ordersLoading } = useUserOrders();
   const t = useT();
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && !isAuthenticated()) {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (mounted && !isAuthenticated()) {
       router.push('/auth/login');
     }
-  }, [router]);
+  }, [mounted, router]);
 
-  if (profileLoading) {
+  // Same initial UI on server and client to avoid hydration mismatch (server has no auth token, client may have one)
+  if (!mounted || profileLoading) {
     return (
       <div className="w-full px-4 md:px-6 lg:px-8 flex min-h-[60vh] items-center justify-center py-12">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />

@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { formatPrice } from '@/lib/utils';
+import { formatPrice, formatOrderIdDisplay } from '@/lib/utils';
 import { useAdminOrder, useUpdateAdminOrderStatus } from '@/lib/hooks/use-orders';
 import { useToast } from '@/hooks/use-toast';
 import { useT, translationKeys } from '@/lib/utils/translations';
@@ -132,7 +132,7 @@ export default function AdminOrderDetailsPage() {
     <div className="container py-8 space-y-6">
       <div>
         <h1 className="text-3xl font-bold">
-          {t(translationKeys.admin.orderDetails.title, 'Order')} #{order.id}
+          {t(translationKeys.admin.orderDetails.title, 'Order')} #{formatOrderIdDisplay(order.id)}
         </h1>
         <p className="text-muted-foreground">
           {t(translationKeys.admin.orderDetails.status, 'Status')}: {selectedLabel || order.status}

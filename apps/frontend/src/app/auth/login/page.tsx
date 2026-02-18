@@ -13,6 +13,7 @@ import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useCartStore } from '@/lib/store/cart-store';
 import { getCart, updateCart as updateCartAPI } from '@/lib/api/client';
+import { notifyAuthStateChanged } from '@/lib/auth';
 import { useT, translationKeys } from '@/lib/utils/translations';
 
 type LoginFormData = {
@@ -91,6 +92,9 @@ export default function LoginPage() {
 
       // Invalidate all queries to refetch data
       queryClient.invalidateQueries();
+
+      // Notify header to show logged-in state without page refresh
+      notifyAuthStateChanged();
 
       // Redirect based on role
       if (response.user.role === 'ADMIN' || response.user.role === 'admin') {

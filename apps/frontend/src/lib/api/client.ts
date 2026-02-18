@@ -412,6 +412,11 @@ export async function createPaymentIntent(payload: {
   return apiService.post('/payments/intent', payload);
 }
 
+/** Confirm payment success so backend marks payment COMPLETED (when webhook is not received) */
+export async function confirmPaymentSuccess(orderId: string): Promise<{ success: boolean }> {
+  return apiService.post('/payments/confirm-success', { orderId });
+}
+
 /** Admin order detail (GET /orders/admin/:id) */
 export interface AdminOrderResponse {
   id: string;
@@ -482,9 +487,9 @@ export interface StripePaymentHistoryItem {
 
 export async function listStripePayments(params?: { orderId?: string; email?: string; limit?: number }) {
   const query = new URLSearchParams();
-  if (params?.orderId) query.set('orderId', params.orderId);
-  if (params?.email) query.set('email', params.email);
-  if (params?.limit) query.set('limit', String(params.limit));
+  if (params?.orderId?.trim()) query.set('orderId', params.orderId.trim());
+  if (params?.email?.trim()) query.set('email', params.email.trim());
+  if (params?.limit != null) query.set('limit', String(params.limit));
   const suffix = query.toString() ? `?${query.toString()}` : '';
   return apiService.get<StripePaymentHistoryItem[]>(`/payments/stripe/history${suffix}`);
 }

@@ -1,8 +1,8 @@
 'use client';
 
 import { AddToCartButton } from '@/components/client/cart/add-to-cart-button';
-import { Button } from '@/components/ui/button';
 import { formatPrice } from '@/lib/utils';
+import { useT, translationKeys } from '@/lib/utils/translations';
 
 interface ProductVariant {
   id: string;
@@ -26,6 +26,7 @@ export function ProductActions({
   variants,
   primaryImage,
 }: ProductActionsProps) {
+  const t = useT();
   const defaultVariant = variants[0];
 
   if (!defaultVariant) {
@@ -85,9 +86,21 @@ export function ProductActions({
             className="flex-1"
           />
         )}
-        <Button size="lg" variant="outline">
-          Buy Now
-        </Button>
+        <AddToCartButton
+          variantId={defaultVariant.id}
+          productId={productId}
+          productName={productName}
+          productSlug={productSlug}
+          variantName={defaultVariant.name || undefined}
+          price={defaultVariant.price}
+          stock={defaultVariant.stock}
+          image={primaryImage}
+          size="lg"
+          variant="outline"
+          showIcon={false}
+          redirectToCart
+          label={t(translationKeys.products.buyNow, 'Buy Now')}
+        />
       </div>
     </>
   );
