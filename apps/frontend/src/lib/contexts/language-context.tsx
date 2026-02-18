@@ -40,11 +40,16 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     const cookieLang = document.cookie
       .split('; ')
       .find((row) => row.startsWith('lang='))
-      ?.split('=')[1];
+      ?.split('=')[1]
+      ?.trim();
 
-    const newLanguage = (cookieLang && activeLanguages.some((l) => l.code === cookieLang))
-      ? cookieLang
-      : effectiveDefault;
+    // Use cookie if: we have one AND (languages still loading OR cookie is in active list)
+    // This keeps selected language on refresh before useLanguages() has returned
+    const newLanguage =
+      cookieLang &&
+      (activeLanguages.length === 0 || activeLanguages.some((l) => l.code === cookieLang))
+        ? cookieLang
+        : effectiveDefault;
     
     if (newLanguage !== currentLanguage) {
       // Language changed, clear old cache
