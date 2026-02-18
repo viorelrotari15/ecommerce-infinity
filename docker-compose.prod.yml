@@ -42,6 +42,12 @@ services:
       NEXT_PUBLIC_CDN_URL: ${NEXT_PUBLIC_CDN_URL}
       # Redis Configuration
       REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+      # App currency (display, emails, Stripe)
+      APP_CURRENCY: ${APP_CURRENCY:-EUR}
+      # Stripe (set via server menu 17 or .env)
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+      STRIPE_CURRENCY: ${STRIPE_CURRENCY:-EUR}
     depends_on:
       postgres:
         condition: service_healthy
@@ -74,6 +80,8 @@ services:
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
         NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
         NEXT_PUBLIC_CDN_URL: ${NEXT_PUBLIC_CDN_URL}
+        NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY:-}
+        NEXT_PUBLIC_DEFAULT_CURRENCY: ${NEXT_PUBLIC_DEFAULT_CURRENCY:-EUR}
     container_name: ecommerce-frontend
     environment:
       NODE_ENV: production
@@ -83,6 +91,8 @@ services:
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
       NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
       NEXT_PUBLIC_CDN_URL: ${NEXT_PUBLIC_CDN_URL}
+      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY:-}
+      NEXT_PUBLIC_DEFAULT_CURRENCY: ${NEXT_PUBLIC_DEFAULT_CURRENCY:-EUR}
     depends_on:
       backend:
         condition: service_healthy

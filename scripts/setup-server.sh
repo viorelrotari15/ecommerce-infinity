@@ -332,6 +332,75 @@ create_admin_user() {
   return 1
 }
 
+# Configure Stripe keys in .env (publishable, secret, webhook secret, currency).
+configure_stripe() {
+  [[ ! -f .env ]] && { err ".env not found. Run 'Setup .env' first."; return 1; }
+  echo ""
+  info "Configure Stripe for payments. Get keys from https://dashboard.stripe.com/apikeys"
+  info "Webhook secret from https://dashboard.stripe.com/webhooks (endpoint: https://YOUR_DOMAIN/api/payments/stripe/webhook)"
+  echo ""
+  read -p "Stripe Publishable Key (pk_test_... or pk_live_...): " -r pub_key
+  if [[ -n "$pub_key" ]]; then
+    if grep -q "^NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=" .env 2>/dev/null; then
+      sed -i.bak "s|^NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=.*|NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=${pub_key}|" .env
+    else
+      echo "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=${pub_key}" >> .env
+    fi
+    ok "Publishable key set."
+  fi
+  read -sp "Stripe Secret Key (sk_test_... or sk_live_...): " -r secret_key
+  echo ""
+  if [[ -n "$secret_key" ]]; then
+    if grep -q "^STRIPE_SECRET_KEY=" .env 2>/dev/null; then
+      sed -i.bak "s|^STRIPE_SECRET_KEY=.*|STRIPE_SECRET_KEY=${secret_key}|" .env
+    else
+      echo "STRIPE_SECRET_KEY=${secret_key}" >> .env
+    fi
+    ok "Secret key set."
+  fi
+  read -sp "Stripe Webhook Secret (whsec_...): " -r webhook_secret
+  echo ""
+  if [[ -n "$webhook_secret" ]]; then
+    if grep -q "^STRIPE_WEBHOOK_SECRET=" .env 2>/dev/null; then
+      sed -i.bak "s|^STRIPE_WEBHOOK_SECRET=.*|STRIPE_WEBHOOK_SECRET=${webhook_secret}|" .env
+    else
+      echo "STRIPE_WEBHOOK_SECRET=${webhook_secret}" >> .env
+    fi
+    ok "Webhook secret set."
+  fi
+  read -p "Stripe currency (default EUR): " -r currency
+  currency="${currency:-EUR}"
+  if grep -q "^STRIPE_CURRENCY=" .env 2>/dev/null; then
+    sed -i.bak "s|^STRIPE_CURRENCY=.*|STRIPE_CURRENCY=${currency}|" .env
+  else
+    echo "STRIPE_CURRENCY=${currency}" >> .env
+  fi
+  rm -f .env.bak
+  ok "Stripe keys saved to .env."
+  info "Restart backend for secret/webhook/currency. Rebuild frontend for publishable key: docker compose -f docker-compose.prod.yml up -d --build backend frontend"
+}
+
+# Set app-wide currency (frontend display, backend emails, Stripe). ISO 4217 code: EUR, USD, GBP, etc.
+configure_currency() {
+  [[ ! -f .env ]] && { err ".env not found. Run 'Setup .env' first."; return 1; }
+  echo ""
+  info "Set default currency for the whole app (prices, Stripe, order emails). Use ISO 4217 code (e.g. EUR, USD, GBP)."
+  read -p "Currency code (default EUR): " -r currency
+  currency="${currency:-EUR}"
+  currency=$(echo "$currency" | tr '[:lower:]' '[:upper:]' | cut -c1-3)
+  [[ -z "$currency" ]] && currency="EUR"
+  for key in NEXT_PUBLIC_DEFAULT_CURRENCY APP_CURRENCY STRIPE_CURRENCY; do
+    if grep -q "^${key}=" .env 2>/dev/null; then
+      sed -i.bak "s|^${key}=.*|${key}=${currency}|" .env
+    else
+      echo "${key}=${currency}" >> .env
+    fi
+  done
+  rm -f .env.bak
+  ok "Currency set to ${currency} (frontend, backend, Stripe)."
+  info "Restart backend and rebuild frontend to apply: docker compose -f docker-compose.prod.yml up -d --build backend frontend"
+}
+
 main_menu() {
   check_project
   while true; do
@@ -353,9 +422,11 @@ main_menu() {
     echo " 14) Configure Grafana (public URL, admin password)"
     echo " 15) Fix orders schema (if /api/orders returns 500)"
     echo " 16) Create admin user"
+    echo " 17) Configure Stripe (payment keys)"
+    echo " 18) Configure currency (app-wide: EUR, USD, etc.)"
     echo "  0) Exit"
     echo ""
-    read -p "Choice (0–16): " -r choice
+    read -p "Choice (0–18): " -r choice
     case "$choice" in
       1) install_docker ;;
       2) setup_env ;;
@@ -373,6 +444,8 @@ main_menu() {
       14) configure_grafana ;;
       15) fix_orders_schema ;;
       16) create_admin_user ;;
+      17) configure_stripe ;;
+      18) configure_currency ;;
       0) ok "Bye."; exit 0 ;;
       *) warn "Invalid choice." ;;
     esac

@@ -53,3 +53,9 @@ create-admin: ## Create or update admin user (dev). Usage: make create-admin EMA
 
 create-admin-prod: ## Create or update admin user on production. Usage: make create-admin-prod EMAIL=admin@example.com PASS=secret [FIRST=Admin] [LAST=User]
 	docker compose -f docker-compose.prod.yml exec backend npm run create-admin -- "$(EMAIL)" "$(PASS)" "$(FIRST)" "$(LAST)"
+
+set-currency: ## Set app-wide currency (frontend, backend, Stripe). Usage: make set-currency CURRENCY=USD
+	@C=$$(echo "$(CURRENCY)" | tr '[:lower:]' '[:upper:]' | cut -c1-3); C=$${C:-EUR}; \
+	for k in NEXT_PUBLIC_DEFAULT_CURRENCY APP_CURRENCY STRIPE_CURRENCY; do \
+	  if grep -q "^$$k=" .env 2>/dev/null; then sed -i.bak "s|^$$k=.*|$$k=$$C|" .env; else echo "$$k=$$C" >> .env; fi; \
+	done; rm -f .env.bak; echo "Currency set to $$C. Restart backend and rebuild frontend to apply."

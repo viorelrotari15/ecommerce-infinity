@@ -79,7 +79,7 @@ export class EmailService {
     if (!Number.isFinite(numeric)) {
       return `${value}`;
     }
-    const currencyCode = currency || 'EUR';
+    const currencyCode = currency || this.configService.get<string>('APP_CURRENCY') || 'EUR';
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: currencyCode,

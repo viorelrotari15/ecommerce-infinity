@@ -5,11 +5,13 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+const defaultCurrency = (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_DEFAULT_CURRENCY) || 'EUR';
+
 export function formatPrice(price: number | string): string {
   const numPrice = typeof price === 'string' ? parseFloat(price) : price;
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
-    currency: 'USD',
+    currency: defaultCurrency,
   }).format(numPrice);
 }
 
