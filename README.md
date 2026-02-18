@@ -117,6 +117,8 @@ To run pending migrations in Docker: `make migrate-deploy`.
 
 **If `/api/orders` returns 500** (e.g. "column orders.guestEmail does not exist"): the DB is missing columns added by a later migration. Apply the fix once: `make fix-orders-schema`, or run `scripts/fix-orders-schema.sh`. Idempotent and safe on every environment.
 
+**If the backend container is unhealthy** or `/api/products` returns 500 (e.g. "column products.productTypeId does not exist"): the DB is missing the product type schema. The backend startup now runs an idempotent fix automatically. To apply it manually: `make fix-product-type-schema`, or run `scripts/fix-product-type-schema.sh`.
+
 ### Seeding
 
 The database is automatically seeded on first startup. To manually seed:

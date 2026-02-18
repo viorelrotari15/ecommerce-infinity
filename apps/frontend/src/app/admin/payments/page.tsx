@@ -2,11 +2,11 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { formatPrice } from '@/lib/utils';
+import { formatPrice, formatOrderIdDisplay } from '@/lib/utils';
 import type { StripePaymentHistoryItem } from '@/lib/api/client';
 import { useStripePaymentHistory } from '@/lib/hooks/use-orders';
 import { useToast } from '@/hooks/use-toast';
@@ -19,6 +19,7 @@ import {
   SortingState,
   useReactTable,
 } from '@tanstack/react-table';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 const formatAddress = (address: any) => {
   if (!address) return 'N/A';
@@ -40,7 +41,15 @@ export default function AdminPaymentsPage() {
   const t = useT();
   const [orderId, setOrderId] = useState('');
   const [email, setEmail] = useState('');
-  const [limit, setLimit] = useState('20');
+  const [appliedOrderId, setAppliedOrderId] = useState<string | undefined>(undefined);
+  const [appliedEmail, setAppliedEmail] = useState<string | undefined>(undefined);
+  const PAGE_SIZE_OPTIONS = [10, 20, 50, 100] as const;
+  const ANALYTICS_PAGE_SIZE = 10;
+  const FETCH_LIMIT = 500;
+  const [itemsPerPage, setItemsPerPage] = useState<number>(20);
+  const [paymentsPage, setPaymentsPage] = useState(1);
+  const [analyticsPage, setAnalyticsPage] = useState(1);
+  const [selectedPayment, setSelectedPayment] = useState<StripePaymentHistoryItem | null>(null);
   const [isMounted, setIsMounted] = useState(false);
   const [sorting, setSorting] = useState<SortingState>([
     { id: 'created', desc: true },
@@ -48,14 +57,45 @@ export default function AdminPaymentsPage() {
 
   const queryParams = useMemo(
     () => ({
-      orderId: orderId.trim() || undefined,
-      email: email.trim() || undefined,
-      limit: Number(limit) || 20,
+      orderId: appliedOrderId,
+      email: appliedEmail,
+      limit: FETCH_LIMIT,
     }),
-    [orderId, email, limit],
+    [appliedOrderId, appliedEmail],
   );
 
   const { data: payments = [], isLoading, error } = useStripePaymentHistory(queryParams);
+
+  const handleSearch = () => {
+    setAppliedOrderId(orderId.trim() || undefined);
+    setAppliedEmail(email.trim() || undefined);
+    setPaymentsPage(1);
+    setAnalyticsPage(1);
+  };
+
+  const handleClearFilters = () => {
+    setOrderId('');
+    setEmail('');
+    setAppliedOrderId(undefined);
+    setAppliedEmail(undefined);
+    setPaymentsPage(1);
+    setAnalyticsPage(1);
+  };
+
+  useEffect(() => {
+    setPaymentsPage(1);
+    setAnalyticsPage(1);
+  }, [itemsPerPage]);
+
+  const totalPaymentsPages = Math.max(1, Math.ceil(payments.length / itemsPerPage));
+  const paginatedPayments = useMemo(
+    () =>
+      payments.slice(
+        (paymentsPage - 1) * itemsPerPage,
+        paymentsPage * itemsPerPage,
+      ),
+    [payments, paymentsPage, itemsPerPage],
+  );
 
   const analyticsByEmail = useMemo(() => {
     const map = new Map<
@@ -78,6 +118,16 @@ export default function AdminPaymentsPage() {
     return Array.from(map.values()).sort((a, b) => b.total - a.total);
   }, [payments]);
 
+  const totalAnalyticsPages = Math.max(1, Math.ceil(analyticsByEmail.length / ANALYTICS_PAGE_SIZE));
+  const paginatedAnalytics = useMemo(
+    () =>
+      analyticsByEmail.slice(
+        (analyticsPage - 1) * ANALYTICS_PAGE_SIZE,
+        analyticsPage * ANALYTICS_PAGE_SIZE,
+      ),
+    [analyticsByEmail, analyticsPage],
+  );
+
   const columns = useMemo<ColumnDef<StripePaymentHistoryItem>[]>(
     () => [
       {
@@ -90,7 +140,7 @@ export default function AdminPaymentsPage() {
       {
         id: 'orderId',
         header: 'Order',
-        accessorFn: (row) => row.metadata?.orderId || 'N/A',
+        accessorFn: (row) => (row.metadata?.orderId ? formatOrderIdDisplay(row.metadata.orderId) : 'N/A'),
       },
       {
         id: 'email',
@@ -125,102 +175,13 @@ export default function AdminPaymentsPage() {
         id: 'details',
         header: 'Details',
         cell: ({ row }) => (
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button variant="outline" size="sm">
-                View
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-3xl">
-              <DialogHeader>
-                <DialogTitle>
-                  {t(translationKeys.admin.payments.orderDetailsTitle, 'Order details')}
-                </DialogTitle>
-              </DialogHeader>
-              {row.original.order ? (
-                <div className="space-y-4 text-sm text-muted-foreground">
-                  <div className="grid gap-2 md:grid-cols-2">
-                    <span>
-                      {t(translationKeys.admin.orders.orderId, 'Order')}: {row.original.order.id}
-                    </span>
-                    <span>
-                      {t(translationKeys.admin.orderDetails.status, 'Status')}:{' '}
-                      {t(
-                        translationKeys.common.orderStatus[
-                          row.original.order.status.toLowerCase() as keyof typeof translationKeys.common.orderStatus
-                        ],
-                        row.original.order.status,
-                      )}
-                    </span>
-                    <span>
-                      {t(translationKeys.admin.payments.customerLabel, 'Customer')}:{' '}
-                      {row.original.order.user?.email ||
-                        row.original.order.guestEmail ||
-                        t(translationKeys.admin.orders.guest, 'Guest')}
-                    </span>
-                    <span>
-                      {t(translationKeys.admin.orders.total, 'Total')}:{' '}
-                      {formatPrice(row.original.order.total)}
-                    </span>
-                    <span>
-                      {t(translationKeys.admin.orders.shipping, 'Shipping')}:{' '}
-                      {formatPrice(row.original.order.shipping)}
-                    </span>
-                    <span>
-                      {t(translationKeys.admin.orders.tax, 'Tax')}:{' '}
-                      {formatPrice(row.original.order.tax)}
-                    </span>
-                  </div>
-                  {row.original.order.trackingNumber && (
-                    <p>
-                      {t(translationKeys.admin.payments.trackingLabel, 'Tracking DHL')}:{' '}
-                      {row.original.order.trackingNumber}
-                    </p>
-                  )}
-                  <div>
-                    <p className="font-medium text-foreground">
-                      {t(translationKeys.admin.orderDetails.shippingAddress, 'Shipping address')}
-                    </p>
-                    <p>{formatAddress(row.original.order.shippingAddress)}</p>
-                  </div>
-                  <div>
-                    <p className="font-medium text-foreground">
-                      {t(translationKeys.admin.orderDetails.billingAddress, 'Billing address')}
-                    </p>
-                    <p>{formatAddress(row.original.order.billingAddress)}</p>
-                  </div>
-                  <div>
-                    <p className="font-medium text-foreground">
-                      {t(translationKeys.admin.payments.itemsTitle, 'Items')}
-                    </p>
-                    <div className="space-y-2">
-                      {row.original.order.items?.map((item: any) => (
-                        <div key={item.id} className="flex justify-between">
-                          <span>
-                            {item.productVariant.product.name}
-                            {item.productVariant.name ? ` - ${item.productVariant.name}` : ''}
-                          </span>
-                          <span>x{item.quantity}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="pt-2">
-                    <Button asChild>
-                      <Link href={`/admin/orders/${row.original.order.id}`}>Go to order</Link>
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  {t(
-                    translationKeys.admin.payments.orderDetailsUnavailable,
-                    'Order details not available for this payment.',
-                  )}
-                </p>
-              )}
-            </DialogContent>
-          </Dialog>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setSelectedPayment(row.original)}
+          >
+            View
+          </Button>
         ),
       },
     ],
@@ -228,7 +189,7 @@ export default function AdminPaymentsPage() {
   );
 
   const table = useReactTable({
-    data: payments,
+    data: paginatedPayments,
     columns,
     state: { sorting },
     onSortingChange: setSorting,
@@ -277,19 +238,46 @@ export default function AdminPaymentsPage() {
             <label className="text-sm font-medium">
               {t(translationKeys.admin.payments.orderIdLabel, 'Order ID')}
             </label>
-            <Input value={orderId} onChange={(event) => setOrderId(event.target.value)} placeholder="Order ID" />
+            <Input
+              value={orderId}
+              onChange={(e) => setOrderId(e.target.value)}
+              placeholder={t(translationKeys.admin.payments.orderIdPlaceholder, 'e.g. 550E8400 or full ID')}
+            />
           </div>
           <div className="space-y-2">
             <label className="text-sm font-medium">
-              {t(translationKeys.admin.payments.emailLabel, 'Customer email')}
+              {t(translationKeys.admin.payments.searchByEmailLabel, 'Search by customer email')}
             </label>
-            <Input value={email} onChange={(event) => setEmail(event.target.value)} placeholder="Email" />
+            <Input
+              type="search"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder={t(translationKeys.admin.payments.searchByEmailPlaceholder, 'e.g. customer@example.com')}
+            />
           </div>
           <div className="space-y-2">
             <label className="text-sm font-medium">
-              {t(translationKeys.admin.payments.limitLabel, 'Limit')}
+              {t(translationKeys.admin.payments.itemsPerPageLabel, 'Items per page')}
             </label>
-            <Input value={limit} onChange={(event) => setLimit(event.target.value)} placeholder="20" />
+            <select
+              value={itemsPerPage}
+              onChange={(e) => setItemsPerPage(Number(e.target.value))}
+              className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+            >
+              {PAGE_SIZE_OPTIONS.map((size) => (
+                <option key={size} value={size}>
+                  {size}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex items-end gap-2 md:flex-row">
+            <Button onClick={handleSearch}>
+              {t(translationKeys.admin.payments.searchButton, 'Search')}
+            </Button>
+            <Button variant="outline" onClick={handleClearFilters}>
+              {t(translationKeys.admin.payments.clearFilters, 'Clear filters')}
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -311,32 +299,65 @@ export default function AdminPaymentsPage() {
           <Card>
             <CardHeader>
               <CardTitle>Analytics by customer</CardTitle>
-              <CardDescription>Aggregated totals from current results</CardDescription>
+              <CardDescription>
+                Aggregated totals from current results
+                {analyticsByEmail.length > 0 &&
+                  ` · ${analyticsByEmail.length} customer${analyticsByEmail.length !== 1 ? 's' : ''}`}
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
               {analyticsByEmail.length === 0 ? (
                 <p className="text-sm text-muted-foreground">No data available.</p>
               ) : (
-                <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-                  {analyticsByEmail.map((entry) => (
-                    <div
-                      key={entry.email}
-                      className="rounded-lg border border-primary/20 bg-primary/5 p-3 text-sm"
-                    >
-                      <div className="font-medium text-foreground">
-                        {entry.email === 'unknown' ? 'Unknown email' : entry.email}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {entry.count} payments · {formatPrice(entry.total / 100)}
-                      </div>
-                      {entry.lastPayment && (
-                        <div className="text-xs text-muted-foreground">
-                          Last: {new Date(entry.lastPayment * 1000).toLocaleString()}
+                <>
+                  <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                    {paginatedAnalytics.map((entry) => (
+                      <div
+                        key={entry.email}
+                        className="rounded-lg border border-primary/20 bg-primary/5 p-3 text-sm"
+                      >
+                        <div className="font-medium text-foreground">
+                          {entry.email === 'unknown' ? 'Unknown email' : entry.email}
                         </div>
-                      )}
+                        <div className="text-xs text-muted-foreground">
+                          {entry.count} payments · {formatPrice(entry.total / 100)}
+                        </div>
+                        {entry.lastPayment && (
+                          <div className="text-xs text-muted-foreground">
+                            Last: {new Date(entry.lastPayment * 1000).toLocaleString()}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  {totalAnalyticsPages > 1 && (
+                    <div className="flex items-center justify-between border-t pt-3">
+                      <p className="text-sm text-muted-foreground">
+                        {t(translationKeys.admin.payments.pageLabel, 'Page')} {analyticsPage} {t(translationKeys.common.of, 'of')} {totalAnalyticsPages}
+                      </p>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setAnalyticsPage((p) => Math.max(1, p - 1))}
+                          disabled={analyticsPage <= 1}
+                        >
+                          <ChevronLeft className="h-4 w-4" />
+                          {t(translationKeys.common.previous, 'Previous')}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setAnalyticsPage((p) => Math.min(totalAnalyticsPages, p + 1))}
+                          disabled={analyticsPage >= totalAnalyticsPages}
+                        >
+                          {t(translationKeys.common.next, 'Next')}
+                          <ChevronRight className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
-                  ))}
-                </div>
+                  )}
+                </>
               )}
             </CardContent>
           </Card>
@@ -344,7 +365,11 @@ export default function AdminPaymentsPage() {
           <Card>
             <CardHeader>
               <CardTitle>Payments table</CardTitle>
-              <CardDescription>Sortable list with payment details</CardDescription>
+              <CardDescription>
+                Sortable list with payment details
+                {payments.length > 0 &&
+                  ` · Showing ${(paymentsPage - 1) * itemsPerPage + 1}–${Math.min(paymentsPage * itemsPerPage, payments.length)} of ${payments.length}`}
+              </CardDescription>
             </CardHeader>
             <CardContent className="px-0">
               <div className="overflow-x-auto">
@@ -381,8 +406,133 @@ export default function AdminPaymentsPage() {
                   </tbody>
                 </table>
               </div>
+              {totalPaymentsPages > 1 && (
+                <div className="flex items-center justify-between border-t px-4 py-3">
+                  <p className="text-sm text-muted-foreground">
+                    {t(translationKeys.admin.payments.pageLabel, 'Page')} {paymentsPage} {t(translationKeys.common.of, 'of')} {totalPaymentsPages}
+                  </p>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setPaymentsPage((p) => Math.max(1, p - 1))}
+                      disabled={paymentsPage <= 1}
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                      {t(translationKeys.common.previous, 'Previous')}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setPaymentsPage((p) => Math.min(totalPaymentsPages, p + 1))}
+                      disabled={paymentsPage >= totalPaymentsPages}
+                    >
+                      {t(translationKeys.common.next, 'Next')}
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
+
+          {selectedPayment !== null && (
+            <Dialog open onOpenChange={(open) => !open && setSelectedPayment(null)}>
+              <DialogContent className="max-w-3xl">
+              <DialogHeader>
+                <DialogTitle>
+                  {t(translationKeys.admin.payments.orderDetailsTitle, 'Order details')}
+                </DialogTitle>
+              </DialogHeader>
+              {selectedPayment?.order ? (
+                <div className="space-y-4 text-sm text-muted-foreground">
+                  <div className="grid gap-2 md:grid-cols-2">
+                    <span>
+                      {t(translationKeys.admin.orders.orderId, 'Order')}: #{formatOrderIdDisplay(selectedPayment.order.id)}
+                    </span>
+                    <span>
+                      {t(translationKeys.admin.orderDetails.status, 'Status')}:{' '}
+                      {t(
+                        {
+                          PENDING: translationKeys.common.orderStatus.pending,
+                          PROCESSING: translationKeys.common.orderStatus.processing,
+                          SHIPPED: translationKeys.common.orderStatus.shipped,
+                          DELIVERED: translationKeys.common.orderStatus.delivered,
+                          CANCELLED: translationKeys.common.orderStatus.cancelled,
+                        }[selectedPayment.order.status] ?? '',
+                        selectedPayment.order.status,
+                      )}
+                    </span>
+                    <span>
+                      {t(translationKeys.admin.payments.customerLabel, 'Customer')}:{' '}
+                      {selectedPayment.order.user?.email ||
+                        selectedPayment.order.guestEmail ||
+                        t(translationKeys.admin.orders.guest, 'Guest')}
+                    </span>
+                    <span>
+                      {t(translationKeys.admin.orders.total, 'Total')}:{' '}
+                      {formatPrice(selectedPayment.order.total)}
+                    </span>
+                    <span>
+                      {t(translationKeys.admin.orders.shipping, 'Shipping')}:{' '}
+                      {formatPrice(selectedPayment.order.shipping)}
+                    </span>
+                    <span>
+                      {t(translationKeys.admin.orders.tax, 'Tax')}:{' '}
+                      {formatPrice(selectedPayment.order.tax)}
+                    </span>
+                  </div>
+                  {selectedPayment.order.trackingNumber && (
+                    <p>
+                      {t(translationKeys.admin.payments.trackingLabel, 'Tracking DHL')}:{' '}
+                      {selectedPayment.order.trackingNumber}
+                    </p>
+                  )}
+                  <div>
+                    <p className="font-medium text-foreground">
+                      {t(translationKeys.admin.orderDetails.shippingAddress, 'Shipping address')}
+                    </p>
+                    <p>{formatAddress(selectedPayment.order.shippingAddress)}</p>
+                  </div>
+                  <div>
+                    <p className="font-medium text-foreground">
+                      {t(translationKeys.admin.orderDetails.billingAddress, 'Billing address')}
+                    </p>
+                    <p>{formatAddress(selectedPayment.order.billingAddress)}</p>
+                  </div>
+                  <div>
+                    <p className="font-medium text-foreground">
+                      {t(translationKeys.admin.payments.itemsTitle, 'Items')}
+                    </p>
+                    <div className="space-y-2">
+                      {selectedPayment.order.items?.map((item: any) => (
+                        <div key={item.id} className="flex justify-between">
+                          <span>
+                            {item.productVariant.product.name}
+                            {item.productVariant.name ? ` - ${item.productVariant.name}` : ''}
+                          </span>
+                          <span>x{item.quantity}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="pt-2">
+                    <Button asChild>
+                      <Link href={`/admin/orders/${selectedPayment.order.id}`}>Go to order</Link>
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  {t(
+                    translationKeys.admin.payments.orderDetailsUnavailable,
+                    'Order details not available for this payment.',
+                  )}
+                </p>
+              )}
+              </DialogContent>
+            </Dialog>
+          )}
         </div>
       )}
     </div>

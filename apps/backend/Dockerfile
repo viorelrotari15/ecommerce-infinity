@@ -2,8 +2,8 @@ FROM node:20-slim
 
 WORKDIR /app
 
-# Install OpenSSL for Prisma (required for PostgreSQL), procps for ps command (required by NestJS watch mode), and dos2unix for line ending conversion
-RUN apt-get update && apt-get install -y openssl procps dos2unix && rm -rf /var/lib/apt/lists/*
+# Install OpenSSL for Prisma, procps for NestJS watch, dos2unix for line endings, postgresql-client for schema fix script
+RUN apt-get update && apt-get install -y openssl procps dos2unix postgresql-client && rm -rf /var/lib/apt/lists/*
 
 # Copy package files
 COPY package*.json ./

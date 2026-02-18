@@ -65,3 +65,15 @@ export function logout(): void {
   localStorage.removeItem('user');
 }
 
+/** Custom event name for auth state changes (login/logout). Dispatch after updating localStorage so the header can re-sync without a full reload. */
+export const AUTH_STATE_CHANGED = 'auth-state-changed';
+
+/**
+ * Notify listeners (e.g. Header) that auth state changed. Call after login/register or when token/user is updated.
+ */
+export function notifyAuthStateChanged(): void {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent(AUTH_STATE_CHANGED));
+  }
+}
+

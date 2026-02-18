@@ -397,6 +397,7 @@ export default function CheckoutPage() {
       regionCode: DEFAULT_REGION_CODE,
     };
 
+    let didRedirect = false;
     try {
       setIsSubmitting(true);
       if (!isGuest) {
@@ -440,6 +441,7 @@ export default function CheckoutPage() {
 
       const emailQuery = customerEmail ? `?email=${encodeURIComponent(customerEmail)}` : '';
       router.push(`/checkout/payment${emailQuery}`);
+      didRedirect = true;
       toast({
         variant: 'success',
         title: t(translationKeys.checkout.successTitle, 'Continue to payment'),
@@ -452,7 +454,9 @@ export default function CheckoutPage() {
         description: error.message || t(translationKeys.common.failed, 'Failed'),
       });
     } finally {
-      setIsSubmitting(false);
+      if (!didRedirect) {
+        setIsSubmitting(false);
+      }
     }
   };
 

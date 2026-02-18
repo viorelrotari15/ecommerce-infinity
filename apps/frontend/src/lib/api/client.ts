@@ -412,6 +412,11 @@ export async function createPaymentIntent(payload: {
   return apiService.post('/payments/intent', payload);
 }
 
+/** Confirm payment success so backend marks payment COMPLETED (when webhook is not received) */
+export async function confirmPaymentSuccess(orderId: string): Promise<{ success: boolean }> {
+  return apiService.post('/payments/confirm-success', { orderId });
+}
+
 /** Admin order detail (GET /orders/admin/:id) */
 export interface AdminOrderResponse {
   id: string;
@@ -444,8 +449,30 @@ export async function updateAdminOrderStatus(orderId: string, payload: { status:
   return apiService.patch(`/orders/admin/${orderId}`, payload);
 }
 
-export async function getUserOrderById(orderId: string) {
-  return apiService.get(`/orders/${orderId}`);
+/** User order detail (GET /orders/:id) - same shape as admin minus sensitive fields */
+export interface UserOrderResponse {
+  id: string;
+  status: string;
+  trackingNumber?: string | null;
+  total: string;
+  subtotal: string;
+  tax: string;
+  shipping: string;
+  shippingAddress: unknown;
+  billingAddress: unknown;
+  createdAt: string;
+  updatedAt: string;
+  items: Array<{
+    id: string;
+    quantity: number;
+    price: string;
+    productVariant: { id: string; name: string | null; sku: string; product: { id: string; name: string; slug: string } };
+  }>;
+  payment: { id: string; amount: string; status: string; method: string; transactionId: string | null; createdAt: string } | null;
+}
+
+export async function getUserOrderById(orderId: string): Promise<UserOrderResponse> {
+  return apiService.get<UserOrderResponse>(`/orders/${orderId}`);
 }
 
 export interface StripePaymentHistoryItem {
@@ -460,9 +487,9 @@ export interface StripePaymentHistoryItem {
 
 export async function listStripePayments(params?: { orderId?: string; email?: string; limit?: number }) {
   const query = new URLSearchParams();
-  if (params?.orderId) query.set('orderId', params.orderId);
-  if (params?.email) query.set('email', params.email);
-  if (params?.limit) query.set('limit', String(params.limit));
+  if (params?.orderId?.trim()) query.set('orderId', params.orderId.trim());
+  if (params?.email?.trim()) query.set('email', params.email.trim());
+  if (params?.limit != null) query.set('limit', String(params.limit));
   const suffix = query.toString() ? `?${query.toString()}` : '';
   return apiService.get<StripePaymentHistoryItem[]>(`/payments/stripe/history${suffix}`);
 }

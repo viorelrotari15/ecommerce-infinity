@@ -10,12 +10,14 @@ import { Loader2 } from 'lucide-react';
 interface ProductListProps {
   initialData: ProductsResponse;
   filters: ProductFilters;
+  /** Language the initialData was fetched with (so we only use it when current language matches) */
+  initialDataLanguage?: string;
 }
 
-export function ProductList({ initialData, filters }: ProductListProps) {
+export function ProductList({ initialData, filters, initialDataLanguage }: ProductListProps) {
   const t = useT();
-  // Hydrate React Query cache with server data
-  const { data, isLoading, isFetching } = useProducts(filters, initialData);
+  // Hydrate React Query cache with server data; include language so switching language refetches
+  const { data, isLoading, isFetching } = useProducts(filters, initialData, initialDataLanguage);
 
   if (isLoading) {
     return (

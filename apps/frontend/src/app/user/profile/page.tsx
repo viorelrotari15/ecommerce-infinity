@@ -5,26 +5,32 @@ import { useUserOrders } from '@/lib/hooks/use-orders';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { formatPrice } from '@/lib/utils';
+import { formatPrice, formatOrderIdDisplay } from '@/lib/utils';
 import { Loader2, User, Mail, Phone, Calendar, Package, MapPin } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { isAuthenticated } from '@/lib/auth';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useT, translationKeys } from '@/lib/utils/translations';
 
 export default function UserProfilePage() {
   const router = useRouter();
+  const [mounted, setMounted] = useState(false);
   const { data: profile, isLoading: profileLoading, error: profileError } = useUserProfile();
   const { data: orders, isLoading: ordersLoading } = useUserOrders();
   const t = useT();
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && !isAuthenticated()) {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (mounted && !isAuthenticated()) {
       router.push('/auth/login');
     }
-  }, [router]);
+  }, [mounted, router]);
 
-  if (profileLoading) {
+  // Same initial UI on server and client to avoid hydration mismatch (server has no auth token, client may have one)
+  if (!mounted || profileLoading) {
     return (
       <div className="w-full px-4 md:px-6 lg:px-8 flex min-h-[60vh] items-center justify-center py-12">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -204,7 +210,7 @@ export default function UserProfilePage() {
                 <div key={order.id} className="border rounded-lg p-4">
                   <div className="flex items-start justify-between mb-4">
                     <div>
-                      <p className="font-medium">{t(translationKeys.profile.order, 'Order')} #{order.id.slice(0, 8)}</p>
+                      <p className="font-medium">{t(translationKeys.profile.order, 'Order')} #{formatOrderIdDisplay(order.id)}</p>
                       <p className="text-sm text-muted-foreground">
                         {new Date(order.createdAt).toLocaleDateString('en-US', {
                           year: 'numeric',
@@ -220,7 +226,16 @@ export default function UserProfilePage() {
                       <span
                         className={`inline-block px-2 py-1 rounded text-xs font-medium mt-1 ${getStatusColor(order.status)}`}
                       >
-                        {order.status}
+                        {t(
+                          {
+                            PENDING: translationKeys.common.orderStatus.pending,
+                            PROCESSING: translationKeys.common.orderStatus.processing,
+                            SHIPPED: translationKeys.common.orderStatus.shipped,
+                            DELIVERED: translationKeys.common.orderStatus.delivered,
+                            CANCELLED: translationKeys.common.orderStatus.cancelled,
+                          }[order.status] ?? '',
+                          order.status,
+                        )}
                       </span>
                     </div>
                   </div>

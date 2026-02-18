@@ -96,7 +96,7 @@ export default async function ProductsPage({
       />
 
       {/* Client Component that hydrates React Query cache */}
-      <ProductList initialData={initialData} filters={filters} />
+      <ProductList initialData={initialData} filters={filters} initialDataLanguage={language} />
 
       {/* Pagination */}
       {initialData.meta.totalPages > 1 && (

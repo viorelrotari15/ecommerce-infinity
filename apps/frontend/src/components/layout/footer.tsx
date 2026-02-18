@@ -22,7 +22,7 @@ export function Footer() {
                 width={180}
                 height={110}
                 className="h-auto w-[180px]"
-                priority={false}
+                priority
               />
             </Link>
             <p className="text-sm text-muted-foreground">
