@@ -52,3 +52,7 @@ next-env.d.ts
 
 # Local backups (dumps)
 backups/
+
+# Logs (development and runtime)
+logs/
+*.log
