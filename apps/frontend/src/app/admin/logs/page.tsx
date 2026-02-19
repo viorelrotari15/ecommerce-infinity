@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button';
 import { isAdmin } from '@/lib/auth';
 import { fetchAPIAuth } from '@/lib/api/client';
 import { FileText, Download, RefreshCw, Loader2 } from 'lucide-react';
+import { useT } from '@/lib/utils/translations';
+import { translationKeys } from '@/lib/utils/translations';
 
 const API_BASE = (typeof window !== 'undefined' && process.env.NEXT_PUBLIC_API_URL)
   ? process.env.NEXT_PUBLIC_API_URL.replace(/\/api\/?$/, '')
@@ -14,6 +16,7 @@ const API_BASE = (typeof window !== 'undefined' && process.env.NEXT_PUBLIC_API_U
 
 export default function AdminLogsPage() {
   const router = useRouter();
+  const t = useT();
   const [logs, setLogs] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -81,10 +84,10 @@ export default function AdminLogsPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
             <FileText className="h-8 w-8" />
-            Backend logs
+            {t(translationKeys.admin.dashboard.backendLogsTitle, 'Backend logs')}
           </h1>
           <p className="text-muted-foreground mt-1">
-            View or download backend application logs (admin only).
+            {t(translationKeys.admin.dashboard.backendLogsDescription, 'View or download backend application logs (admin only).')}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -101,18 +104,18 @@ export default function AdminLogsPage() {
           </select>
           <Button variant="outline" size="sm" onClick={loadLogs} disabled={loading}>
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-            <span className="ml-2">Refresh</span>
+            <span className="ml-2">{t(translationKeys.common.refresh, 'Refresh')}</span>
           </Button>
           <Button size="sm" onClick={handleDownload}>
             <Download className="h-4 w-4" />
-            <span className="ml-2">Download</span>
+            <span className="ml-2">{t(translationKeys.common.download, 'Download')}</span>
           </Button>
         </div>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Log output</CardTitle>
+          <CardTitle>{t(translationKeys.common.logOutput, 'Log output')}</CardTitle>
           <CardDescription>
             Logs are written by the backend; the file may be empty until some activity occurs.
           </CardDescription>

@@ -265,7 +265,7 @@ export function ProductFilters({
           attributes={attributes}
           selectedIds={selectedAttributes}
           onSelectionChange={setSelectedAttributes}
-          placeholder="Select attributes..."
+          placeholder={t(translationKeys.products.selectAttributes, 'Select attributes...')}
         />
       </div>
 

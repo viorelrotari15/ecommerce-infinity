@@ -442,9 +442,9 @@ export default function BrandsPage() {
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label>Translations *</Label>
+              <Label>{t(translationKeys.admin.brands.translationsLabel, 'Translations *')}</Label>
               <p className="text-sm text-muted-foreground mb-2">
-                Add translations for all languages. Name is required for the default language only. Other languages will fallback to the default language if missing.
+                {t(translationKeys.common.translationsHintForAllLanguages, 'Add translations for all languages. Name is required for the default language only. Other languages will fallback to the default language if missing.')}
               </p>
               <BrandTranslationsTabs
                 ref={translationTabsRef}

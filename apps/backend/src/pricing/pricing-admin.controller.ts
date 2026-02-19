@@ -4,7 +4,6 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { PricingAdminService } from './pricing-admin.service';
-import { CreateTaxRateDto, UpdateTaxRateDto } from './dto/tax-rate.dto';
 import { CreateShippingMethodDto, UpdateShippingMethodDto } from './dto/shipping-method.dto';
 import { CreateShippingRuleDto, UpdateShippingRuleDto } from './dto/shipping-rule.dto';
 
@@ -20,30 +19,6 @@ export class PricingAdminController {
   @ApiOperation({ summary: 'List regions' })
   listRegions() {
     return this.pricingAdminService.listRegions();
-  }
-
-  @Get('tax-rates')
-  @ApiOperation({ summary: 'List tax rates' })
-  listTaxRates(@Query('regionCode') regionCode?: string) {
-    return this.pricingAdminService.listTaxRates(regionCode);
-  }
-
-  @Post('tax-rates')
-  @ApiOperation({ summary: 'Create tax rate' })
-  createTaxRate(@Body() dto: CreateTaxRateDto) {
-    return this.pricingAdminService.createTaxRate(dto);
-  }
-
-  @Patch('tax-rates/:id')
-  @ApiOperation({ summary: 'Update tax rate' })
-  updateTaxRate(@Param('id') id: string, @Body() dto: UpdateTaxRateDto) {
-    return this.pricingAdminService.updateTaxRate(id, dto);
-  }
-
-  @Delete('tax-rates/:id')
-  @ApiOperation({ summary: 'Delete tax rate' })
-  deleteTaxRate(@Param('id') id: string) {
-    return this.pricingAdminService.deleteTaxRate(id);
   }
 
   @Get('shipping-methods')

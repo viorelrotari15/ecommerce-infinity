@@ -12,6 +12,7 @@ import { useLanguages } from '@/lib/hooks/use-languages';
 import { useProductTranslations, useCreateProductTranslation, useUpdateProductTranslation } from '@/lib/hooks/use-product-translations';
 import { useToast } from '@/hooks/use-toast';
 import { AlertCircle } from 'lucide-react';
+import { useT, translationKeys } from '@/lib/utils/translations';
 
 interface ProductTranslationsTabsProps {
   productId?: string;
@@ -40,6 +41,7 @@ export const ProductTranslationsTabs = forwardRef<ProductTranslationsTabsRef, Pr
   creationMode = false,
   onTranslationDataChange,
 }, ref) => {
+  const t = useT();
   const { data: languages = [] } = useLanguages(true);
   const { data: translations = [] } = useProductTranslations(productId || '');
   const createTranslation = useCreateProductTranslation();
@@ -545,13 +547,13 @@ export const ProductTranslationsTabs = forwardRef<ProductTranslationsTabsRef, Pr
             {/* Basic Information Group */}
             <Card>
               <CardHeader>
-                <CardTitle>Basic Information</CardTitle>
-                <CardDescription>Product name and description details</CardDescription>
+                <CardTitle>{t(translationKeys.common.basicInfo, 'Basic Information')}</CardTitle>
+                <CardDescription>{t(translationKeys.common.basicInfoDescription, 'Product name and description details')}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor={`name-${lang.code}`}>
-                    Product Name <span className="text-destructive">*</span>
+                    {t(translationKeys.common.productName, 'Product Name')} <span className="text-destructive">*</span>
                   </Label>
                   <Input
                     id={`name-${lang.code}`}
@@ -573,7 +575,7 @@ export const ProductTranslationsTabs = forwardRef<ProductTranslationsTabsRef, Pr
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor={`shortDescription-${lang.code}`}>Short Description</Label>
+                  <Label htmlFor={`shortDescription-${lang.code}`}>{t(translationKeys.common.shortDescription, 'Short Description')}</Label>
                   <Textarea
                     id={`shortDescription-${lang.code}`}
                     value={translationData[lang.code]?.shortDescription || ''}
@@ -590,7 +592,7 @@ export const ProductTranslationsTabs = forwardRef<ProductTranslationsTabsRef, Pr
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor={`description-${lang.code}`}>Description</Label>
+                  <Label htmlFor={`description-${lang.code}`}>{t(translationKeys.common.description, 'Description')}</Label>
                   <Textarea
                     id={`description-${lang.code}`}
                     value={translationData[lang.code]?.description || ''}
@@ -611,22 +613,22 @@ export const ProductTranslationsTabs = forwardRef<ProductTranslationsTabsRef, Pr
             {/* SEO Settings Group */}
             <Card>
               <CardHeader>
-                <CardTitle>SEO Settings</CardTitle>
-                <CardDescription>Meta title and description for search engines</CardDescription>
+                <CardTitle>{t(translationKeys.common.seoSettings, 'SEO Settings')}</CardTitle>
+                <CardDescription>{t(translationKeys.common.seoDescription, 'Meta title and description for search engines')}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="mb-4 p-3 bg-muted rounded-md text-sm">
-                  <p className="font-medium mb-2">Example SEO Settings:</p>
+                  <p className="font-medium mb-2">{t(translationKeys.common.exampleSeoSettings, 'Example SEO Settings:')}</p>
                   <p className="text-muted-foreground mb-1">
-                    <strong>Meta Title:</strong> Premium Quality Product - Best Deals Online
+                    <strong>{t(translationKeys.common.metaTitle, 'Meta Title')}:</strong> Premium Quality Product - Best Deals Online
                   </p>
                   <p className="text-muted-foreground">
-                    <strong>Meta Description:</strong> Discover our premium quality product with exceptional features. Shop now for the best deals and free shipping on orders over $50.
+                    <strong>{t(translationKeys.common.metaDescription, 'Meta Description')}:</strong> Discover our premium quality product with exceptional features. Shop now for the best deals and free shipping on orders over $50.
                   </p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor={`metaTitle-${lang.code}`}>
-                    Meta Title <span className="text-destructive">*</span>
+                    {t(translationKeys.common.metaTitle, 'Meta Title')} <span className="text-destructive">*</span>
                   </Label>
                   <Input
                     id={`metaTitle-${lang.code}`}
@@ -650,7 +652,7 @@ export const ProductTranslationsTabs = forwardRef<ProductTranslationsTabsRef, Pr
 
                 <div className="space-y-2">
                   <Label htmlFor={`metaDescription-${lang.code}`}>
-                    Meta Description <span className="text-destructive">*</span>
+                    {t(translationKeys.common.metaDescription, 'Meta Description')} <span className="text-destructive">*</span>
                   </Label>
                   <Textarea
                     id={`metaDescription-${lang.code}`}

@@ -831,7 +831,7 @@ export default function NewProductPage() {
 
 
         {/* Submit */}
-        <div className="flex justify-end gap-4">
+        <div className="flex flex-wrap justify-end gap-4">
           <Button type="button" variant="outline" onClick={() => router.push('/admin/products')} disabled={isLoading}>
             {t(translationKeys.common.cancel, 'Cancel')}
           </Button>

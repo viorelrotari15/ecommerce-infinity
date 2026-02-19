@@ -10,6 +10,7 @@ import { useLanguages } from '@/lib/hooks/use-languages';
 import { useCategoryTranslations, useUpsertCategoryTranslation } from '@/lib/hooks/use-categories';
 import { useToast } from '@/hooks/use-toast';
 import { AlertCircle } from 'lucide-react';
+import { useT, translationKeys } from '@/lib/utils/translations';
 
 interface CategoryTranslationsTabsProps {
   categoryId?: string;
@@ -32,6 +33,7 @@ export const CategoryTranslationsTabs = forwardRef<CategoryTranslationsTabsRef, 
   creationMode = false,
   onTranslationDataChange,
 }, ref) => {
+  const t = useT();
   const { data: languages = [] } = useLanguages(true);
   const { data: translations = [] } = useCategoryTranslations(categoryId || '');
   const upsertTranslation = useUpsertCategoryTranslation();
@@ -305,13 +307,13 @@ export const CategoryTranslationsTabs = forwardRef<CategoryTranslationsTabsRef, 
           <TabsContent key={lang.code} value={lang.code} className="space-y-6 mt-4">
             <Card>
               <CardHeader>
-                <CardTitle>Basic Information</CardTitle>
-                <CardDescription>Category name and description in {lang.name}</CardDescription>
+                <CardTitle>{t(translationKeys.common.basicInfo, 'Basic Information')}</CardTitle>
+                <CardDescription>{t(translationKeys.admin.categories.nameAndDescriptionInLanguage, 'Category name and description in {langName}').replace('{langName}', lang.name)}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor={`name-${lang.code}`}>
-                    Category Name <span className="text-destructive">*</span>
+                    {t(translationKeys.admin.categories.categoryName, 'Category Name')} <span className="text-destructive">*</span>
                   </Label>
                   <Input
                     id={`name-${lang.code}`}
@@ -333,7 +335,7 @@ export const CategoryTranslationsTabs = forwardRef<CategoryTranslationsTabsRef, 
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor={`description-${lang.code}`}>Description</Label>
+                  <Label htmlFor={`description-${lang.code}`}>{t(translationKeys.common.description, 'Description')}</Label>
                   <Textarea
                     id={`description-${lang.code}`}
                     value={translationData[lang.code]?.description || ''}

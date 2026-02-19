@@ -4,6 +4,8 @@ import * as React from 'react';
 import { Check, ChevronDown, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Brand } from '@/lib/api/server';
+import { useT } from '@/lib/utils/translations';
+import { translationKeys } from '@/lib/utils/translations';
 
 interface MultiSelectBrandProps {
   brands: Brand[];
@@ -17,9 +19,11 @@ export function MultiSelectBrand({
   brands,
   selectedIds,
   onSelectionChange,
-  placeholder = 'All Brands',
+  placeholder,
   className,
 }: MultiSelectBrandProps) {
+  const t = useT();
+  const resolvedPlaceholder = placeholder ?? t(translationKeys.products.allBrands, 'All Brands');
   const [open, setOpen] = React.useState(false);
   const dropdownRef = React.useRef<HTMLDivElement>(null);
 
@@ -100,7 +104,7 @@ export function MultiSelectBrand({
       >
         <div className="flex flex-wrap gap-1 flex-1 text-left">
           {noneSelected ? (
-            <span className="text-foreground">{placeholder}</span>
+            <span className="text-foreground">{resolvedPlaceholder}</span>
           ) : (
             <>
               {selectedBrands.slice(0, 1).map((brand) => (
@@ -186,7 +190,7 @@ export function MultiSelectBrand({
                   <Check className="h-4 w-4 text-primary-foreground font-bold" strokeWidth={3} />
                 )}
               </div>
-              <span className="text-sm font-semibold text-foreground">All Brands</span>
+              <span className="text-sm font-semibold text-foreground">{t(translationKeys.products.allBrands, 'All Brands')}</span>
             </div>
             
             {brands.map((brand) => (

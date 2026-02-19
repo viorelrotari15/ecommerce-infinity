@@ -4,17 +4,13 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   createAdminShippingMethod,
   createAdminShippingRule,
-  createAdminTaxRate,
   deleteAdminShippingMethod,
   deleteAdminShippingRule,
-  deleteAdminTaxRate,
   listAdminRegions,
   listAdminShippingMethods,
   listAdminShippingRules,
-  listAdminTaxRates,
   updateAdminShippingMethod,
   updateAdminShippingRule,
-  updateAdminTaxRate,
 } from '@/lib/api/client';
 import { pricingQueryKeys } from '@/lib/api/queries';
 
@@ -25,18 +21,6 @@ export interface Region {
   currency: string;
   isDefault: boolean;
   isActive: boolean;
-}
-
-export interface TaxRate {
-  id: string;
-  regionId: string;
-  name: string;
-  rate: number;
-  categoryId?: string | null;
-  isDefault: boolean;
-  isActive: boolean;
-  region?: Region;
-  category?: { id: string; name: string };
 }
 
 export interface ShippingMethod {
@@ -68,41 +52,6 @@ export function useAdminRegions() {
       return result as Region[];
     },
     staleTime: 5 * 60 * 1000,
-  });
-}
-
-export function useAdminTaxRates(regionCode?: string) {
-  return useQuery({
-    queryKey: pricingQueryKeys.taxRates(regionCode),
-    queryFn: async (): Promise<TaxRate[]> => {
-      const result = await listAdminTaxRates(regionCode);
-      return result as TaxRate[];
-    },
-  });
-}
-
-export function useCreateAdminTaxRate() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (payload: any) => createAdminTaxRate(payload),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: pricingQueryKeys.all }),
-  });
-}
-
-export function useUpdateAdminTaxRate() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({ id, payload }: { id: string; payload: any }) =>
-      updateAdminTaxRate(id, payload),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: pricingQueryKeys.all }),
-  });
-}
-
-export function useDeleteAdminTaxRate() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (id: string) => deleteAdminTaxRate(id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: pricingQueryKeys.all }),
   });
 }
 

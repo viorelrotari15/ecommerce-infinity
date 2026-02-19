@@ -11,10 +11,19 @@ import { useRouter } from 'next/navigation';
 import { isAuthenticated } from '@/lib/auth';
 import { useEffect, useState } from 'react';
 import { useT, translationKeys } from '@/lib/utils/translations';
+import { useLanguage } from '@/lib/contexts/language-context';
+
+const localeByLang: Record<string, string> = {
+  en: 'en-US',
+  ru: 'ru-RU',
+  de: 'de-DE',
+};
 
 export default function UserProfilePage() {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
+  const { currentLanguage } = useLanguage();
+  const dateLocale = localeByLang[currentLanguage || 'en'] || 'en-US';
   const { data: profile, isLoading: profileLoading, error: profileError } = useUserProfile();
   const { data: orders, isLoading: ordersLoading } = useUserOrders();
   const t = useT();
@@ -151,7 +160,7 @@ export default function UserProfilePage() {
               <div>
                 <p className="text-sm font-medium">{t(translationKeys.profile.memberSince, 'Member Since')}</p>
                 <p className="text-sm text-muted-foreground">
-                  {new Date(profile.createdAt).toLocaleDateString('en-US', {
+                  {new Date(profile.createdAt).toLocaleDateString(dateLocale, {
                     year: 'numeric',
                     month: 'long',
                     day: 'numeric',
@@ -212,7 +221,7 @@ export default function UserProfilePage() {
                     <div>
                       <p className="font-medium">{t(translationKeys.profile.order, 'Order')} #{formatOrderIdDisplay(order.id)}</p>
                       <p className="text-sm text-muted-foreground">
-                        {new Date(order.createdAt).toLocaleDateString('en-US', {
+                        {new Date(order.createdAt).toLocaleDateString(dateLocale, {
                           year: 'numeric',
                           month: 'long',
                           day: 'numeric',
@@ -257,7 +266,7 @@ export default function UserProfilePage() {
                   </div>
                   <div className="pt-4">
                     <Link className="text-sm text-primary hover:underline" href={`/user/orders/${order.id}`}>
-                      View order details
+                      {t(translationKeys.profile.viewOrderDetails, 'View order details')}
                     </Link>
                   </div>
                   {order.payment && (

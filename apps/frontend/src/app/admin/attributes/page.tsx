@@ -127,7 +127,7 @@ export default function AttributesPage() {
       toast({
         variant: 'destructive',
         title: t(translationKeys.common.validationError, 'Validation Error'),
-        description: 'Translation data is required.',
+        description: t(translationKeys.common.translationDataRequired, 'Translation data is required.'),
       });
       return;
     }
@@ -137,7 +137,7 @@ export default function AttributesPage() {
       toast({
         variant: 'destructive',
         title: t(translationKeys.common.validationError, 'Validation Error'),
-        description: 'Please fill in the name field for the default language.',
+        description: t(translationKeys.admin.attributes.fillNameForDefaultLanguage, 'Please fill in the name field for the default language.'),
       });
       return;
     }
@@ -194,7 +194,7 @@ export default function AttributesPage() {
       toast({
         variant: 'success',
         title: t(translationKeys.common.success, 'Success'),
-        description: 'Attribute created successfully!',
+        description: t(translationKeys.admin.attributes.createSuccess, 'Attribute created successfully!'),
       });
     } catch (error: any) {
       setIsCreating(false);
@@ -216,7 +216,7 @@ export default function AttributesPage() {
         toast({
           variant: 'destructive',
           title: t(translationKeys.common.validationError, 'Validation Error'),
-          description: 'Please fill in the name field for the default language.',
+          description: t(translationKeys.admin.attributes.fillNameForDefaultLanguage, 'Please fill in the name field for the default language.'),
         });
         return;
       }
@@ -272,7 +272,7 @@ export default function AttributesPage() {
       toast({
         variant: 'success',
         title: t(translationKeys.common.success, 'Success'),
-        description: 'Attribute updated successfully!',
+        description: t(translationKeys.admin.attributes.updateSuccess, 'Attribute updated successfully!'),
       });
     } catch (error: any) {
       setIsCreating(false);
@@ -285,9 +285,9 @@ export default function AttributesPage() {
   };
 
   const handleDelete = async (id: string, name: string) => {
-    const deleteDescription = `Are you sure you want to delete "${name}"? This action cannot be undone.`;
+    const deleteDescription = t(translationKeys.admin.attributes.deleteDescription, 'Are you sure you want to delete "{name}"? This action cannot be undone.').replace('{name}', name);
     const confirmed = await confirm({
-      title: 'Delete Attribute',
+      title: t(translationKeys.admin.attributes.deleteTitle, 'Delete Attribute'),
       description: deleteDescription,
       confirmText: t(translationKeys.common.delete, 'Delete'),
       cancelText: t(translationKeys.common.cancel, 'Cancel'),
@@ -303,7 +303,7 @@ export default function AttributesPage() {
       toast({
         variant: 'success',
         title: t(translationKeys.common.success, 'Success'),
-        description: 'Attribute deleted successfully!',
+        description: t(translationKeys.admin.attributes.deleteSuccess, 'Attribute deleted successfully!'),
       });
     } catch (error: any) {
       toast({
@@ -406,14 +406,14 @@ export default function AttributesPage() {
     <div className="container py-8">
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Manage Attributes</h1>
+          <h1 className="text-3xl font-bold tracking-tight">{t(translationKeys.admin.attributes.pageTitle, 'Manage Attributes')}</h1>
           <p className="text-muted-foreground mt-2">
-            Create, edit, and delete product attributes with subattributes
+            {t(translationKeys.admin.attributes.description, 'Create, edit, and delete product attributes with subattributes')}
           </p>
         </div>
         <Button onClick={openCreateDialog}>
           <Plus className="h-4 w-4 mr-2" />
-          Add New Attribute
+          {t(translationKeys.admin.attributes.addNew, 'Add New Attribute')}
         </Button>
       </div>
 
@@ -422,11 +422,11 @@ export default function AttributesPage() {
         <Card>
           <CardContent className="py-12 text-center">
             <p className="text-muted-foreground mb-4">
-              No attributes found. Create your first attribute.
+              {t(translationKeys.admin.attributes.noAttributesFound, 'No attributes found. Create your first attribute.')}
             </p>
             <Button onClick={openCreateDialog}>
               <Plus className="h-4 w-4 mr-2" />
-              Create Your First Attribute
+              {t(translationKeys.admin.attributes.createFirst, 'Create Your First Attribute')}
             </Button>
           </CardContent>
         </Card>
@@ -441,26 +441,26 @@ export default function AttributesPage() {
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {editingId ? 'Edit Attribute' : 'Create New Attribute'}
+              {editingId ? t(translationKeys.admin.attributes.editTitle, 'Edit Attribute') : t(translationKeys.admin.attributes.createTitle, 'Create New Attribute')}
             </DialogTitle>
             <DialogDescription>
               {editingId
-                ? 'Update attribute information'
-                : 'Add a new attribute to the system'}
+                ? t(translationKeys.admin.attributes.editDescription, 'Update attribute information')
+                : t(translationKeys.admin.attributes.createDescription, 'Add a new attribute to the system')}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label htmlFor="parentId">Parent Attribute (Optional)</Label>
+              <Label htmlFor="parentId">{t(translationKeys.admin.attributes.parentAttributeOptional, 'Parent Attribute (Optional)')}</Label>
               <Select
                 value={formData.parentId || 'none'}
                 onValueChange={(value) => setFormData({ ...formData, parentId: value === 'none' ? '' : value })}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="None (Top-level attribute)" />
+                  <SelectValue placeholder={t(translationKeys.admin.attributes.noneTopLevel, 'None (Top-level attribute)')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">None (Top-level attribute)</SelectItem>
+                  <SelectItem value="none">{t(translationKeys.admin.attributes.noneTopLevel, 'None (Top-level attribute)')}</SelectItem>
                   {getAvailableParents(editingId || undefined).map((attr) => (
                     <SelectItem key={attr.id} value={attr.id}>
                       {attr.name}
@@ -469,13 +469,13 @@ export default function AttributesPage() {
                 </SelectContent>
               </Select>
               <p className="text-sm text-muted-foreground">
-                Select a parent attribute to create a subattribute
+                {t(translationKeys.admin.attributes.selectParentToCreateSubattribute, 'Select a parent attribute to create a subattribute')}
               </p>
             </div>
             <div className="grid gap-2">
-              <Label>Translations *</Label>
+              <Label>{t(translationKeys.admin.attributes.translationsLabel, 'Translations')}</Label>
               <p className="text-sm text-muted-foreground mb-2">
-                Add translations for all languages. Name is required for the default language only. Other languages will fallback to the default language if missing.
+                {t(translationKeys.common.translationsHintForAllLanguages, 'Add translations for all languages. Name is required for the default language only. Other languages will fallback to the default language if missing.')}
               </p>
               <AttributeTranslationsTabs
                 ref={translationTabsRef}
@@ -493,11 +493,11 @@ export default function AttributesPage() {
             <Button onClick={editingId ? handleUpdate : handleCreate} disabled={isCreating}>
               {isCreating
                 ? editingId
-                  ? 'Updating...'
-                  : 'Creating...'
+                  ? t(translationKeys.admin.attributes.updating, 'Updating...')
+                  : t(translationKeys.admin.attributes.creating, 'Creating...')
                 : editingId
-                  ? 'Update Attribute'
-                  : 'Create Attribute'}
+                  ? t(translationKeys.admin.attributes.update, 'Update Attribute')
+                  : t(translationKeys.admin.attributes.create, 'Create Attribute')}
             </Button>
           </DialogFooter>
         </DialogContent>

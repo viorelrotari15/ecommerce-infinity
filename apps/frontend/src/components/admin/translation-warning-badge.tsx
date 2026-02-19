@@ -2,6 +2,7 @@
 
 import { AlertCircle } from 'lucide-react';
 import { Tooltip } from '@/components/ui/tooltip';
+import { useT, translationKeys } from '@/lib/utils/translations';
 
 interface TranslationWarningBadgeProps {
   missingLanguages: string[];
@@ -9,11 +10,12 @@ interface TranslationWarningBadgeProps {
 }
 
 export function TranslationWarningBadge({ missingLanguages, entityType }: TranslationWarningBadgeProps) {
+  const t = useT();
   if (missingLanguages.length === 0) {
     return null;
   }
 
-  const tooltipText = `Missing translations: ${missingLanguages.join(', ')}`;
+  const tooltipText = t(translationKeys.common.missingTranslationsTip, 'Missing translations: {languages}').replace('{languages}', missingLanguages.join(', '));
 
   return (
     <Tooltip content={tooltipText}>

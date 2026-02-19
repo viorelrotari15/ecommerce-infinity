@@ -209,7 +209,6 @@ export default function AdminOrderDetailsPage() {
         <CardContent className="grid gap-2 text-sm text-muted-foreground md:grid-cols-2">
           <span>{t(translationKeys.admin.orders.subtotal, 'Subtotal')}: {formatPrice(order.subtotal)}</span>
           <span>{t(translationKeys.admin.orders.shipping, 'Shipping')}: {formatPrice(order.shipping)}</span>
-          <span>{t(translationKeys.admin.orders.tax, 'Tax')}: {formatPrice(order.tax)}</span>
           <span>{t(translationKeys.admin.orders.total, 'Total')}: {formatPrice(order.total)}</span>
         </CardContent>
       </Card>

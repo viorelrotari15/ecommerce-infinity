@@ -27,7 +27,9 @@ interface AdvertisementCarouselProps {
 
 export function AdvertisementCarousel({ initialSlides }: AdvertisementCarouselProps) {
   const t = useT();
-  const { data: slides = [], isLoading } = useCarouselSlides(initialSlides);
+  const { data: querySlides, isLoading } = useCarouselSlides(initialSlides);
+  // Use initialSlides when query is loading so server and client render the same (avoids hydration mismatch)
+  const slides = (querySlides ?? initialSlides ?? []) as CarouselSlideInitial;
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -87,10 +89,11 @@ export function AdvertisementCarousel({ initialSlides }: AdvertisementCarouselPr
     }
   };
 
-  if (isLoading && !initialSlides?.length) return null;
+  // Only return null when we have no data at all (no initialSlides and still loading). Otherwise keep same structure to avoid hydration mismatch.
+  if (slides.length === 0 && isLoading) return null;
 
   return (
-    <section className="w-full overflow-hidden" aria-label="Advertisement carousel">
+    <section className="w-full overflow-hidden" aria-label={t(translationKeys.carousel.ariaLabel, 'Advertisement carousel')}>
       <div
         className="relative w-full"
         onMouseEnter={() => setIsPaused(true)}

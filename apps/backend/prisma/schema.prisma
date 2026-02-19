@@ -47,29 +47,10 @@ model Region {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  taxRates        TaxRate[]
   shippingMethods ShippingMethod[]
   orders          Order[]
 
   @@map("regions")
-}
-
-model TaxRate {
-  id         String    @id @default(uuid())
-  regionId   String
-  region     Region    @relation(fields: [regionId], references: [id], onDelete: Cascade)
-  name       String
-  rate       Decimal   @db.Decimal(5, 4) // 0.1900 = 19%
-  categoryId String? // Optional: apply to specific category
-  category   Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  isDefault  Boolean   @default(false)
-  isActive   Boolean   @default(true)
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
-
-  @@index([regionId])
-  @@index([categoryId])
-  @@map("tax_rates")
 }
 
 model ShippingMethod {
@@ -152,7 +133,6 @@ model Category {
   updatedAt    DateTime              @updatedAt
   products     ProductCategory[]
   translations CategoryTranslation[]
-  taxRates     TaxRate[]
 
   @@map("categories")
 }

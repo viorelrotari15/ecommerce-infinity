@@ -4,7 +4,6 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { ShippingCalculatorService } from '../pricing/shipping-calculator.service';
-import { TaxCalculatorService } from '../pricing/tax-calculator.service';
 import { MetricsService } from '../metrics/metrics.service';
 import { EmailService } from '../email/email.service';
 import { PaymentsService } from '../payments/payments.service';
@@ -13,7 +12,6 @@ import { PaymentsService } from '../payments/payments.service';
 export class OrdersService {
   constructor(
     private prisma: PrismaService,
-    private taxCalculator: TaxCalculatorService,
     private shippingCalculator: ShippingCalculatorService,
     private metricsService: MetricsService,
     private emailService: EmailService,
@@ -54,12 +52,11 @@ export class OrdersService {
   }
 
   async create(userId: string, createOrderDto: CreateOrderDto) {
-    const region = await this.taxCalculator.resolveRegion(createOrderDto.regionCode);
+    const region = await this.shippingCalculator.resolveRegion(createOrderDto.regionCode);
     const lineItems = await this.buildLineItems(createOrderDto.items);
 
     const subtotal = lineItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
-    const taxRates = await this.taxCalculator.getActiveTaxRates(region.id);
-    const tax = this.taxCalculator.calculateIncludedTax(lineItems, taxRates);
+    const tax = 0;
 
     let shipping = 0;
     if (createOrderDto.shippingMethodId) {

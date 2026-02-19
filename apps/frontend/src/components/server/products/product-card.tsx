@@ -1,8 +1,12 @@
+'use client';
+
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatPrice } from '@/lib/utils';
 import { getPrimaryProductImage, getImageUrl } from '@/lib/images';
 import Image from 'next/image';
+import { useT } from '@/lib/utils/translations';
+import { translationKeys } from '@/lib/utils/translations';
 
 interface ProductCardProps {
   product: {
@@ -19,6 +23,7 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product }: ProductCardProps) {
+  const t = useT();
   const minPrice = product.variants[0]?.price
     ? formatPrice(product.variants[0].price)
     : 'N/A';
@@ -43,7 +48,7 @@ export function ProductCard({ product }: ProductCardProps) {
               />
             ) : (
               <div className="flex h-full items-center justify-center">
-                <span className="text-muted-foreground">No Image</span>
+                <span className="text-muted-foreground">{t(translationKeys.products.noImage, 'No Image')}</span>
               </div>
             )}
           </div>

@@ -1,7 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import { CreateTaxRateDto, UpdateTaxRateDto } from './dto/tax-rate.dto';
 import { CreateShippingMethodDto, UpdateShippingMethodDto } from './dto/shipping-method.dto';
 import { CreateShippingRuleDto, UpdateShippingRuleDto } from './dto/shipping-rule.dto';
 
@@ -102,81 +101,6 @@ export class PricingAdminService {
 
   async listRegions() {
     return this.prisma.region.findMany({ orderBy: { code: 'asc' } });
-  }
-
-  async listTaxRates(regionCode?: string) {
-    const region = regionCode
-      ? await this.prisma.region.findUnique({ where: { code: regionCode } })
-      : null;
-
-    if (regionCode && !region) {
-      throw new NotFoundException(`Region ${regionCode} not found`);
-    }
-
-    return this.prisma.taxRate.findMany({
-      where: region ? { regionId: region.id } : undefined,
-      include: {
-        region: true,
-        category: true,
-      },
-      orderBy: [{ regionId: 'asc' }, { isDefault: 'desc' }, { name: 'asc' }],
-    });
-  }
-
-  async createTaxRate(dto: CreateTaxRateDto) {
-    const region = await this.prisma.region.findUnique({
-      where: { code: dto.regionCode },
-    });
-    if (!region) {
-      throw new NotFoundException(`Region ${dto.regionCode} not found`);
-    }
-
-    if (dto.isDefault) {
-      await this.prisma.taxRate.updateMany({
-        where: { regionId: region.id },
-        data: { isDefault: false },
-      });
-    }
-
-    return this.prisma.taxRate.create({
-      data: {
-        regionId: region.id,
-        name: dto.name,
-        rate: dto.rate,
-        categoryId: dto.categoryId ?? null,
-        isDefault: dto.isDefault ?? false,
-        isActive: dto.isActive ?? true,
-      },
-    });
-  }
-
-  async updateTaxRate(id: string, dto: UpdateTaxRateDto) {
-    const existing = await this.prisma.taxRate.findUnique({ where: { id } });
-    if (!existing) {
-      throw new NotFoundException(`Tax rate ${id} not found`);
-    }
-
-    if (dto.isDefault) {
-      await this.prisma.taxRate.updateMany({
-        where: { regionId: existing.regionId },
-        data: { isDefault: false },
-      });
-    }
-
-    return this.prisma.taxRate.update({
-      where: { id },
-      data: {
-        name: dto.name,
-        rate: dto.rate,
-        categoryId: dto.categoryId,
-        isDefault: dto.isDefault,
-        isActive: dto.isActive,
-      },
-    });
-  }
-
-  async deleteTaxRate(id: string) {
-    return this.prisma.taxRate.delete({ where: { id } });
   }
 
   async listShippingMethods(regionCode?: string) {

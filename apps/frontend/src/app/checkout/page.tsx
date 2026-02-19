@@ -524,7 +524,7 @@ export default function CheckoutPage() {
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <Label>{t(translationKeys.checkout.shippingAddress, 'Shipping address')}</Label>
-                    <span className="text-xs text-muted-foreground">Choose a saved address or add a new one</span>
+                    <span className="text-xs text-muted-foreground">{t(translationKeys.common.chooseSavedAddress, 'Choose a saved address or add a new one')}</span>
                   </div>
                   <div className="space-y-3">
                     {savedShippingAddresses.map((entry) => {
@@ -678,7 +678,7 @@ export default function CheckoutPage() {
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">
                         <Label>{t(translationKeys.checkout.billingAddress, 'Billing address')}</Label>
-                        <span className="text-xs text-muted-foreground">Choose a saved address or add a new one</span>
+                        <span className="text-xs text-muted-foreground">{t(translationKeys.common.chooseSavedAddress, 'Choose a saved address or add a new one')}</span>
                       </div>
                       <div className="space-y-3">
                         {savedBillingAddresses.map((entry) => {

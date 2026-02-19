@@ -549,13 +549,13 @@ export default function CategoriesPage() {
                 </SelectContent>
               </Select>
               <p className="text-sm text-muted-foreground">
-                Select a parent category to create a subcategory
+                {t(translationKeys.admin.categories.selectParentToCreateSubcategory, 'Select a parent category to create a subcategory')}
               </p>
             </div>
             <div className="grid gap-2">
-              <Label>Translations *</Label>
+              <Label>{t(translationKeys.admin.categories.translationsLabel, 'Translations *')}</Label>
               <p className="text-sm text-muted-foreground mb-2">
-                Add translations for all languages. Name is required for the default language only. Other languages will fallback to the default language if missing.
+                {t(translationKeys.common.translationsHintForAllLanguages, 'Add translations for all languages. Name is required for the default language only. Other languages will fallback to the default language if missing.')}
               </p>
               <CategoryTranslationsTabs
                 ref={translationTabsRef}

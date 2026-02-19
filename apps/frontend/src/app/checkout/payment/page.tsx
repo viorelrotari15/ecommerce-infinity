@@ -12,6 +12,9 @@ import { apiService, confirmPaymentSuccess, createPaymentIntent } from '@/lib/ap
 import { useCartStore } from '@/lib/store/cart-store';
 import { formatPrice } from '@/lib/utils';
 import { isAuthenticated } from '@/lib/auth';
+import { useT } from '@/lib/utils/translations';
+import { translationKeys } from '@/lib/utils/translations';
+import { useLanguage } from '@/lib/contexts/language-context';
 
 const stripeKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '';
 const stripePromise = stripeKey ? loadStripe(stripeKey) : null;
@@ -22,6 +25,7 @@ function PaymentForm({ orderId, email }: { orderId: string; email: string }) {
   const elements = useElements();
   const { toast } = useToast();
   const { clearCart } = useCartStore();
+  const t = useT();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const isLoggedIn = isAuthenticated();
@@ -44,8 +48,8 @@ function PaymentForm({ orderId, email }: { orderId: string; email: string }) {
     if (error) {
       toast({
         variant: 'destructive',
-        title: 'Payment failed',
-        description: error.message || 'Please try again.',
+        title: t(translationKeys.checkout.paymentFailedTitle, 'Payment failed'),
+        description: error.message || t(translationKeys.common.tryAgain, 'Please try again.'),
       });
       setIsSubmitting(false);
       return;
@@ -61,8 +65,8 @@ function PaymentForm({ orderId, email }: { orderId: string; email: string }) {
       setIsSuccess(true);
       toast({
         variant: 'success',
-        title: 'Payment confirmed',
-        description: 'Your order has been placed successfully.',
+        title: t(translationKeys.checkout.paymentConfirmedTitle, 'Payment confirmed'),
+        description: t(translationKeys.checkout.paymentConfirmedDescription, 'Your order has been placed successfully.'),
       });
     }
     setIsSubmitting(false);
@@ -72,19 +76,19 @@ function PaymentForm({ orderId, email }: { orderId: string; email: string }) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Order placed</CardTitle>
+          <CardTitle>{t(translationKeys.checkout.paymentSuccessTitle, 'Order placed')}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <p className="text-sm text-muted-foreground">Payment confirmed. Thank you for your order.</p>
+          <p className="text-sm text-muted-foreground">{t(translationKeys.checkout.paymentSuccessDescription, 'Payment confirmed. Thank you for your order.')}</p>
           {isLoggedIn ? (
-            <Button onClick={() => router.push('/user/profile')}>View my orders</Button>
+            <Button onClick={() => router.push('/user/profile')}>{t(translationKeys.common.viewMyOrders, 'View my orders')}</Button>
           ) : (
             <div className="space-y-3">
               <p className="text-sm text-muted-foreground">
-                Create an account to save your details and track orders faster next time.
+                {t(translationKeys.checkout.createAccountPrompt, 'Create an account to save your details and track orders faster next time.')}
               </p>
               <Button asChild>
-                <Link href={`/auth/register?email=${encodeURIComponent(email)}`}>Create account</Link>
+                <Link href={`/auth/register?email=${encodeURIComponent(email)}`}>{t(translationKeys.common.createAccount, 'Create account')}</Link>
               </Button>
             </div>
           )}
@@ -97,15 +101,20 @@ function PaymentForm({ orderId, email }: { orderId: string; email: string }) {
     <form onSubmit={handleSubmit} className="space-y-4">
       <PaymentElement />
       <Button type="submit" disabled={isSubmitting || !stripe || !elements} className="w-full">
-        {isSubmitting ? 'Processing...' : 'Pay now'}
+        {isSubmitting ? t(translationKeys.checkout.paymentProcessing, 'Processing...') : t(translationKeys.checkout.paymentPayNow, 'Pay now')}
       </Button>
     </form>
   );
 }
 
+const STRIPE_LOCALES = ['en', 'ru', 'de', 'es', 'fr', 'it', 'ja', 'nl', 'pl', 'pt', 'sv', 'zh'] as const;
+
 export default function CheckoutPaymentPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { currentLanguage } = useLanguage();
+  const stripeLocale = STRIPE_LOCALES.includes(currentLanguage as any) ? currentLanguage : 'en';
+  const t = useT();
   const { toast } = useToast();
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [order, setOrder] = useState<any | null>(null);
@@ -219,8 +228,8 @@ export default function CheckoutPaymentPage() {
         if (!isMounted) return;
         toast({
           variant: 'destructive',
-          title: 'Payment setup failed',
-          description: error.message || 'Please refresh and try again.',
+          title: t(translationKeys.checkout.paymentSetupFailedTitle, 'Payment setup failed'),
+          description: error.message || t(translationKeys.common.tryAgain, 'Please refresh and try again.'),
         });
       });
 
@@ -241,10 +250,10 @@ export default function CheckoutPaymentPage() {
       <div className="container py-16">
         <Card className="max-w-xl mx-auto">
           <CardHeader>
-            <CardTitle>Preparing payment</CardTitle>
+            <CardTitle>{t(translationKeys.checkout.paymentPreparing, 'Preparing payment')}</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-muted-foreground">Setting up your order. Please wait...</p>
+            <p className="text-sm text-muted-foreground">{t(translationKeys.checkout.paymentPreparingDescription, 'Setting up your order. Please wait...')}</p>
           </CardContent>
         </Card>
       </div>
@@ -256,12 +265,12 @@ export default function CheckoutPaymentPage() {
       <div className="container py-16">
         <Card className="max-w-xl mx-auto">
           <CardHeader>
-            <CardTitle>Missing payment information</CardTitle>
+            <CardTitle>{t(translationKeys.checkout.paymentMissingInfoTitle, 'Missing payment information')}</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-muted-foreground">{prepError || 'Order ID or email is missing.'}</p>
+            <p className="text-sm text-muted-foreground">{prepError || t(translationKeys.checkout.paymentMissingInfoDescription, 'Order ID or email is missing.')}</p>
             <div className="mt-4">
-              <Button onClick={() => router.push('/checkout')}>Back to checkout</Button>
+              <Button onClick={() => router.push('/checkout')}>{t(translationKeys.common.backToCheckout, 'Back to checkout')}</Button>
             </div>
           </CardContent>
         </Card>
@@ -272,8 +281,8 @@ export default function CheckoutPaymentPage() {
   return (
     <div className="container py-12 grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
       <Card>
-        <CardHeader>
-          <CardTitle>Payment</CardTitle>
+<CardHeader>
+        <CardTitle>{t(translationKeys.checkout.paymentTitle, 'Payment')}</CardTitle>
         </CardHeader>
         <CardContent>
           {!stripePromise ? (
@@ -281,32 +290,32 @@ export default function CheckoutPaymentPage() {
               Stripe publishable key is missing. Please configure `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`.
             </p>
           ) : clientSecret ? (
-            <Elements stripe={stripePromise} options={{ clientSecret, appearance }}>
+            <Elements stripe={stripePromise} options={{ clientSecret, appearance, locale: stripeLocale }}>
               <PaymentForm orderId={orderId} email={email} />
             </Elements>
           ) : (
-            <p className="text-sm text-muted-foreground">Preparing payment...</p>
+            <p className="text-sm text-muted-foreground">{t(translationKeys.checkout.paymentPreparing, 'Preparing payment...')}</p>
           )}
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle>Order summary</CardTitle>
+          <CardTitle>{t(translationKeys.checkout.orderSummary, 'Order summary')}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3 text-sm text-muted-foreground">
           {order ? (
             <>
               <div className="flex justify-between">
-                <span>Subtotal</span>
+                <span>{t(translationKeys.checkout.subtotal, 'Subtotal')}</span>
                 <span>{formatPrice(order.subtotal)}</span>
               </div>
               <div className="flex justify-between">
-                <span>Shipping</span>
+                <span>{t(translationKeys.checkout.shipping, 'Shipping')}</span>
                 <span>{formatPrice(order.shipping)}</span>
               </div>
               <div className="flex justify-between font-semibold text-foreground">
-                <span>Total</span>
+                <span>{t(translationKeys.checkout.total, 'Total')}</span>
                 <span>{formatPrice(order.total)}</span>
               </div>
               <div className="pt-3 border-t space-y-2">
@@ -322,19 +331,19 @@ export default function CheckoutPaymentPage() {
               </div>
             </>
           ) : (
-            <p>Loading order...</p>
+            <p>{t(translationKeys.profile.orderDetails.loading, 'Loading order...')}</p>
           )}
         </CardContent>
       </Card>
       {!isAuthenticated() && (
         <Card>
           <CardHeader>
-            <CardTitle>Save your details</CardTitle>
+            <CardTitle>{t(translationKeys.common.saveYourDetails, 'Save your details')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3 text-sm text-muted-foreground">
-            <p>Create an account after payment to reuse your shipping details and track orders.</p>
+            <p>{t(translationKeys.checkout.createAccountPrompt, 'Create an account after payment to reuse your shipping details and track orders.')}</p>
             <Button asChild>
-              <Link href={`/auth/register?email=${encodeURIComponent(email)}`}>Create account</Link>
+              <Link href={`/auth/register?email=${encodeURIComponent(email)}`}>{t(translationKeys.common.createAccount, 'Create account')}</Link>
             </Button>
           </CardContent>
         </Card>
