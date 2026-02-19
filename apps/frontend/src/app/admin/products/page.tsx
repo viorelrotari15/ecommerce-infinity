@@ -451,7 +451,7 @@ export default function ProductsPage() {
 
   return (
     <div className="w-full px-4 md:px-6 lg:px-8 py-8">
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">{t(translationKeys.admin.products.title, 'Manage Products')}</h1>
           <p className="text-muted-foreground mt-2">
@@ -543,7 +543,7 @@ export default function ProductsPage() {
           />
         </div>
 
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <Button onClick={applyFilters}>{t(translationKeys.admin.products.applyFilters, 'Apply Filters')}</Button>
               <Button variant="outline" onClick={clearFilters}>
                 {t(translationKeys.common.clear, 'Clear')}
@@ -567,7 +567,7 @@ export default function ProductsPage() {
         </Card>
       ) : (
         <>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+          <div className="grid gap-4 grid-cols-[repeat(auto-fill,minmax(min(100%,20rem),1fr))]">
             {products.map((product) => {
               const minPrice = product.variants[0]?.price
                 ? formatPrice(product.variants[0].price)
@@ -615,16 +615,16 @@ export default function ProductsPage() {
                   </CardHeader>
                   <CardContent>
                       <div className="flex flex-col gap-2">
-                        <div className="flex gap-2">
-                          <Link href={`/products/${product.slug}`} className="flex-1">
+                        <div className="flex flex-wrap gap-2">
+                          <Link href={`/products/${product.slug}`} className="flex-1 min-w-0">
                             <Button variant="outline" size="sm" className="w-full">
-                              <Eye className="h-4 w-4 mr-2" />
+                              <Eye className="h-4 w-4 mr-2 shrink-0" />
                               {t(translationKeys.admin.products.view, 'View')}
                             </Button>
                           </Link>
-                          <Link href={`/admin/products/${product.id}/edit`} className="flex-1">
+                          <Link href={`/admin/products/${product.id}/edit`} className="flex-1 min-w-0">
                             <Button variant="outline" size="sm" className="w-full">
-                              <Edit className="h-4 w-4 mr-2" />
+                              <Edit className="h-4 w-4 mr-2 shrink-0" />
                               {t(translationKeys.common.edit, 'Edit')}
                             </Button>
                           </Link>
@@ -645,7 +645,7 @@ export default function ProductsPage() {
                             onClick={() => handleReactivate(product.id)}
                             className="w-full"
                           >
-                            <CheckCircle2 className="h-4 w-4 mr-2" />
+                            <CheckCircle2 className="h-4 w-4 mr-2 shrink-0" />
                             {t(translationKeys.admin.products.reactivate, 'Reactivate Product')}
                           </Button>
                         )}

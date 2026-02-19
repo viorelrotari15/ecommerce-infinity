@@ -969,7 +969,7 @@ export default function EditProductPage() {
         </Card>
 
         {/* Submit */}
-        <div className="flex justify-end gap-4">
+        <div className="flex flex-wrap justify-end gap-4">
           <Button
             type="button"
             variant="outline"

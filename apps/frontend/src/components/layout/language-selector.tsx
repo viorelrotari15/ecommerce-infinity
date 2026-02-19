@@ -20,14 +20,14 @@ export function LanguageSelector() {
 
   if (!mounted) {
     return (
-      <div className="w-[120px] h-10 rounded-md border border-input bg-background" />
+      <div className="min-w-[120px] h-10 rounded-md border border-input bg-background" />
     );
   }
 
   // Show loading state
   if (isLoading) {
     return (
-      <div className="w-[120px] h-10 rounded-md border border-input bg-background animate-pulse" />
+      <div className="min-w-[120px] h-10 rounded-md border border-input bg-background animate-pulse" />
     );
   }
 
@@ -52,7 +52,7 @@ export function LanguageSelector() {
 
   return (
     <Select value={currentLanguage} onValueChange={setLanguage}>
-      <SelectTrigger className="w-[120px]">
+      <SelectTrigger className="min-w-[120px] w-auto">
         <SelectValue placeholder="Language" />
       </SelectTrigger>
       <SelectContent>
