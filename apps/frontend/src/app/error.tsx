@@ -1,5 +1,8 @@
 'use client';
 
+import { useT } from '@/lib/utils/translations';
+import { translationKeys } from '@/lib/utils/translations';
+
 /**
  * Root error boundary. Avoids using usePathname/useRouter so we don't hit
  * "Cannot read properties of null (reading 'useContext')" when the navigation
@@ -12,11 +15,12 @@ export default function Error({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const t = useT();
   return (
     <div className="flex min-h-[40vh] flex-col items-center justify-center gap-4 px-4 py-8">
-      <h2 className="text-lg font-semibold">Something went wrong</h2>
+      <h2 className="text-lg font-semibold">{t(translationKeys.common.somethingWentWrong, 'Something went wrong')}</h2>
       <p className="max-w-md text-center text-sm text-muted-foreground">
-        {error?.message || 'An unexpected error occurred.'}
+        {error?.message || t(translationKeys.common.unexpectedError, 'An unexpected error occurred.')}
       </p>
       <div className="flex gap-3">
         <button
@@ -24,7 +28,7 @@ export default function Error({
           onClick={() => reset()}
           className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
         >
-          Try again
+          {t(translationKeys.common.tryAgain, 'Try again')}
         </button>
         <button
           type="button"
@@ -33,7 +37,7 @@ export default function Error({
           }}
           className="rounded-md border border-input bg-background px-4 py-2 text-sm font-medium hover:bg-accent"
         >
-          Go home
+          {t(translationKeys.profile.goHome, 'Go home')}
         </button>
       </div>
     </div>

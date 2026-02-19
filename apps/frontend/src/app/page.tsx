@@ -6,6 +6,7 @@ import { fetchFeaturedProducts, fetchCarouselSlides } from '@/lib/api/server';
 import { formatPrice } from '@/lib/utils';
 import { getPrimaryProductImage, getImageUrl } from '@/lib/images';
 import { getServerLanguage } from '@/lib/utils/language';
+import { getServerT, translationKeys } from '@/lib/utils/translations-shared';
 import Image from 'next/image';
 import {
   AdvertisementCarousel,
@@ -13,12 +14,20 @@ import {
 } from '@/components/client/home/advertisement-carousel';
 import { ScrollDownHint } from '@/components/client/home/scroll-down-hint';
 
-export const metadata: Metadata = {
-  title: 'Home',
-  description: 'Discover premium fragrances and luxury perfumes',
-};
-
 export const dynamic = 'force-dynamic';
+
+export async function generateMetadata({
+  searchParams,
+}: {
+  searchParams?: { [key: string]: string | string[] | undefined };
+}): Promise<Metadata> {
+  const language = await getServerLanguage(searchParams);
+  const t = getServerT(language);
+  return {
+    title: t(translationKeys.home.title, 'Home'),
+    description: t(translationKeys.home.description, 'Discover premium fragrances and luxury perfumes'),
+  };
+}
 
 async function getFeaturedProducts(language?: string) {
   try {
@@ -36,6 +45,7 @@ export default async function HomePage({
   searchParams?: { [key: string]: string | string[] | undefined };
 }) {
   const language = await getServerLanguage(searchParams);
+  const t = getServerT(language);
   const [featuredProducts, carouselSlides] = await Promise.all([
     getFeaturedProducts(language),
     fetchCarouselSlides(language),
@@ -51,19 +61,18 @@ export default async function HomePage({
       <section id="hero" className="w-full px-4 md:px-6 lg:px-8 py-20 md:py-32">
         <div className="mx-auto max-w-3xl text-center">
           <h1 className="mb-6 text-4xl font-bold tracking-tight md:text-6xl">
-            Discover Premium Fragrances
+            {t(translationKeys.home.heroTitle, 'Discover Premium Fragrances')}
           </h1>
           <p className="mb-8 text-lg text-muted-foreground md:text-xl">
-            Experience luxury scents crafted for the modern individual. Shop our
-            curated collection of premium perfumes.
+            {t(translationKeys.home.heroDescription, 'Experience luxury scents crafted for the modern individual. Shop our curated collection of premium perfumes.')}
           </p>
           <div className="flex justify-center gap-4">
             <Link href="/products">
-              <Button size="lg">Shop Now</Button>
+              <Button size="lg">{t(translationKeys.home.shopNow, 'Shop Now')}</Button>
             </Link>
             <Link href="/categories">
               <Button size="lg" variant="outline">
-                Browse Categories
+                {t(translationKeys.home.browseCategories, 'Browse Categories')}
               </Button>
             </Link>
           </div>
@@ -74,9 +83,11 @@ export default async function HomePage({
       {featuredProducts.length > 0 && (
         <section className="w-full px-4 md:px-6 lg:px-8 py-12">
           <div className="mb-8 text-center">
-            <h2 className="text-3xl font-bold tracking-tight">Featured Products</h2>
+            <h2 className="text-3xl font-bold tracking-tight">
+              {t(translationKeys.home.featuredProducts, 'Featured Products')}
+            </h2>
             <p className="mt-2 text-muted-foreground">
-              Handpicked selections from our collection
+              {t(translationKeys.home.featuredProductsDescription, 'Handpicked selections from our collection')}
             </p>
           </div>
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -104,7 +115,9 @@ export default async function HomePage({
                             />
                           ) : (
                             <div className="flex h-full items-center justify-center">
-                              <span className="text-muted-foreground">No Image</span>
+                              <span className="text-muted-foreground">
+                                {t(translationKeys.products.noImage, 'No Image')}
+                              </span>
                             </div>
                           );
                         })()}
@@ -129,14 +142,18 @@ export default async function HomePage({
       <section className="w-full px-4 md:px-6 lg:px-8 py-12">
         <Card className="bg-muted/50">
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl">Ready to Find Your Signature Scent?</CardTitle>
+            <CardTitle className="text-2xl">
+              {t(translationKeys.home.ctaTitle, 'Ready to Find Your Signature Scent?')}
+            </CardTitle>
             <CardDescription className="text-base">
-              Explore our full collection of premium fragrances
+              {t(translationKeys.home.ctaDescription, 'Explore our full collection of premium fragrances')}
             </CardDescription>
           </CardHeader>
           <CardContent className="flex justify-center">
             <Link href="/products">
-              <Button size="lg">View All Products</Button>
+              <Button size="lg">
+                {t(translationKeys.home.viewAllProducts, 'View All Products')}
+              </Button>
             </Link>
           </CardContent>
         </Card>

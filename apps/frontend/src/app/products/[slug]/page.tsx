@@ -8,6 +8,7 @@ import { ProductActions } from '@/components/client/products/product-actions';
 import { ProductImageGallery } from '@/components/client/products/product-image-gallery';
 import { SimilarProductsCarousel } from '@/components/client/products/similar-products-carousel';
 import { getServerLanguage } from '@/lib/utils/language';
+import { getServerT, translationKeys } from '@/lib/utils/translations-shared';
 import type { Product } from '@/lib/api/server';
 
 // Force dynamic rendering to respect language cookie changes
@@ -62,6 +63,7 @@ export default async function ProductPage({
   searchParams?: { [key: string]: string | string[] | undefined };
 }) {
   const language = await getServerLanguage(searchParams);
+  const t = getServerT(language);
   const product = await getProduct(params.slug, language);
 
   if (!product) {
@@ -254,7 +256,7 @@ export default async function ProductPage({
             return (
               <Card>
                 <CardHeader>
-                  <CardTitle>Details</CardTitle>
+                  <CardTitle>{t(translationKeys.common.details, 'Details')}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <dl className="space-y-2">
@@ -281,7 +283,7 @@ export default async function ProductPage({
           {product.description && (
             <Card>
               <CardHeader>
-                <CardTitle>Description</CardTitle>
+                <CardTitle>{t(translationKeys.common.description, 'Description')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="whitespace-pre-line text-muted-foreground">

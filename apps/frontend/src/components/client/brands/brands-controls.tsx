@@ -39,7 +39,7 @@ export function BrandsControls() {
         <div className="relative flex-1 max-w-md">
           <Input
             type="text"
-            placeholder={t(translationKeys.products.searchPlaceholder, 'Search brands...')}
+            placeholder={t(translationKeys.brands.searchPlaceholder, 'Search brands...')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pr-10"

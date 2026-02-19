@@ -284,13 +284,27 @@ export default function AdminCarouselPage() {
                 {t(translationKeys.admin.carousel.desktopImage, 'Desktop image')}
                 {!editingId && ' *'}
               </Label>
-              <Input
-                id="carousel-desktop"
-                ref={desktopInputRef}
-                type="file"
-                accept="image/jpeg,image/png,image/webp,image/avif"
-                onChange={(e) => setDesktopFile(e.target.files?.[0] ?? null)}
-              />
+              <div className="flex items-center gap-2">
+                <Input
+                  id="carousel-desktop"
+                  ref={desktopInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/avif"
+                  onChange={(e) => setDesktopFile(e.target.files?.[0] ?? null)}
+                  className="absolute opacity-0 w-0 h-0 overflow-hidden pointer-events-none"
+                />
+                <Button
+                  type="button"
+                  variant="default"
+                  className="cursor-pointer"
+                  onClick={() => desktopInputRef.current?.click()}
+                >
+                  {t(translationKeys.common.chooseFile, 'Choose file')}
+                </Button>
+                <span className="text-sm text-muted-foreground">
+                  {desktopFile ? desktopFile.name : t(translationKeys.common.noFileChosen, 'No file chosen')}
+                </span>
+              </div>
               {editingId && (
                 <p className="text-xs text-muted-foreground">
                   {t(translationKeys.admin.carousel.editDescription, 'Leave empty to keep current image.')}
@@ -299,13 +313,27 @@ export default function AdminCarouselPage() {
             </div>
             <div className="grid gap-2">
               <Label htmlFor="carousel-mobile">{t(translationKeys.admin.carousel.mobileImage, 'Mobile image')}</Label>
-              <Input
-                id="carousel-mobile"
-                ref={mobileInputRef}
-                type="file"
-                accept="image/jpeg,image/png,image/webp,image/avif"
-                onChange={(e) => setMobileFile(e.target.files?.[0] ?? null)}
-              />
+              <div className="flex items-center gap-2">
+                <Input
+                  id="carousel-mobile"
+                  ref={mobileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/avif"
+                  onChange={(e) => setMobileFile(e.target.files?.[0] ?? null)}
+                  className="absolute opacity-0 w-0 h-0 overflow-hidden pointer-events-none"
+                />
+                <Button
+                  type="button"
+                  variant="default"
+                  className="cursor-pointer"
+                  onClick={() => mobileInputRef.current?.click()}
+                >
+                  {t(translationKeys.common.chooseFile, 'Choose file')}
+                </Button>
+                <span className="text-sm text-muted-foreground">
+                  {mobileFile ? mobileFile.name : t(translationKeys.common.noFileChosen, 'No file chosen')}
+                </span>
+              </div>
               <p className="text-xs text-muted-foreground">
                 {t(translationKeys.admin.carousel.mobileImageOptional, 'Optional. If not set, desktop image is shown on mobile.')}
               </p>

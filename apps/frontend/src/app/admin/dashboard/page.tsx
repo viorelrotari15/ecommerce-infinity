@@ -14,7 +14,6 @@ import {
   List,
   Receipt,
   Truck,
-  Percent,
   ImageIcon,
   LayoutGrid,
   Globe,
@@ -53,13 +52,13 @@ export default function AdminDashboard() {
       </div>
 
       {/* Catalog: Products, Brands, Categories, Attributes, Carousel */}
-      <SectionTitle icon={LayoutGrid}>Catalog</SectionTitle>
+      <SectionTitle icon={LayoutGrid}>{t(translationKeys.admin.dashboard.sectionCatalog, 'Catalog')}</SectionTitle>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Card className="group cursor-pointer hover:bg-accent hover:text-white transition-colors" onClick={() => router.push('/admin/products')}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Package className="h-5 w-5" />
-              Products
+              {t(translationKeys.admin.dashboard.productsTitle, 'Products')}
             </CardTitle>
             <CardDescription className="group-hover:text-white">
               {t(translationKeys.admin.dashboard.manageProducts, 'Manage products')}
@@ -70,7 +69,7 @@ export default function AdminDashboard() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Tag className="h-5 w-5" />
-              Brands
+              {t(translationKeys.admin.dashboard.brandsTitle, 'Brands')}
             </CardTitle>
             <CardDescription className="group-hover:text-white">
               {t(translationKeys.admin.dashboard.manageBrands, 'Manage product brands')}
@@ -81,7 +80,7 @@ export default function AdminDashboard() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <FolderTree className="h-5 w-5" />
-              Categories
+              {t(translationKeys.admin.dashboard.categoriesTitle, 'Categories')}
             </CardTitle>
             <CardDescription className="group-hover:text-white">
               {t(translationKeys.admin.dashboard.manageCategories, 'Manage product categories')}
@@ -92,10 +91,10 @@ export default function AdminDashboard() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <List className="h-5 w-5" />
-              Attributes
+              {t(translationKeys.admin.dashboard.attributesTitle, 'Attributes')}
             </CardTitle>
             <CardDescription className="group-hover:text-white">
-              Manage product attributes and subattributes
+              {t(translationKeys.admin.dashboard.manageAttributes, 'Manage product attributes and subattributes')}
             </CardDescription>
           </CardHeader>
         </Card>
@@ -113,13 +112,13 @@ export default function AdminDashboard() {
       </div>
 
       {/* Languages & Translations */}
-      <SectionTitle icon={Globe}>Languages & translations</SectionTitle>
+      <SectionTitle icon={Globe}>{t(translationKeys.admin.dashboard.sectionLanguagesTranslations, 'Languages & translations')}</SectionTitle>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Card className="group cursor-pointer hover:bg-accent hover:text-white transition-colors" onClick={() => router.push('/admin/languages')}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Languages className="h-5 w-5" />
-              Languages
+              {t(translationKeys.admin.dashboard.languagesTitle, 'Languages')}
             </CardTitle>
             <CardDescription className="group-hover:text-white">
               {t(translationKeys.admin.dashboard.manageLanguages, 'Manage supported languages')}
@@ -130,7 +129,7 @@ export default function AdminDashboard() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <FileText className="h-5 w-5" />
-              UI Translations
+              {t(translationKeys.admin.dashboard.uiTranslationsTitle, 'UI Translations')}
             </CardTitle>
             <CardDescription className="group-hover:text-white">
               {t(translationKeys.admin.dashboard.manageTranslations, 'Manage interface text translations')}
@@ -139,8 +138,8 @@ export default function AdminDashboard() {
         </Card>
       </div>
 
-      {/* Others: Orders, Payments, Tax, Shipping */}
-      <SectionTitle icon={Settings}>Orders, payments & settings</SectionTitle>
+      {/* Others: Orders, Payments, Shipping */}
+      <SectionTitle icon={Settings}>{t(translationKeys.admin.dashboard.sectionOrdersPaymentsSettings, 'Orders, payments & settings')}</SectionTitle>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Card className="group cursor-pointer hover:bg-accent hover:text-white transition-colors" onClick={() => router.push('/admin/orders')}>
           <CardHeader>
@@ -157,21 +156,10 @@ export default function AdminDashboard() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <CreditCard className="h-5 w-5" />
-              Payments
+              {t(translationKeys.admin.dashboard.paymentsTitle, 'Payments')}
             </CardTitle>
             <CardDescription className="group-hover:text-white">
-              View Stripe payment history
-            </CardDescription>
-          </CardHeader>
-        </Card>
-        <Card className="group cursor-pointer hover:bg-accent hover:text-white transition-colors" onClick={() => router.push('/admin/tax-rates')}>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Percent className="h-5 w-5" />
-              {t(translationKeys.admin.dashboard.taxRatesTitle, 'Tax Rates')}
-            </CardTitle>
-            <CardDescription className="group-hover:text-white">
-              {t(translationKeys.admin.dashboard.manageTaxRates, 'Configure VAT rates')}
+              {t(translationKeys.admin.dashboard.managePayments, 'View Stripe payment history')}
             </CardDescription>
           </CardHeader>
         </Card>
@@ -190,10 +178,10 @@ export default function AdminDashboard() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <ScrollText className="h-5 w-5" />
-              Backend logs
+              {t(translationKeys.admin.dashboard.backendLogsTitle, 'Backend logs')}
             </CardTitle>
             <CardDescription className="group-hover:text-white">
-              View or download backend application logs
+              {t(translationKeys.admin.dashboard.backendLogsDescription, 'View or download backend application logs')}
             </CardDescription>
           </CardHeader>
         </Card>

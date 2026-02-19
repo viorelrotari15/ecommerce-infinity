@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, MouseEvent } from 'react';
 import Image from 'next/image';
 import { ChevronLeft, ChevronRight, ZoomIn } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useT, translationKeys } from '@/lib/utils/translations';
 
 interface ProductImage {
   filepath?: string;
@@ -21,6 +22,7 @@ export function ProductImageGallery({
   productName,
   primaryImage,
 }: ProductImageGalleryProps) {
+  const t = useT();
   // Initialize with primary image or first image
   const initialImageIndex = primaryImage
     ? images.findIndex((img) => img.url === primaryImage)
@@ -110,7 +112,7 @@ export function ProductImageGallery({
   if (!currentImage || images.length === 0) {
     return (
       <div className="relative w-full max-h-[600px] min-h-[400px] overflow-hidden rounded-lg bg-background border border-border flex items-center justify-center">
-        <span className="text-muted-foreground">No Image</span>
+        <span className="text-muted-foreground">{t(translationKeys.products.noImage, 'No Image')}</span>
       </div>
     );
   }
@@ -146,7 +148,7 @@ export function ProductImageGallery({
               <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
                 <div className="flex items-center gap-2 rounded-full bg-background/90 px-4 py-2 text-sm font-medium shadow-lg backdrop-blur-sm">
                   <ZoomIn className="h-4 w-4" />
-                  <span>Hover over image to zoom</span>
+                  <span>{t(translationKeys.common.hoverToZoom, 'Hover over image to zoom')}</span>
                 </div>
               </div>
             )}
@@ -178,7 +180,7 @@ export function ProductImageGallery({
                   size="icon"
                   className="absolute left-4 top-1/2 z-30 h-10 w-10 -translate-y-1/2 rounded-full bg-background/80 backdrop-blur-sm hover:bg-background/90"
                   onClick={handlePrevious}
-                  aria-label="Previous image"
+                  aria-label={t(translationKeys.common.previousImage, 'Previous image')}
                 >
                   <ChevronLeft className="h-5 w-5" />
                 </Button>
@@ -187,7 +189,7 @@ export function ProductImageGallery({
                   size="icon"
                   className="absolute right-4 top-1/2 z-30 h-10 w-10 -translate-y-1/2 rounded-full bg-background/80 backdrop-blur-sm hover:bg-background/90"
                   onClick={handleNext}
-                  aria-label="Next image"
+                  aria-label={t(translationKeys.common.nextImage, 'Next image')}
                 >
                   <ChevronRight className="h-5 w-5" />
                 </Button>
@@ -196,7 +198,7 @@ export function ProductImageGallery({
           </>
         ) : (
           <div className="flex h-full items-center justify-center">
-            <span className="text-muted-foreground">No Image</span>
+            <span className="text-muted-foreground">{t(translationKeys.products.noImage, 'No Image')}</span>
           </div>
         )}
       </div>

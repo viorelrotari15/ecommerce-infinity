@@ -371,7 +371,6 @@ export interface ShippingOption {
 export interface CheckoutEstimateResponse {
   region: { id: string; code: string; currency: string };
   subtotal: number;
-  tax: number;
   shippingOptions: ShippingOption[];
 }
 
@@ -496,23 +495,6 @@ export async function listStripePayments(params?: { orderId?: string; email?: st
 
 export async function listAdminRegions() {
   return apiService.get('/pricing/admin/regions');
-}
-
-export async function listAdminTaxRates(regionCode?: string) {
-  const query = regionCode ? `?regionCode=${encodeURIComponent(regionCode)}` : '';
-  return apiService.get(`/pricing/admin/tax-rates${query}`);
-}
-
-export async function createAdminTaxRate(payload: any) {
-  return apiService.post('/pricing/admin/tax-rates', payload);
-}
-
-export async function updateAdminTaxRate(id: string, payload: any) {
-  return apiService.patch(`/pricing/admin/tax-rates/${id}`, payload);
-}
-
-export async function deleteAdminTaxRate(id: string) {
-  return apiService.delete(`/pricing/admin/tax-rates/${id}`);
 }
 
 export async function listAdminShippingMethods(regionCode?: string) {

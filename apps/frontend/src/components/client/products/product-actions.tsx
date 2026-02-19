@@ -37,7 +37,7 @@ export function ProductActions({
     <>
       {variants.length > 0 && (
         <div className="space-y-4">
-          <h3 className="text-lg font-semibold">Available Variants</h3>
+          <h3 className="text-lg font-semibold">{t(translationKeys.products.availableVariants, 'Available Variants')}</h3>
           <div className="space-y-2">
             {variants.map((variant) => (
               <div

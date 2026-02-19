@@ -9,8 +9,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { useT } from '@/lib/utils/translations';
+import { translationKeys } from '@/lib/utils/translations';
 
 export function LanguageSelector() {
+  const t = useT();
   const { currentLanguage, setLanguage, languages, isLoading } = useLanguage();
   const [mounted, setMounted] = useState(false);
 
@@ -53,7 +56,7 @@ export function LanguageSelector() {
   return (
     <Select value={currentLanguage} onValueChange={setLanguage}>
       <SelectTrigger className="min-w-[120px] w-auto">
-        <SelectValue placeholder="Language" />
+        <SelectValue placeholder={t(translationKeys.common.language, 'Language')} />
       </SelectTrigger>
       <SelectContent>
         {languages.map((lang) => (

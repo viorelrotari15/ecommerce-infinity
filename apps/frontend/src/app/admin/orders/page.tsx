@@ -48,7 +48,7 @@ export default function AdminOrdersPage() {
       <div>
         <h1 className="text-3xl font-bold tracking-tight">{t(translationKeys.admin.orders.title, 'Orders')}</h1>
         <p className="text-muted-foreground mt-2">
-          {t(translationKeys.admin.orders.description, 'Review all orders and tax totals')}
+          {t(translationKeys.admin.orders.description, 'Review all orders')}
         </p>
       </div>
 
@@ -96,9 +96,6 @@ export default function AdminOrdersPage() {
                     </span>
                     <span>
                       {t(translationKeys.admin.orders.shipping, 'Shipping')}: {formatPrice(order.shipping)}
-                    </span>
-                    <span>
-                      {t(translationKeys.admin.orders.tax, 'Tax')}: {formatPrice(order.tax)}
                     </span>
                     <span>
                       {t(translationKeys.admin.orders.total, 'Total')}: {formatPrice(order.total)}

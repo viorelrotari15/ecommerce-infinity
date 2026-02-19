@@ -128,64 +128,84 @@ export default function AdminPaymentsPage() {
     [analyticsByEmail, analyticsPage],
   );
 
+  const paymentStatusKeyMap: Record<string, string> = useMemo(
+    () => ({
+      succeeded: translationKeys.admin.payments.paymentStatusSucceeded,
+      pending: translationKeys.admin.payments.paymentStatusPending,
+      processing: translationKeys.admin.payments.paymentStatusProcessing,
+      failed: translationKeys.admin.payments.paymentStatusFailed,
+      canceled: translationKeys.admin.payments.paymentStatusCanceled,
+      requires_action: translationKeys.admin.payments.paymentStatusRequiresAction,
+      requires_payment_method: translationKeys.admin.payments.paymentStatusRequiresPaymentMethod,
+      requires_confirmation: translationKeys.admin.payments.paymentStatusRequiresConfirmation,
+      requires_capture: translationKeys.admin.payments.paymentStatusRequiresCapture,
+    }),
+    [],
+  );
+
   const columns = useMemo<ColumnDef<StripePaymentHistoryItem>[]>(
     () => [
       {
         accessorKey: 'id',
-        header: 'Payment ID',
+        header: t(translationKeys.admin.payments.paymentIdLabel, 'Payment ID'),
         cell: ({ row }) => (
           <span className="text-xs font-mono text-muted-foreground">{row.original.id}</span>
         ),
       },
       {
         id: 'orderId',
-        header: 'Order',
+        header: t(translationKeys.admin.payments.orderIdLabel, 'Order ID'),
         accessorFn: (row) => (row.metadata?.orderId ? formatOrderIdDisplay(row.metadata.orderId) : 'N/A'),
       },
       {
         id: 'email',
-        header: 'Customer Email',
+        header: t(translationKeys.admin.payments.emailLabel, 'Customer email'),
         accessorFn: (row) => row.metadata?.customerEmail || 'N/A',
       },
       {
         accessorKey: 'amount',
-        header: 'Amount',
+        header: t(translationKeys.admin.payments.amountLabel, 'Amount'),
         cell: ({ row }) => formatPrice(row.original.amount / 100),
       },
       {
         accessorKey: 'currency',
-        header: 'Currency',
+        header: t(translationKeys.admin.payments.currencyLabel, 'Currency'),
         cell: ({ row }) => row.original.currency?.toUpperCase(),
       },
       {
         accessorKey: 'status',
-        header: 'Status',
-        cell: ({ row }) => (
-          <span className="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
-            {row.original.status}
-          </span>
-        ),
+        header: t(translationKeys.admin.payments.statusLabel, 'Status'),
+        cell: ({ row }) => {
+          const status = row.original.status ?? '';
+          const key = paymentStatusKeyMap[status] ?? '';
+          const label = key ? t(key, status) : status;
+          return (
+            <span className="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+              {label}
+            </span>
+          );
+        },
       },
       {
         accessorKey: 'created',
-        header: 'Created',
+        header: t(translationKeys.admin.payments.createdLabel, 'Created'),
         cell: ({ row }) => new Date(row.original.created * 1000).toLocaleString(),
       },
       {
         id: 'details',
-        header: 'Details',
+        header: t(translationKeys.common.details, 'Details'),
         cell: ({ row }) => (
           <Button
             variant="outline"
             size="sm"
             onClick={() => setSelectedPayment(row.original)}
           >
-            View
+            {t(translationKeys.admin.payments.view, 'View')}
           </Button>
         ),
       },
     ],
-    [t],
+    [t, paymentStatusKeyMap],
   );
 
   const table = useReactTable({
@@ -298,16 +318,16 @@ export default function AdminPaymentsPage() {
         <div className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Analytics by customer</CardTitle>
+              <CardTitle>{t(translationKeys.admin.payments.analyticsByCustomer, 'Analytics by customer')}</CardTitle>
               <CardDescription>
-                Aggregated totals from current results
+                {t(translationKeys.admin.payments.analyticsDescription, 'Aggregated totals from current results')}
                 {analyticsByEmail.length > 0 &&
-                  ` · ${analyticsByEmail.length} customer${analyticsByEmail.length !== 1 ? 's' : ''}`}
+                  ` · ${analyticsByEmail.length} ${analyticsByEmail.length === 1 ? t(translationKeys.admin.payments.analyticsCustomer, 'customer') : t(translationKeys.admin.payments.analyticsCustomers, 'customers')}`}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
               {analyticsByEmail.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No data available.</p>
+                <p className="text-sm text-muted-foreground">{t(translationKeys.admin.payments.noDataAvailable, 'No data available.')}</p>
               ) : (
                 <>
                   <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
@@ -317,14 +337,16 @@ export default function AdminPaymentsPage() {
                         className="rounded-lg border border-primary/20 bg-primary/5 p-3 text-sm"
                       >
                         <div className="font-medium text-foreground">
-                          {entry.email === 'unknown' ? 'Unknown email' : entry.email}
+                          {entry.email === 'unknown' ? t(translationKeys.admin.payments.unknownEmail, 'Unknown email') : entry.email}
                         </div>
                         <div className="text-xs text-muted-foreground">
-                          {entry.count} payments · {formatPrice(entry.total / 100)}
+                          {t(translationKeys.admin.payments.analyticsPaymentsLine, '{count} payments · {total}')
+                            .replace('{count}', String(entry.count))
+                            .replace('{total}', formatPrice(entry.total / 100))}
                         </div>
                         {entry.lastPayment && (
                           <div className="text-xs text-muted-foreground">
-                            Last: {new Date(entry.lastPayment * 1000).toLocaleString()}
+                            {t(translationKeys.admin.payments.lastPaymentLabel, 'Last: ')}{new Date(entry.lastPayment * 1000).toLocaleString()}
                           </div>
                         )}
                       </div>
@@ -364,11 +386,14 @@ export default function AdminPaymentsPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Payments table</CardTitle>
+              <CardTitle>{t(translationKeys.admin.payments.paymentsTable, 'Payments table')}</CardTitle>
               <CardDescription>
-                Sortable list with payment details
+                {t(translationKeys.admin.payments.sortableListDescription, 'Sortable list with payment details')}
                 {payments.length > 0 &&
-                  ` · Showing ${(paymentsPage - 1) * itemsPerPage + 1}–${Math.min(paymentsPage * itemsPerPage, payments.length)} of ${payments.length}`}
+                  ` · ${t(translationKeys.admin.payments.showingRange, 'Showing {start}–{end} of {total}')
+                      .replace('{start}', String((paymentsPage - 1) * itemsPerPage + 1))
+                      .replace('{end}', String(Math.min(paymentsPage * itemsPerPage, payments.length)))
+                      .replace('{total}', String(payments.length))}`}
               </CardDescription>
             </CardHeader>
             <CardContent className="px-0">
@@ -477,10 +502,6 @@ export default function AdminPaymentsPage() {
                       {t(translationKeys.admin.orders.shipping, 'Shipping')}:{' '}
                       {formatPrice(selectedPayment.order.shipping)}
                     </span>
-                    <span>
-                      {t(translationKeys.admin.orders.tax, 'Tax')}:{' '}
-                      {formatPrice(selectedPayment.order.tax)}
-                    </span>
                   </div>
                   {selectedPayment.order.trackingNumber && (
                     <p>
@@ -518,7 +539,7 @@ export default function AdminPaymentsPage() {
                   </div>
                   <div className="pt-2">
                     <Button asChild>
-                      <Link href={`/admin/orders/${selectedPayment.order.id}`}>Go to order</Link>
+                      <Link href={`/admin/orders/${selectedPayment.order.id}`}>{t(translationKeys.admin.payments.goToOrder, 'Go to order')}</Link>
                     </Button>
                   </div>
                 </div>

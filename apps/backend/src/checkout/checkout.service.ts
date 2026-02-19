@@ -2,14 +2,12 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { ShippingCalculatorService } from '../pricing/shipping-calculator.service';
-import { TaxCalculatorService } from '../pricing/tax-calculator.service';
 import { CheckoutEstimateDto, CreateCheckoutDto } from './dto/checkout.dto';
 
 @Injectable()
 export class CheckoutService {
   constructor(
     private prisma: PrismaService,
-    private taxCalculator: TaxCalculatorService,
     private shippingCalculator: ShippingCalculatorService,
   ) {}
 
@@ -48,13 +46,10 @@ export class CheckoutService {
   }
 
   async estimate(dto: CheckoutEstimateDto) {
-    const region = await this.taxCalculator.resolveRegion(dto.regionCode);
+    const region = await this.shippingCalculator.resolveRegion(dto.regionCode);
     const lineItems = await this.buildLineItems(dto.items);
 
     const subtotal = lineItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
-    const taxRates = await this.taxCalculator.getActiveTaxRates(region.id);
-    const tax = this.taxCalculator.calculateIncludedTax(lineItems, taxRates);
-
     const shippingOptions = await this.shippingCalculator.listShippingOptions(region.id, subtotal);
 
     return {
@@ -64,7 +59,6 @@ export class CheckoutService {
         currency: region.currency,
       },
       subtotal,
-      tax,
       shippingOptions: shippingOptions.map((option) => ({
         ...option,
         total: subtotal + option.price,
@@ -73,11 +67,9 @@ export class CheckoutService {
   }
 
   async create(dto: CreateCheckoutDto) {
-    const region = await this.taxCalculator.resolveRegion(dto.regionCode);
+    const region = await this.shippingCalculator.resolveRegion(dto.regionCode);
     const lineItems = await this.buildLineItems(dto.items);
     const subtotal = lineItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
-    const taxRates = await this.taxCalculator.getActiveTaxRates(region.id);
-    const tax = this.taxCalculator.calculateIncludedTax(lineItems, taxRates);
     const shipping = await this.shippingCalculator.calculateShipping(dto.shippingMethodId, subtotal);
 
     const order = await this.prisma.order.create({
@@ -88,7 +80,7 @@ export class CheckoutService {
         shippingMethodId: dto.shippingMethodId,
         status: 'PENDING',
         subtotal,
-        tax,
+        tax: 0,
         shipping,
         total: subtotal + shipping,
         shippingAddress: dto.shippingAddress as unknown as Prisma.InputJsonValue,

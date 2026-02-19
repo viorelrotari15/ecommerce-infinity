@@ -4,6 +4,8 @@ import * as React from 'react';
 import { Check, ChevronDown, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Attribute } from '@/lib/hooks/use-attributes';
+import { useT } from '@/lib/utils/translations';
+import { translationKeys } from '@/lib/utils/translations';
 
 interface MultiSelectAttributeProps {
   attributes: Attribute[];
@@ -17,9 +19,11 @@ export function MultiSelectAttribute({
   attributes,
   selectedIds,
   onSelectionChange,
-  placeholder = 'Select attributes...',
+  placeholder,
   className,
 }: MultiSelectAttributeProps) {
+  const t = useT();
+  const resolvedPlaceholder = placeholder ?? t(translationKeys.products.selectAttributes, 'Select attributes...');
   const [open, setOpen] = React.useState(false);
   const dropdownRef = React.useRef<HTMLDivElement>(null);
 
@@ -131,7 +135,7 @@ export function MultiSelectAttribute({
       >
         <div className="flex flex-wrap gap-1 flex-1 text-left">
           {selectedIds.length === 0 ? (
-            <span className="text-foreground">{placeholder}</span>
+            <span className="text-foreground">{resolvedPlaceholder}</span>
           ) : (
             <>
               {selectedAttributes.slice(0, 1).map((attr) => (
@@ -217,7 +221,7 @@ export function MultiSelectAttribute({
                   <Check className="h-4 w-4 text-primary-foreground font-bold" strokeWidth={3} />
                 )}
               </div>
-              <span className="text-sm font-semibold text-foreground">Select All</span>
+              <span className="text-sm font-semibold text-foreground">{t(translationKeys.common.selectAll, 'Select All')}</span>
             </div>
             
             {topLevelAttributes.map((attribute) => (

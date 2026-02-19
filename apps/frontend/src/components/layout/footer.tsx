@@ -88,7 +88,7 @@ export function Footer() {
             </ul>
           </div>
           <div>
-            <h4 className="mb-4 text-sm font-semibold">Legal</h4>
+            <h4 className="mb-4 text-sm font-semibold">{t(translationKeys.footer.legal.title, 'Legal')}</h4>
             <ul className="space-y-2 text-sm">
               <li>
                 <Link

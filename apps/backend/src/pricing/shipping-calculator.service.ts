@@ -14,6 +14,31 @@ export interface ShippingOption {
 export class ShippingCalculatorService {
   constructor(private prisma: PrismaService) {}
 
+  async resolveRegion(code?: string) {
+    if (code) {
+      const region = await this.prisma.region.findUnique({ where: { code } });
+      if (region) {
+        return region;
+      }
+      throw new NotFoundException(`Region ${code} not found`);
+    }
+
+    const defaultRegion = await this.prisma.region.findFirst({
+      where: { isDefault: true, isActive: true },
+    });
+    if (defaultRegion) {
+      return defaultRegion;
+    }
+
+    const fallbackRegion = await this.prisma.region.findFirst({
+      where: { isActive: true },
+    });
+    if (!fallbackRegion) {
+      throw new NotFoundException('No active region configured');
+    }
+    return fallbackRegion;
+  }
+
   private pickRulePrice(
     subtotal: number,
     rules: Array<{ minSubtotal: any; maxSubtotal: any | null; price: any }>,
