@@ -60,6 +60,7 @@ function BrandCard({
           <CardTitle>{brand.name}</CardTitle>
           {!translationStatus.hasAllTranslations && (
             <TranslationWarningBadge
+              missingLanguageCodes={translationStatus.missingLanguageCodes}
               missingLanguages={translationStatus.missingLanguages}
               entityType="brand"
             />

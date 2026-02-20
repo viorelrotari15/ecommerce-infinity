@@ -30,6 +30,24 @@ export class PaymentsService {
     return this.stripe;
   }
 
+  /**
+   * Decrement product variant stock for each order item when payment is completed.
+   * Only call once per order (when payment status first becomes COMPLETED).
+   */
+  private async decrementStockForOrder(order: {
+    items: Array<{ productVariantId: string; quantity: number }>;
+  }): Promise<void> {
+    if (!order.items.length) return;
+    await this.prisma.$transaction(
+      order.items.map((item) =>
+        this.prisma.productVariant.update({
+          where: { id: item.productVariantId },
+          data: { stock: { decrement: item.quantity } },
+        }),
+      ),
+    );
+  }
+
   /** Resolve short display order ID (e.g. 550E8400) to full UUID for Stripe search. */
   private async resolveOrderIdFromShort(shortId: string): Promise<string | null> {
     const prefix = shortId.replace(/[%_]/g, '').toLowerCase();
@@ -43,6 +61,11 @@ export class PaymentsService {
   async create(orderId: string, createPaymentDto: CreatePaymentDto) {
     const order = await this.prisma.order.findUnique({
       where: { id: orderId },
+      include: {
+        items: {
+          select: { productVariantId: true, quantity: true },
+        },
+      },
     });
 
     if (!order) {
@@ -64,11 +87,12 @@ export class PaymentsService {
       },
     });
 
-    // Update order status
+    // Update order status and decrement stock
     await this.prisma.order.update({
       where: { id: orderId },
       data: { status: 'PROCESSING' },
     });
+    await this.decrementStockForOrder(order);
 
     return payment;
   }
@@ -249,6 +273,7 @@ export class PaymentsService {
       }
 
       if (existingPaymentStatus !== 'COMPLETED') {
+        await this.decrementStockForOrder(order);
         await this.emailService.sendOrderPlacedAdmin(order);
         await this.emailService.sendOrderConfirmationCustomer(order);
       }
@@ -361,6 +386,7 @@ export class PaymentsService {
     }
 
     if (existingPaymentStatus !== 'COMPLETED') {
+      await this.decrementStockForOrder(order);
       await this.emailService.sendOrderPlacedAdmin(order);
       await this.emailService.sendOrderConfirmationCustomer(order);
     }
@@ -383,7 +409,10 @@ export class PaymentsService {
     }
     const order = await this.prisma.order.findUnique({
       where: { id: orderId },
-      include: { payment: true },
+      include: {
+        payment: true,
+        items: { select: { productVariantId: true, quantity: true } },
+      },
     });
     if (!order?.payment) return;
     if (order.payment.status === 'COMPLETED') return;
@@ -435,6 +464,8 @@ export class PaymentsService {
       where: { id: order.id },
       data: { status: 'PROCESSING' },
     });
+
+    await this.decrementStockForOrder(order);
   }
 
   async listStripePayments(query: StripeHistoryQueryDto) {

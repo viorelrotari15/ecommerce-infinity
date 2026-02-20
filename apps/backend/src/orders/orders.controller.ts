@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, Request, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Query, Request, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
@@ -30,9 +30,19 @@ export class OrdersController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN')
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get all orders (Admin)' })
-  findAll() {
-    return this.ordersService.findAll();
+  @ApiOperation({ summary: 'Get all orders (Admin) with optional search and pagination' })
+  findAll(
+    @Query('orderId') orderId?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    const pageNum = page ? Math.max(1, parseInt(page, 10) || 1) : 1;
+    const limitNum = limit ? Math.min(100, Math.max(1, parseInt(limit, 10) || 20)) : 20;
+    return this.ordersService.findAllAdmin({
+      orderId: orderId?.trim() || undefined,
+      page: pageNum,
+      limit: limitNum,
+    });
   }
 
   @Get('admin/:id')

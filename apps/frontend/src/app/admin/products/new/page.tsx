@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
@@ -66,37 +66,53 @@ export default function NewProductPage() {
   const { data: brands = [] } = useBrands();
   const { data: categories = [] } = useCategories();
 
-  // Create schema with translations
-  const productSchema = yup.object({
-    // Name, description, shortDescription, metaTitle, metaDescription come from translations
-    name: yup.string().optional(),
-    description: yup.string().optional(),
-    shortDescription: yup.string().optional(),
-    brandId: yup.string().required(t(translationKeys.admin.products.brandRequired, 'Brand is required')),
-    productTypeId: yup.string().optional(),
-    categoryIds: yup.array().of(yup.string()).min(1, t(translationKeys.admin.products.categoryRequired, 'At least one category is required')),
-    isActive: yup.boolean().default(false),
-    isFeatured: yup.boolean().default(false),
-    metaTitle: yup.string().optional(),
-    metaDescription: yup.string().optional(),
-    variants: yup
-      .array()
-      .of(
-        yup.object({
-          name: yup.string().required(t(translationKeys.admin.products.variantNameRequired, 'Variant name is required')),
-          price: yup.number().min(0, t(translationKeys.admin.products.pricePositive, 'Price must be positive')).required(t(translationKeys.admin.products.priceRequired, 'Price is required')),
-          stock: yup.number().min(0, t(translationKeys.admin.products.stockPositive, 'Stock must be positive')).required(t(translationKeys.admin.products.stockRequired, 'Stock is required')),
-          isActive: yup.boolean().default(true),
-        }),
-      )
-      .min(1, t(translationKeys.admin.products.variantRequired, 'At least one variant is required')),
-    attributes: yup.array().of(
+  // Create schema with translations; attributes list used for subattribute validation
+  const productSchema = useMemo(
+    () =>
       yup.object({
-        attributeId: yup.string().required(t(translationKeys.admin.products.attributeRequired, 'Attribute is required')),
-        value: yup.string().required(t(translationKeys.admin.products.valueRequired, 'Value is required')),
+        name: yup.string().optional(),
+        description: yup.string().optional(),
+        shortDescription: yup.string().optional(),
+        brandId: yup.string().required(t(translationKeys.admin.products.brandRequired, 'Brand is required')),
+        productTypeId: yup.string().optional(),
+        categoryIds: yup.array().of(yup.string()).min(1, t(translationKeys.admin.products.categoryRequired, 'At least one category is required')),
+        isActive: yup.boolean().default(false),
+        isFeatured: yup.boolean().default(false),
+        metaTitle: yup.string().optional(),
+        metaDescription: yup.string().optional(),
+        variants: yup
+          .array()
+          .of(
+            yup.object({
+              name: yup.string().required(t(translationKeys.admin.products.variantNameRequired, 'Variant name is required')),
+              price: yup.number().min(0, t(translationKeys.admin.products.pricePositive, 'Price must be positive')).required(t(translationKeys.admin.products.priceRequired, 'Price is required')),
+              stock: yup.number().min(0, t(translationKeys.admin.products.stockPositive, 'Stock must be positive')).required(t(translationKeys.admin.products.stockRequired, 'Stock is required')),
+              isActive: yup.boolean().default(true),
+            }),
+          )
+          .min(1, t(translationKeys.admin.products.variantRequired, 'At least one variant is required')),
+        attributes: yup.array().of(
+          yup.object({
+            attributeId: yup.string().required(t(translationKeys.admin.products.attributeRequired, 'Attribute is required')),
+            value: yup
+              .string()
+              .required(t(translationKeys.admin.products.valueRequired, 'Value is required'))
+              .test(
+                'subattribute-required',
+                t(translationKeys.admin.products.subattributeRequired, 'Please select a subattribute for this attribute'),
+                function (val) {
+                  const attributeId = this.parent?.attributeId;
+                  if (!attributeId) return true;
+                  const attr = attributes.find((a: Attribute) => a.id === attributeId);
+                  if (!attr?.subattributes?.length) return true;
+                  return !!(val && String(val).trim());
+                },
+              ),
+          }),
+        ),
       }),
-    ),
-  });
+    [attributes, t],
+  );
 
   const {
     register,
@@ -274,7 +290,7 @@ export default function NewProductPage() {
           return `${langName}: ${errors.join(', ')}`;
         })
         .join('; ');
-      return t(translationKeys.admin.products.translationValidationError, `All active languages must have required translation fields (Name, Meta Title, Meta Description) populated. Errors: ${errorMessages}`).replace('{errors}', errorMessages);
+      return t(translationKeys.admin.products.translationValidationError, `Default language must have required translation fields (Name, Meta Title, Meta Description) populated. Errors: ${errorMessages}`).replace('{errors}', errorMessages);
     }
 
     return null;
@@ -288,16 +304,15 @@ export default function NewProductPage() {
 
     if (!token) {
       setError(t(translationKeys.common.notAuthenticated, 'Not authenticated'));
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
 
     // Validate translations before creating product
-    // Note: Translation validation with inline errors is already done in the form's onSubmit wrapper
-    // This check ensures we don't proceed if translations are invalid
     if (translationsRef.current) {
       const validation = translationsRef.current.validateAll();
       if (!validation.isValid) {
-        // Inline errors are already displayed, just prevent submission
+        window.scrollTo({ top: 0, behavior: 'smooth' });
         return;
       }
     }
@@ -352,29 +367,38 @@ export default function NewProductPage() {
         }
       }
 
-      // Save translations for all active languages
+      // Save translations: default language is required; other languages use fallback from default if empty
       if (translationsRef.current && token) {
         try {
           const translationDataToSave = translationsRef.current.getTranslationData();
           const activeLanguages = languages.filter((l) => l.isActive);
-          
-          // Save translations for all active languages - all must have required fields
+          const defaultLanguage = languages.find((l) => l.isDefault) || languages.find((l) => l.code === defaultLanguageCode);
+          const defaultData = defaultLanguage ? translationDataToSave[defaultLanguage.code] : null;
+
+          // Default language must have required fields before we save any translations
+          if (defaultLanguage && (!defaultData?.name?.trim() || !defaultData?.metaTitle?.trim() || !defaultData?.metaDescription?.trim())) {
+            throw new Error(
+              t(translationKeys.admin.products.translationDataMissing, 'Translation data missing required fields for language: {langName}').replace('{langName}', defaultLanguage.name),
+            );
+          }
+
           for (const lang of activeLanguages) {
             const data = translationDataToSave[lang.code];
-            if (data && data.name && data.metaTitle && data.metaDescription) {
-              await fetchAPIAuth(`/products/${product.id}/translations/${lang.code}`, token, {
-                method: 'POST',
-                body: JSON.stringify({
-                  name: data.name,
-                  description: data.description || '',
-                  shortDescription: data.shortDescription || '',
-                  metaTitle: data.metaTitle,
-                  metaDescription: data.metaDescription,
-                }),
-              });
-            } else {
-              throw new Error(t(translationKeys.admin.products.translationDataMissing, `Translation data missing required fields for language: ${lang.name}`).replace('{langName}', lang.name));
-            }
+            const isDefaultLang = defaultLanguage && lang.code === defaultLanguage.code;
+            // Use current language data or fallback to default for empty fields (same as UI)
+            const name = (data?.name?.trim() || (isDefaultLang ? '' : defaultData?.name)) ?? '';
+            const metaTitle = (data?.metaTitle?.trim() || (isDefaultLang ? '' : defaultData?.metaTitle)) ?? '';
+            const metaDescription = (data?.metaDescription?.trim() || (isDefaultLang ? '' : defaultData?.metaDescription)) ?? '';
+            await fetchAPIAuth(`/products/${product.id}/translations/${lang.code}`, token, {
+              method: 'POST',
+              body: JSON.stringify({
+                name,
+                description: data?.description ?? defaultData?.description ?? '',
+                shortDescription: data?.shortDescription ?? defaultData?.shortDescription ?? '',
+                metaTitle,
+                metaDescription,
+              }),
+            });
           }
         } catch (transErr: any) {
           console.error('Failed to save translations:', transErr);
@@ -409,23 +433,28 @@ export default function NewProductPage() {
       )}
 
 
-      <form onSubmit={(e) => {
-        e.preventDefault();
-        // Always validate translations first, even if form validation will fail
-        // This ensures inline errors are shown for translations regardless of other validation errors
-        if (translationsRef.current) {
-          translationsRef.current.validateAll();
-        }
-        // Then proceed with normal form validation
-        handleSubmit(onSubmit)(e);
-      }} className="space-y-6" noValidate>
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          // Always validate translations first, even if form validation will fail
+          if (translationsRef.current) {
+            translationsRef.current.validateAll();
+          }
+          // Proceed with form validation; on invalid, scroll to top so user can review all errors
+          handleSubmit(onSubmit, () => {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          })(e);
+        }}
+        className="space-y-6"
+        noValidate
+      >
         {/* Product Basic Information and Translations - Must be first as it contains name, description, and SEO */}
         {languages.filter((l) => l.isActive).length > 0 && (
           <Card>
             <CardHeader>
               <CardTitle>{t(translationKeys.common.productInformationAndTranslations, 'Product Information and Translations')}</CardTitle>
               <CardDescription>
-                {t(translationKeys.admin.products.translationRequiredBeforeCreation, 'All active languages must have translations with required fields (Name, Meta Title, Meta Description) populated before product can be created.')}
+                {t(translationKeys.common.translationsHintForAllLanguages, 'Add translations for all languages. Name, Meta Title and Meta Description are required for the default language only. Other languages will show a warning if missing and fallback to the default language.')}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -596,11 +625,10 @@ export default function NewProductPage() {
                             value={selectedAttributeId || ''}
                             onValueChange={(value) => {
                               setValue(`attributes.${index}.attributeId`, value);
-                              // Clear value when attribute changes
                               setValue(`attributes.${index}.value`, '');
                             }}
                           >
-                            <SelectTrigger>
+                            <SelectTrigger className={errors.attributes?.[index]?.attributeId ? 'border-destructive' : ''}>
                               <SelectValue placeholder={t(translationKeys.common.selectAttribute, 'Select attribute')} />
                             </SelectTrigger>
                             <SelectContent>
@@ -611,6 +639,9 @@ export default function NewProductPage() {
                               ))}
                             </SelectContent>
                           </Select>
+                          {errors.attributes?.[index]?.attributeId && (
+                            <p className="text-sm text-destructive">{errors.attributes[index]?.attributeId?.message}</p>
+                          )}
                         </div>
                         <div className="space-y-2">
                           <Label>{t(translationKeys.common.value, 'Value')}</Label>
@@ -619,9 +650,9 @@ export default function NewProductPage() {
                               value={watch(`attributes.${index}.value`) || ''}
                               onValueChange={(value) => setValue(`attributes.${index}.value`, value)}
                             >
-                            <SelectTrigger>
-                              <SelectValue placeholder={t(translationKeys.common.selectValue, 'Select value')} />
-                            </SelectTrigger>
+                              <SelectTrigger className={errors.attributes?.[index]?.value ? 'border-destructive' : ''}>
+                                <SelectValue placeholder={t(translationKeys.common.selectValue, 'Select value')} />
+                              </SelectTrigger>
                               <SelectContent>
                                 {subattributes.map((subattr) => (
                                   <SelectItem key={subattr.id} value={subattr.name}>
@@ -639,7 +670,11 @@ export default function NewProductPage() {
                               {...register(`attributes.${index}.value`)} 
                               placeholder={t(translationKeys.admin.products.selectAttributeFirst, 'Select attribute first')}
                               disabled
+                              className={errors.attributes?.[index]?.value ? 'border-destructive' : ''}
                             />
+                          )}
+                          {errors.attributes?.[index]?.value && (
+                            <p className="text-sm text-destructive">{errors.attributes[index]?.value?.message}</p>
                           )}
                         </div>
                         <div className="flex items-end">

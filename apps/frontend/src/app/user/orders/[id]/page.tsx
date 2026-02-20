@@ -70,8 +70,8 @@ export default function UserOrderDetailsPage() {
   return (
     <div className="container py-8 space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Order #{formatOrderIdDisplay(order.id)}</h1>
-        <p className="text-muted-foreground">Status: {statusLabel}</p>
+        <h1 className="text-3xl font-bold">{t(translationKeys.profile.orderDetails.title, 'Order')} #{formatOrderIdDisplay(order.id)}</h1>
+        <p className="text-muted-foreground">{t(translationKeys.profile.orderDetails.status, 'Status')}: {statusLabel}</p>
       </div>
 
       {order.trackingNumber && (
@@ -80,7 +80,7 @@ export default function UserOrderDetailsPage() {
             <CardTitle>{t(translationKeys.profile.orderDetails.trackingTitle, 'Tracking')}</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-muted-foreground">DHL tracking number: {order.trackingNumber}</p>
+            <p className="text-sm text-muted-foreground">{t(translationKeys.profile.orderDetails.trackingLabel, 'DHL tracking number')}: {order.trackingNumber}</p>
           </CardContent>
         </Card>
       )}
@@ -100,9 +100,9 @@ export default function UserOrderDetailsPage() {
           <CardTitle>{t(translationKeys.profile.orderDetails.totalsTitle, 'Order totals')}</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-2 text-sm text-muted-foreground md:grid-cols-2">
-          <span>Subtotal: {formatPrice(order.subtotal)}</span>
-          <span>Shipping: {formatPrice(order.shipping)}</span>
-          <span>Total: {formatPrice(order.total)}</span>
+          <span>{t(translationKeys.checkout.subtotal, 'Subtotal')}: {formatPrice(order.subtotal)}</span>
+          <span>{t(translationKeys.checkout.shipping, 'Shipping')}: {formatPrice(order.shipping)}</span>
+          <span>{t(translationKeys.checkout.total, 'Total')}: {formatPrice(order.total)}</span>
         </CardContent>
       </Card>
 

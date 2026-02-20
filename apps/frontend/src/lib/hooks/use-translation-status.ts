@@ -8,6 +8,8 @@ import { useBrandTranslations } from './use-brands';
 
 export interface TranslationStatus {
   missingLanguages: string[];
+  /** Language codes that are missing (use with t('common.languageName.' + code) for localized names) */
+  missingLanguageCodes: string[];
   hasAllTranslations: boolean;
 }
 
@@ -23,16 +25,16 @@ export function useAttributeTranslationStatus(attributeId: string): TranslationS
     const activeLanguages = languages.filter((l) => l.isActive);
     const translatedLanguages = new Set(translations.map((t) => t.language));
     
-    // Find all missing languages
-    const missingLanguages = activeLanguages
-      .filter((lang) => !translatedLanguages.has(lang.code))
-      .map((lang) => lang.name);
-    
-    // hasAllTranslations is true only if all active languages have translations
+    // Find all missing languages (names from API) and their codes
+    const missing = activeLanguages.filter((lang) => !translatedLanguages.has(lang.code));
+    const missingLanguages = missing.map((lang) => lang.name);
+    const missingLanguageCodes = missing.map((lang) => lang.code);
+
     const hasAllTranslations = missingLanguages.length === 0;
-    
+
     return {
       missingLanguages,
+      missingLanguageCodes,
       hasAllTranslations,
     };
   }, [languages, translations]);
@@ -50,16 +52,16 @@ export function useCategoryTranslationStatus(categoryId: string): TranslationSta
     const activeLanguages = languages.filter((l) => l.isActive);
     const translatedLanguages = new Set(translations.map((t) => t.language));
     
-    // Find all missing languages
-    const missingLanguages = activeLanguages
-      .filter((lang) => !translatedLanguages.has(lang.code))
-      .map((lang) => lang.name);
-    
-    // hasAllTranslations is true only if all active languages have translations
+    // Find all missing languages (names from API) and their codes
+    const missing = activeLanguages.filter((lang) => !translatedLanguages.has(lang.code));
+    const missingLanguages = missing.map((lang) => lang.name);
+    const missingLanguageCodes = missing.map((lang) => lang.code);
+
     const hasAllTranslations = missingLanguages.length === 0;
-    
+
     return {
       missingLanguages,
+      missingLanguageCodes,
       hasAllTranslations,
     };
   }, [languages, translations]);
@@ -77,16 +79,16 @@ export function useBrandTranslationStatus(brandId: string): TranslationStatus {
     const activeLanguages = languages.filter((l) => l.isActive);
     const translatedLanguages = new Set(translations.map((t) => t.language));
     
-    // Find all missing languages
-    const missingLanguages = activeLanguages
-      .filter((lang) => !translatedLanguages.has(lang.code))
-      .map((lang) => lang.name);
-    
-    // hasAllTranslations is true only if all active languages have translations
+    // Find all missing languages (names from API) and their codes
+    const missing = activeLanguages.filter((lang) => !translatedLanguages.has(lang.code));
+    const missingLanguages = missing.map((lang) => lang.name);
+    const missingLanguageCodes = missing.map((lang) => lang.code);
+
     const hasAllTranslations = missingLanguages.length === 0;
-    
+
     return {
       missingLanguages,
+      missingLanguageCodes,
       hasAllTranslations,
     };
   }, [languages, translations]);

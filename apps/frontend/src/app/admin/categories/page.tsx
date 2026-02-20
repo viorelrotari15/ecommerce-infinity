@@ -416,6 +416,7 @@ export default function CategoriesPage() {
                   </div>
                   {!translationStatus.hasAllTranslations && (
                     <TranslationWarningBadge
+                      missingLanguageCodes={translationStatus.missingLanguageCodes}
                       missingLanguages={translationStatus.missingLanguages}
                       entityType="category"
                     />
