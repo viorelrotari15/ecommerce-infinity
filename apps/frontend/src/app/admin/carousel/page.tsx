@@ -302,7 +302,7 @@ export default function AdminCarouselPage() {
                   {t(translationKeys.common.chooseFile, 'Choose file')}
                 </Button>
                 <span className="text-sm text-muted-foreground">
-                  {desktopFile ? desktopFile.name : t(translationKeys.common.noFileChosen, 'No file chosen')}
+                  {desktopFile ? desktopFile.name : (editingId ? t(translationKeys.common.chooseOtherFile, 'Choose other file') : t(translationKeys.common.noFileChosen, 'No file chosen'))}
                 </span>
               </div>
               {editingId && (
@@ -331,7 +331,7 @@ export default function AdminCarouselPage() {
                   {t(translationKeys.common.chooseFile, 'Choose file')}
                 </Button>
                 <span className="text-sm text-muted-foreground">
-                  {mobileFile ? mobileFile.name : t(translationKeys.common.noFileChosen, 'No file chosen')}
+                  {mobileFile ? mobileFile.name : (editingId ? t(translationKeys.common.chooseOtherFile, 'Choose other file') : t(translationKeys.common.noFileChosen, 'No file chosen'))}
                 </span>
               </div>
               <p className="text-xs text-muted-foreground">

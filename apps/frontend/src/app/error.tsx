@@ -1,12 +1,10 @@
 'use client';
 
-import { useT } from '@/lib/utils/translations';
-import { translationKeys } from '@/lib/utils/translations';
-
 /**
- * Root error boundary. Avoids using usePathname/useRouter so we don't hit
- * "Cannot read properties of null (reading 'useContext')" when the navigation
- * context is not available during error render.
+ * Root error boundary. Must not use usePathname, useRouter, useSearchParams, or
+ * any hook that uses React context (e.g. useT/useLanguage). When the error
+ * boundary runs during SSR or in a broken tree, navigation context can be null
+ * and causes "Cannot read properties of null (reading 'useContext')".
  */
 export default function Error({
   error,
@@ -15,12 +13,11 @@ export default function Error({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
-  const t = useT();
   return (
     <div className="flex min-h-[40vh] flex-col items-center justify-center gap-4 px-4 py-8">
-      <h2 className="text-lg font-semibold">{t(translationKeys.common.somethingWentWrong, 'Something went wrong')}</h2>
+      <h2 className="text-lg font-semibold">Something went wrong</h2>
       <p className="max-w-md text-center text-sm text-muted-foreground">
-        {error?.message || t(translationKeys.common.unexpectedError, 'An unexpected error occurred.')}
+        {error?.message || 'An unexpected error occurred.'}
       </p>
       <div className="flex gap-3">
         <button
@@ -28,7 +25,7 @@ export default function Error({
           onClick={() => reset()}
           className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
         >
-          {t(translationKeys.common.tryAgain, 'Try again')}
+          Try again
         </button>
         <button
           type="button"
@@ -37,7 +34,7 @@ export default function Error({
           }}
           className="rounded-md border border-input bg-background px-4 py-2 text-sm font-medium hover:bg-accent"
         >
-          {t(translationKeys.profile.goHome, 'Go home')}
+          Go home
         </button>
       </div>
     </div>

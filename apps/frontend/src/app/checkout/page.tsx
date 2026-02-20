@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Check, ChevronDown } from 'lucide-react';
+import { Check, ChevronDown, Trash2 } from 'lucide-react';
 import { useCartStore } from '@/lib/store/cart-store';
 import { useUserOrders } from '@/lib/hooks/use-orders';
 import { AddressForm } from '@/components/checkout/address-form';
@@ -183,41 +183,110 @@ export default function CheckoutPage() {
     return { phoneCountryCode: dialCode, phoneNumber };
   };
 
-  const savedShippingAddresses = useMemo(() => {
-    const map = new Map<string, { address: any; isDefault?: boolean }>();
-    if (profile?.defaultShippingAddress) {
-      const key = JSON.stringify(profile.defaultShippingAddress);
-      map.set(key, { address: profile.defaultShippingAddress, isDefault: true });
-    }
-    if (userOrders?.length) {
-      userOrders.forEach((order) => {
-        if (!order.shippingAddress) return;
-        const key = JSON.stringify(order.shippingAddress);
-        if (!map.has(key)) {
-          map.set(key, { address: order.shippingAddress });
-        }
-      });
-    }
-    return Array.from(map.entries()).map(([id, value]) => ({ id, ...value }));
-  }, [profile?.defaultShippingAddress, userOrders]);
+  const addressContentKey = (addr: Record<string, unknown>) => {
+    const { type, ...rest } = addr;
+    return JSON.stringify(rest);
+  };
 
-  const savedBillingAddresses = useMemo(() => {
-    const map = new Map<string, { address: any; isDefault?: boolean }>();
-    if (profile?.defaultBillingAddress) {
-      const key = JSON.stringify(profile.defaultBillingAddress);
-      map.set(key, { address: profile.defaultBillingAddress, isDefault: true });
+  const defaultShippingKey = useMemo(
+    () => (profile?.defaultShippingAddress ? addressContentKey(profile.defaultShippingAddress) : null),
+    [profile?.defaultShippingAddress],
+  );
+  const defaultBillingKey = useMemo(
+    () => (profile?.defaultBillingAddress ? addressContentKey(profile.defaultBillingAddress) : null),
+    [profile?.defaultBillingAddress],
+  );
+
+  const savedShippingAddressesRaw = useMemo(() => {
+    const map = new Map<string, { address: any }>();
+    const add = (address: any) => {
+      const key = addressContentKey(address);
+      if (!map.has(key)) map.set(key, { address });
+    };
+    if (profile?.defaultShippingAddress) {
+      add(profile.defaultShippingAddress);
     }
+    (profile?.savedAddresses ?? []).forEach((addr: any) => add(addr));
     if (userOrders?.length) {
       userOrders.forEach((order) => {
-        if (!order.billingAddress) return;
-        const key = JSON.stringify(order.billingAddress);
-        if (!map.has(key)) {
-          map.set(key, { address: order.billingAddress });
-        }
+        if (order.shippingAddress) add(order.shippingAddress);
       });
     }
     return Array.from(map.entries()).map(([id, value]) => ({ id, ...value }));
-  }, [profile?.defaultBillingAddress, userOrders]);
+  }, [profile?.defaultShippingAddress, profile?.savedAddresses, userOrders]);
+
+  const savedBillingAddressesRaw = useMemo(() => {
+    const map = new Map<string, { address: any }>();
+    const add = (address: any) => {
+      const key = addressContentKey(address);
+      if (!map.has(key)) map.set(key, { address });
+    };
+    if (profile?.defaultBillingAddress) {
+      add(profile.defaultBillingAddress);
+    }
+    (profile?.savedAddresses ?? []).forEach((addr: any) => add(addr));
+    if (userOrders?.length) {
+      userOrders.forEach((order) => {
+        if (order.billingAddress) add(order.billingAddress);
+      });
+    }
+    return Array.from(map.entries()).map(([id, value]) => ({ id, ...value }));
+  }, [profile?.defaultBillingAddress, profile?.savedAddresses, userOrders]);
+
+  const hiddenSet = useMemo(() => new Set(profile?.hiddenAddressKeys ?? []), [profile?.hiddenAddressKeys]);
+  const savedShippingAddresses = useMemo(
+    () => savedShippingAddressesRaw.filter((e) => !hiddenSet.has(addressContentKey(e.address))),
+    [savedShippingAddressesRaw, hiddenSet],
+  );
+  const savedBillingAddresses = useMemo(
+    () => savedBillingAddressesRaw.filter((e) => !hiddenSet.has(addressContentKey(e.address))),
+    [savedBillingAddressesRaw, hiddenSet],
+  );
+
+  const handleDeleteAddress = async (
+    entry: { id: string; address: any },
+    kind: 'shipping' | 'billing',
+  ) => {
+    const key = addressContentKey(entry.address);
+    const isDefaultShipping = key === defaultShippingKey;
+    const isDefaultBilling = key === defaultBillingKey;
+    const updates: {
+      defaultShippingAddress?: null;
+      defaultBillingAddress?: null;
+      savedAddresses?: Record<string, any>[];
+      hiddenAddressKeys?: string[];
+    } = {};
+    if (kind === 'shipping' && isDefaultShipping) {
+      updates.defaultShippingAddress = null;
+    } else if (kind === 'billing' && isDefaultBilling) {
+      updates.defaultBillingAddress = null;
+    } else {
+      updates.hiddenAddressKeys = Array.from(new Set([...(profile?.hiddenAddressKeys ?? []), key]));
+    }
+    const newSavedAddresses = (profile?.savedAddresses ?? []).filter(
+      (a: any) => addressContentKey(a) !== key,
+    );
+    if (newSavedAddresses.length !== (profile?.savedAddresses ?? []).length) {
+      updates.savedAddresses = newSavedAddresses;
+    }
+    try {
+      await updateProfile.mutateAsync(updates);
+      toast({ title: t(translationKeys.profile.addressDeleted, 'Address removed from list.') });
+      if (kind === 'shipping') {
+        setOpenShippingId(null);
+        if (selectedSavedShipping === entry.id) setSelectedSavedShipping('');
+      } else {
+        setOpenBillingId(null);
+        if (selectedSavedBilling === entry.id) setSelectedSavedBilling('');
+      }
+    } catch {
+      toast({
+        variant: 'destructive',
+        title: t(translationKeys.common.error, 'Error'),
+        description: t(translationKeys.common.somethingWentWrong, 'Something went wrong.'),
+      });
+    }
+  };
 
   const formatAddressLabel = (address: any) => {
     if (!address) return '';
@@ -321,11 +390,14 @@ export default function CheckoutPage() {
       return;
     }
     const normalized = normalizeAddress(shippingAddress);
+    const key = addressContentKey(normalized);
+    const currentSaved = profile?.savedAddresses ?? [];
+    const alreadySaved = currentSaved.some((a: any) => addressContentKey(a) === key);
+    const savedAddresses = alreadySaved ? currentSaved : [...currentSaved, normalized];
     try {
-      await updateProfile.mutateAsync({ defaultShippingAddress: normalized });
-      const id = JSON.stringify(normalized);
-      setSelectedSavedShipping(id);
-      setOpenShippingId(id);
+      await updateProfile.mutateAsync({ defaultShippingAddress: normalized, savedAddresses });
+      setSelectedSavedShipping(key);
+      setOpenShippingId(key);
       setShowShippingForm(false);
       toast({
         variant: 'success',
@@ -361,11 +433,14 @@ export default function CheckoutPage() {
       return;
     }
     const normalized = normalizeAddress(billingValue);
+    const key = addressContentKey(normalized);
+    const currentSaved = profile?.savedAddresses ?? [];
+    const alreadySaved = currentSaved.some((a: any) => addressContentKey(a) === key);
+    const savedAddresses = alreadySaved ? currentSaved : [...currentSaved, normalized];
     try {
-      await updateProfile.mutateAsync({ defaultBillingAddress: normalized });
-      const id = JSON.stringify(normalized);
-      setSelectedSavedBilling(id);
-      setOpenBillingId(id);
+      await updateProfile.mutateAsync({ defaultBillingAddress: normalized, savedAddresses });
+      setSelectedSavedBilling(key);
+      setOpenBillingId(key);
       setShowBillingForm(false);
       toast({
         variant: 'success',
@@ -521,10 +596,17 @@ export default function CheckoutPage() {
           <Card>
             <CardContent className="space-y-6 pt-6">
               {!isGuest && savedShippingAddresses.length > 0 && !showShippingForm && (
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <Label>{t(translationKeys.checkout.shippingAddress, 'Shipping address')}</Label>
-                    <span className="text-xs text-muted-foreground">{t(translationKeys.common.chooseSavedAddress, 'Choose a saved address or add a new one')}</span>
+                <div className="space-y-4">
+                  <div>
+                    <Label className="text-base">{t(translationKeys.checkout.shippingAddress, 'Shipping address')}</Label>
+                    <div className="mt-2 rounded-lg border border-primary/30 bg-primary/5 px-4 py-3 text-sm text-foreground">
+                      <p className="font-medium text-foreground mb-1">
+                        {t(translationKeys.checkout.chooseSavedAddress, 'Choose a saved address')}
+                      </p>
+                      <p className="text-muted-foreground">
+                        {t(translationKeys.checkout.savedAddressInstruction, 'Click a saved address to open it. Then choose Select to use it for this order, Edit to change it, or Delete to remove it. You can also add a new address below.')}
+                      </p>
+                    </div>
                   </div>
                   <div className="space-y-3">
                     {savedShippingAddresses.map((entry) => {
@@ -533,51 +615,46 @@ export default function CheckoutPage() {
                       return (
                         <div
                           key={entry.id}
-                          className={`rounded-lg border transition ${
-                            isOpen ? 'border-primary/40 bg-primary/5' : 'border-border'
+                          className={`rounded-xl border-2 transition ${
+                            isOpen ? 'border-primary/50 bg-primary/5 shadow-sm' : 'border-border hover:border-primary/30'
                           }`}
                         >
                           <button
                             type="button"
                             onClick={() => setOpenShippingId(isOpen ? null : entry.id)}
-                            className="w-full px-4 py-3 text-left flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"
+                            className="w-full px-5 py-4 text-left flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"
                           >
                             <div className="space-y-1">
                               <div className="flex flex-wrap items-center gap-2">
-                                <p className="text-sm font-medium text-foreground">
+                                <p className="text-base font-medium text-foreground">
                                   {formatAddressSummary(entry.address)}
                                 </p>
-                                {entry.isDefault && (
-                                  <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">
-                                    Saved
-                                  </span>
-                                )}
                               </div>
-                              <p className="text-xs text-muted-foreground">
+                              <p className="text-sm text-muted-foreground">
                                 {entry.address.country || DEFAULT_REGION_CODE}
                               </p>
                             </div>
                             <div className="flex items-center gap-2 text-sm">
                               {isSelected && (
-                                <span className="inline-flex items-center gap-1 text-primary">
+                                <span className="inline-flex items-center gap-1 text-primary font-medium">
                                   <Check className="h-4 w-4" />
-                                  Selected
+                                  {t(translationKeys.checkout.selectedAddress, 'Selected')}
                                 </span>
                               )}
                               <ChevronDown
-                                className={`h-4 w-4 transition-transform ${
+                                className={`h-5 w-5 transition-transform ${
                                   isOpen ? 'rotate-180 text-primary' : 'text-muted-foreground'
                                 }`}
                               />
                             </div>
                           </button>
                           {isOpen && (
-                            <div className="border-t px-4 py-3 space-y-3 text-sm">
+                            <div className="border-t border-border px-5 py-4 space-y-4 text-sm">
                               <div className="grid gap-1 text-muted-foreground">
                                 <p>{formatAddressLabel(entry.address)}</p>
                                 {entry.address.phone && <p>Phone: {entry.address.phone}</p>}
                               </div>
-                              <div className="flex flex-col gap-2 sm:flex-row">
+                              <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
                                 <Button
                                   type="button"
                                   variant={isSelected ? 'secondary' : 'default'}
@@ -586,7 +663,9 @@ export default function CheckoutPage() {
                                     applyAddress(entry.address, 'shippingAddress');
                                   }}
                                 >
-                                  {isSelected ? 'Selected' : 'Use this address'}
+                                  {isSelected
+                                    ? t(translationKeys.checkout.selectedAddress, 'Selected')
+                                    : t(translationKeys.checkout.useThisAddress, 'Use this address')}
                                 </Button>
                                 <Button
                                   type="button"
@@ -597,7 +676,18 @@ export default function CheckoutPage() {
                                     applyAddress(entry.address, 'shippingAddress');
                                   }}
                                 >
-                                  Edit in form
+                                  {t(translationKeys.checkout.editInForm, 'Edit')}
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  className="text-destructive hover:text-destructive"
+                                  onClick={() => handleDeleteAddress(entry, 'shipping')}
+                                  disabled={updateProfile.isPending}
+                                >
+                                  <Trash2 className="h-4 w-4 mr-1" />
+                                  {t(translationKeys.profile.deleteAddress, 'Delete')}
                                 </Button>
                               </div>
                             </div>
@@ -609,13 +699,13 @@ export default function CheckoutPage() {
                   <Button
                     type="button"
                     variant="outline"
-                    className="w-full"
+                    className="w-full py-3 text-base"
                     onClick={() => {
                       setShowShippingForm(true);
                       setSelectedSavedShipping('');
                     }}
                   >
-                    Add new address
+                    {t(translationKeys.checkout.addNewAddress, 'Add new address')}
                   </Button>
                 </div>
               )}
@@ -627,9 +717,9 @@ export default function CheckoutPage() {
                       <button
                         type="button"
                         onClick={() => setShowShippingForm(false)}
-                        className="text-xs text-primary hover:underline"
+                        className="text-sm font-medium text-primary hover:underline"
                       >
-                        Choose saved address
+                        {t(translationKeys.checkout.chooseSavedAddress, 'Choose a saved address')}
                       </button>
                     )}
                   </div>
@@ -648,7 +738,9 @@ export default function CheckoutPage() {
                       disabled={updateProfile.isPending}
                       className="w-full sm:w-auto"
                     >
-                      {updateProfile.isPending ? 'Saving...' : 'Save address to account'}
+                      {updateProfile.isPending
+                        ? t(translationKeys.checkout.savingAddress, 'Saving...')
+                        : t(translationKeys.checkout.saveAddressToAccount, 'Save address to account')}
                     </Button>
                   )}
                 </div>
@@ -675,10 +767,17 @@ export default function CheckoutPage() {
               {!billingSameAsShipping && (
                 <>
                   {!isGuest && savedBillingAddresses.length > 0 && !showBillingForm && (
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <Label>{t(translationKeys.checkout.billingAddress, 'Billing address')}</Label>
-                        <span className="text-xs text-muted-foreground">{t(translationKeys.common.chooseSavedAddress, 'Choose a saved address or add a new one')}</span>
+                    <div className="space-y-4">
+                      <div>
+                        <Label className="text-base">{t(translationKeys.checkout.billingAddress, 'Billing address')}</Label>
+                        <div className="mt-2 rounded-lg border border-primary/30 bg-primary/5 px-4 py-3 text-sm text-foreground">
+                          <p className="font-medium text-foreground mb-1">
+                            {t(translationKeys.checkout.chooseSavedAddress, 'Choose a saved address')}
+                          </p>
+                          <p className="text-muted-foreground">
+                            {t(translationKeys.checkout.savedAddressInstruction, 'Click a saved address to open it. Then choose Select to use it for this order, Edit to change it, or Delete to remove it. You can also add a new address below.')}
+                          </p>
+                        </div>
                       </div>
                       <div className="space-y-3">
                         {savedBillingAddresses.map((entry) => {
@@ -687,51 +786,46 @@ export default function CheckoutPage() {
                           return (
                             <div
                               key={entry.id}
-                              className={`rounded-lg border transition ${
-                                isOpen ? 'border-primary/40 bg-primary/5' : 'border-border'
+                              className={`rounded-xl border-2 transition ${
+                                isOpen ? 'border-primary/50 bg-primary/5 shadow-sm' : 'border-border hover:border-primary/30'
                               }`}
                             >
                               <button
                                 type="button"
                                 onClick={() => setOpenBillingId(isOpen ? null : entry.id)}
-                                className="w-full px-4 py-3 text-left flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"
+                                className="w-full px-5 py-4 text-left flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"
                               >
                                 <div className="space-y-1">
                                   <div className="flex flex-wrap items-center gap-2">
-                                    <p className="text-sm font-medium text-foreground">
+                                    <p className="text-base font-medium text-foreground">
                                       {formatAddressSummary(entry.address)}
                                     </p>
-                                    {entry.isDefault && (
-                                      <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">
-                                        Saved
-                                      </span>
-                                    )}
                                   </div>
-                                  <p className="text-xs text-muted-foreground">
+                                  <p className="text-sm text-muted-foreground">
                                     {entry.address.country || DEFAULT_REGION_CODE}
                                   </p>
                                 </div>
                                 <div className="flex items-center gap-2 text-sm">
                                   {isSelected && (
-                                    <span className="inline-flex items-center gap-1 text-primary">
+                                    <span className="inline-flex items-center gap-1 text-primary font-medium">
                                       <Check className="h-4 w-4" />
-                                      Selected
+                                      {t(translationKeys.checkout.selectedAddress, 'Selected')}
                                     </span>
                                   )}
                                   <ChevronDown
-                                    className={`h-4 w-4 transition-transform ${
+                                    className={`h-5 w-5 transition-transform ${
                                       isOpen ? 'rotate-180 text-primary' : 'text-muted-foreground'
                                     }`}
                                   />
                                 </div>
                               </button>
                               {isOpen && (
-                                <div className="border-t px-4 py-3 space-y-3 text-sm">
+                                <div className="border-t border-border px-5 py-4 space-y-4 text-sm">
                                   <div className="grid gap-1 text-muted-foreground">
                                     <p>{formatAddressLabel(entry.address)}</p>
                                     {entry.address.phone && <p>Phone: {entry.address.phone}</p>}
                                   </div>
-                                  <div className="flex flex-col gap-2 sm:flex-row">
+                                  <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
                                     <Button
                                       type="button"
                                       variant={isSelected ? 'secondary' : 'default'}
@@ -740,7 +834,9 @@ export default function CheckoutPage() {
                                         applyAddress(entry.address, 'billingAddress');
                                       }}
                                     >
-                                      {isSelected ? 'Selected' : 'Use this address'}
+                                      {isSelected
+                                        ? t(translationKeys.checkout.selectedAddress, 'Selected')
+                                        : t(translationKeys.checkout.useThisAddress, 'Use this address')}
                                     </Button>
                                     <Button
                                       type="button"
@@ -751,7 +847,18 @@ export default function CheckoutPage() {
                                         applyAddress(entry.address, 'billingAddress');
                                       }}
                                     >
-                                      Edit in form
+                                      {t(translationKeys.checkout.editInForm, 'Edit')}
+                                    </Button>
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="sm"
+                                      className="text-destructive hover:text-destructive"
+                                      onClick={() => handleDeleteAddress(entry, 'billing')}
+                                      disabled={updateProfile.isPending}
+                                    >
+                                      <Trash2 className="h-4 w-4 mr-1" />
+                                      {t(translationKeys.profile.deleteAddress, 'Delete')}
                                     </Button>
                                   </div>
                                 </div>
@@ -763,13 +870,13 @@ export default function CheckoutPage() {
                       <Button
                         type="button"
                         variant="outline"
-                        className="w-full"
+                        className="w-full py-3 text-base"
                         onClick={() => {
                           setShowBillingForm(true);
                           setSelectedSavedBilling('');
                         }}
                       >
-                        Add new address
+                        {t(translationKeys.checkout.addNewAddress, 'Add new address')}
                       </Button>
                     </div>
                   )}
@@ -781,9 +888,9 @@ export default function CheckoutPage() {
                           <button
                             type="button"
                             onClick={() => setShowBillingForm(false)}
-                            className="text-xs text-primary hover:underline"
+                            className="text-sm font-medium text-primary hover:underline"
                           >
-                            Choose saved address
+                            {t(translationKeys.checkout.chooseSavedAddress, 'Choose a saved address')}
                           </button>
                         )}
                       </div>
@@ -802,7 +909,9 @@ export default function CheckoutPage() {
                           disabled={updateProfile.isPending}
                           className="w-full sm:w-auto"
                         >
-                          {updateProfile.isPending ? 'Saving...' : 'Save address to account'}
+                          {updateProfile.isPending
+                          ? t(translationKeys.checkout.savingAddress, 'Saving...')
+                          : t(translationKeys.checkout.saveAddressToAccount, 'Save address to account')}
                         </Button>
                       )}
                     </div>

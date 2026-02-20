@@ -7,6 +7,7 @@ import { Elements, PaymentElement, useElements, useStripe } from '@stripe/react-
 import { loadStripe } from '@stripe/stripe-js';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { apiService, confirmPaymentSuccess, createPaymentIntent } from '@/lib/api/client';
 import { useCartStore } from '@/lib/store/cart-store';
@@ -191,19 +192,18 @@ export default function CheckoutPaymentPage() {
           });
         }
 
-        creatingOrderRef.current = false;
         localStorage.setItem('checkoutOrderId', createdOrder.id);
         localStorage.setItem('checkoutEmail', customerEmail);
-
-        if (!isMounted) return;
         setOrderId(createdOrder.id);
         setEmail(customerEmail);
         setIsPreparing(false);
       } catch (error: any) {
+        if (isMounted) {
+          setPrepError(error.message || 'Failed to prepare payment.');
+          setIsPreparing(false);
+        }
+      } finally {
         creatingOrderRef.current = false;
-        if (!isMounted) return;
-        setPrepError(error.message || 'Failed to prepare payment.');
-        setIsPreparing(false);
       }
     };
 
@@ -250,10 +250,16 @@ export default function CheckoutPaymentPage() {
       <div className="container py-16">
         <Card className="max-w-xl mx-auto">
           <CardHeader>
-            <CardTitle>{t(translationKeys.checkout.paymentPreparing, 'Preparing payment')}</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <Loader2 className="h-5 w-5 animate-spin shrink-0" />
+              {t(translationKeys.checkout.paymentPreparing, 'Preparing payment')}
+            </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
             <p className="text-sm text-muted-foreground">{t(translationKeys.checkout.paymentPreparingDescription, 'Setting up your order. Please wait...')}</p>
+            <div className="flex justify-center py-4">
+              <Loader2 className="h-10 w-10 animate-spin text-muted-foreground" aria-hidden />
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -294,7 +300,10 @@ export default function CheckoutPaymentPage() {
               <PaymentForm orderId={orderId} email={email} />
             </Elements>
           ) : (
-            <p className="text-sm text-muted-foreground">{t(translationKeys.checkout.paymentPreparing, 'Preparing payment...')}</p>
+            <div className="flex flex-col items-center gap-3 py-6">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" aria-hidden />
+              <p className="text-sm text-muted-foreground">{t(translationKeys.checkout.paymentPreparing, 'Preparing payment...')}</p>
+            </div>
           )}
         </CardContent>
       </Card>

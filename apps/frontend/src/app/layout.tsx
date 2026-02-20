@@ -1,11 +1,15 @@
 import type { Metadata } from 'next';
 import type { CSSProperties } from 'react';
+import dynamic from 'next/dynamic';
 import { Suspense } from 'react';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import { Providers } from './providers';
-import { Header } from '@/components/layout/header';
 import { Footer } from '@/components/layout/footer';
+
+const Header = dynamic(() => import('@/components/layout/header').then((m) => ({ default: m.Header })), {
+  ssr: false,
+});
 import { Toaster } from '@/components/ui/toaster';
 import { CookieConsentBanner } from '@/components/cookie-consent-banner';
 import { getBranding } from '@/lib/branding';

@@ -440,6 +440,27 @@ export interface AdminOrderResponse {
   user?: { id: string; email: string; firstName: string; lastName: string } | null;
 }
 
+export interface AdminOrdersListResponse {
+  data: AdminOrderResponse[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export async function listAdminOrders(params?: {
+  orderId?: string;
+  page?: number;
+  limit?: number;
+}): Promise<AdminOrdersListResponse> {
+  const query = new URLSearchParams();
+  if (params?.orderId?.trim()) query.set('orderId', params.orderId.trim());
+  if (params?.page != null && params.page > 1) query.set('page', String(params.page));
+  if (params?.limit != null && params.limit !== 20) query.set('limit', String(params.limit));
+  const suffix = query.toString() ? `?${query.toString()}` : '';
+  return apiService.get<AdminOrdersListResponse>(`/orders/admin${suffix}`);
+}
+
 export async function getAdminOrderById(orderId: string): Promise<AdminOrderResponse> {
   return apiService.get<AdminOrderResponse>(`/orders/admin/${orderId}`);
 }

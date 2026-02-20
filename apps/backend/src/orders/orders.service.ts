@@ -179,6 +179,100 @@ export class OrdersService {
     });
   }
 
+  async findAllAdmin(opts?: { orderId?: string; page?: number; limit?: number }) {
+    const page = opts?.page ?? 1;
+    const limit = opts?.limit ?? 20;
+    const skip = (page - 1) * limit;
+
+    const baseWhere: Prisma.OrderWhereInput = {
+      payment: { status: 'COMPLETED' },
+    };
+
+    if (opts?.orderId?.trim()) {
+      const search = opts.orderId.trim().replace(/-/g, '').toLowerCase();
+      if (search.length === 32) {
+        // Full UUID without dashes: exact match (reconstruct UUID format)
+        const uuid = `${search.slice(0, 8)}-${search.slice(8, 12)}-${search.slice(12, 16)}-${search.slice(16, 20)}-${search.slice(20, 32)}`;
+        (baseWhere as any).id = uuid;
+      } else {
+        // Short display format (e.g. first 8 chars): prefix match via raw query
+        const ids = await this.prisma.$queryRaw<[{ id: string }]>`
+          SELECT o.id FROM orders o
+          INNER JOIN payments p ON p."orderId" = o.id
+          WHERE p.status = 'COMPLETED'
+          AND LOWER(REPLACE(o.id::text, '-', '')) LIKE LOWER(${search + '%'})
+          ORDER BY o."createdAt" DESC
+        `;
+        const idList = ids.map((r) => r.id);
+        const total = idList.length;
+        const pageIds = idList.slice(skip, skip + limit);
+        if (pageIds.length === 0) {
+          const totalPages = Math.max(1, Math.ceil(total / limit));
+          return { data: [], total, page, limit, totalPages };
+        }
+        const data = await this.prisma.order.findMany({
+          where: { id: { in: pageIds } },
+          include: {
+            items: {
+              include: {
+                productVariant: {
+                  include: { product: true },
+                },
+              },
+            },
+            payment: true,
+            user: {
+              select: {
+                id: true,
+                email: true,
+                firstName: true,
+                lastName: true,
+              },
+            },
+            region: true,
+          },
+          orderBy: { createdAt: 'desc' },
+        });
+        const orderById = new Map(data.map((o) => [o.id, o]));
+        const ordered = pageIds.map((id) => orderById.get(id)!).filter(Boolean);
+        const totalPages = Math.max(1, Math.ceil(total / limit));
+        return { data: ordered, total, page, limit, totalPages };
+      }
+    }
+
+    const [data, total] = await Promise.all([
+      this.prisma.order.findMany({
+        where: baseWhere,
+        skip,
+        take: limit,
+        include: {
+          items: {
+            include: {
+              productVariant: {
+                include: { product: true },
+              },
+            },
+          },
+          payment: true,
+          user: {
+            select: {
+              id: true,
+              email: true,
+              firstName: true,
+              lastName: true,
+            },
+          },
+          region: true,
+        },
+        orderBy: { createdAt: 'desc' },
+      }),
+      this.prisma.order.count({ where: baseWhere }),
+    ]);
+
+    const totalPages = Math.max(1, Math.ceil(total / limit));
+    return { data, total, page, limit, totalPages };
+  }
+
   async findOne(id: string, userId?: string) {
     const where: any = { id };
     if (userId) {

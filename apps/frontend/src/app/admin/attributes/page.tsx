@@ -350,6 +350,7 @@ export default function AttributesPage() {
                   </div>
                   {!translationStatus.hasAllTranslations && (
                     <TranslationWarningBadge
+                      missingLanguageCodes={translationStatus.missingLanguageCodes}
                       missingLanguages={translationStatus.missingLanguages}
                       entityType="attribute"
                     />
