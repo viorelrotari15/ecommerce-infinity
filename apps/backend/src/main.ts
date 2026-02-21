@@ -2,21 +2,40 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, Logger } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { raw } from 'body-parser';
+import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { FileLogger } from './logs/file-logger';
+import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 
 async function bootstrap() {
   Logger.overrideLogger(new FileLogger());
   const app = await NestFactory.create(AppModule);
 
+  // Security: Helmet sets secure HTTP headers (XSS, clickjacking, MIME sniffing, etc.)
+  app.use(
+    helmet({
+      contentSecurityPolicy: process.env.NODE_ENV === 'production',
+      crossOriginEmbedderPolicy: false, // allow e.g. Stripe iframes if needed
+    }),
+  );
+
   // Stripe webhook needs raw body
   app.use('/api/payments/webhook', raw({ type: 'application/json' }));
 
-  // Enable CORS
+  // Don't advertise server
+  app.getHttpAdapter().getInstance().disable('x-powered-by');
+
+  // CORS: restrict origin, methods, and headers
+  const frontendOrigin = process.env.FRONTEND_URL || 'http://localhost:3000';
   app.enableCors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    origin: frontendOrigin,
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Accept-Language'],
   });
+
+  // Security: don't leak stack traces or internal errors in production
+  app.useGlobalFilters(new HttpExceptionFilter());
 
   // Global validation pipe
   app.useGlobalPipes(
