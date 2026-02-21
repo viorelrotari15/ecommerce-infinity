@@ -15,6 +15,8 @@ import { useCartStore } from '@/lib/store/cart-store';
 import { getCart, updateCart as updateCartAPI } from '@/lib/api/client';
 import { notifyAuthStateChanged } from '@/lib/auth';
 import { useT, translationKeys } from '@/lib/utils/translations';
+import { emailSchema, passwordLoginSchema } from '@/lib/validation';
+import { SocialLoginButtons } from '@/components/auth/social-login-buttons';
 
 type LoginFormData = {
   email: string;
@@ -30,14 +32,15 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
 
   const loginSchema = yup.object({
-    email: yup
-      .string()
-      .email(t(translationKeys.auth.emailInvalid, 'Invalid email address'))
-      .required(t(translationKeys.auth.emailRequired, 'Email is required')),
-    password: yup
-      .string()
-      .min(6, t(translationKeys.auth.passwordMinLength, 'Password must be at least 6 characters'))
-      .required(t(translationKeys.auth.passwordRequired, 'Password is required')),
+    email: emailSchema(
+      t(translationKeys.validation.emailInvalid, 'Please provide a valid email address'),
+      t(translationKeys.validation.emailTooLong, 'Email is too long'),
+    ).required(t(translationKeys.validation.emailRequired, 'Email is required')),
+    password: passwordLoginSchema(
+      t(translationKeys.validation.passwordMinLength, 'Password must be at least 8 characters'),
+      t(translationKeys.validation.passwordMaxLength, 'Password must not exceed 128 characters'),
+      t(translationKeys.validation.passwordInvalidChars, 'Password must not contain < or >'),
+    ).required(t(translationKeys.validation.passwordRequired, 'Password is required')),
   });
 
   const {
@@ -118,6 +121,9 @@ export default function LoginPage() {
           <CardDescription>{t(translationKeys.auth.loginDescription, 'Enter your credentials to access your account')}</CardDescription>
         </CardHeader>
         <CardContent>
+          <p className="mb-3 text-sm font-medium text-muted-foreground">
+            {t(translationKeys.auth.loginWithEmailPassword, 'Login with email and password')}
+          </p>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             {error && (
               <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
@@ -148,6 +154,8 @@ export default function LoginPage() {
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? t(translationKeys.auth.loggingIn, 'Logging in...') : t(translationKeys.auth.login, 'Login')}
             </Button>
+
+            <SocialLoginButtons />
 
             <div className="text-center text-sm text-muted-foreground">
               {t(translationKeys.auth.dontHaveAccount, "Don't have an account?")}{' '}

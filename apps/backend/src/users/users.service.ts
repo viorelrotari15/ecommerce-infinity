@@ -55,11 +55,45 @@ export class UsersService {
     });
   }
 
+  async findByFirebaseUid(firebaseUid: string) {
+    return this.prisma.user.findUnique({
+      where: { firebaseUid },
+    });
+  }
+
+  /** Create user for Firebase Auth (no password). Stores Firebase profile data. */
+  async createFirebaseUser(data: {
+    email: string;
+    firebaseUid: string;
+    firstName?: string;
+    lastName?: string;
+    avatarUrl?: string;
+  }) {
+    return this.prisma.user.create({
+      data: {
+        email: data.email,
+        firebaseUid: data.firebaseUid,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        avatarUrl: data.avatarUrl,
+      },
+    });
+  }
+
+  /** Link Firebase UID to existing user (same email). Optionally set avatar from Firebase. */
+  async linkFirebaseUid(userId: string, firebaseUid: string, avatarUrl?: string) {
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: { firebaseUid, ...(avatarUrl ? { avatarUrl } : {}) },
+    });
+  }
+
   async updateProfile(id: string, updateProfileDto: UpdateProfileDto) {
     const data: Prisma.UserUpdateInput = {};
     if (updateProfileDto.firstName !== undefined) data.firstName = updateProfileDto.firstName;
     if (updateProfileDto.lastName !== undefined) data.lastName = updateProfileDto.lastName;
     if (updateProfileDto.phone !== undefined) data.phone = updateProfileDto.phone;
+    if (updateProfileDto.avatarUrl !== undefined) data.avatarUrl = updateProfileDto.avatarUrl;
     if (updateProfileDto.defaultShippingAddress !== undefined) {
       data.defaultShippingAddress = updateProfileDto.defaultShippingAddress as unknown as Prisma.InputJsonValue;
     }
@@ -82,6 +116,7 @@ export class UsersService {
           firstName: true,
           lastName: true,
           phone: true,
+          avatarUrl: true,
           defaultShippingAddress: true,
           defaultBillingAddress: true,
           savedAddresses: true,

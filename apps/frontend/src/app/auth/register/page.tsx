@@ -12,21 +12,46 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { notifyAuthStateChanged } from '@/lib/auth';
-import { useT } from '@/lib/utils/translations';
-import { translationKeys } from '@/lib/utils/translations';
+import { useT, translationKeys } from '@/lib/utils/translations';
+import {
+  emailSchema,
+  passwordRegisterSchema,
+  safeStringSchema,
+  VALIDATION,
+} from '@/lib/validation';
+import { SocialLoginButtons } from '@/components/auth/social-login-buttons';
 
-const registerSchema = yup.object({
-  email: yup.string().email('Invalid email address').required('Email is required'),
-  password: yup.string().min(6, 'Password must be at least 6 characters').required('Password is required'),
-  confirmPassword: yup
-    .string()
-    .oneOf([yup.ref('password')], 'Passwords must match')
-    .required('Please confirm your password'),
-  firstName: yup.string(),
-  lastName: yup.string(),
-});
+function createRegisterSchema(t: (key: string, fallback?: string) => string) {
+  return yup.object({
+    email: emailSchema(
+      t(translationKeys.validation.emailInvalid, 'Please provide a valid email address'),
+      t(translationKeys.validation.emailTooLong, 'Email is too long'),
+    ).required(t(translationKeys.validation.emailRequired, 'Email is required')),
+    password: passwordRegisterSchema(
+      t(translationKeys.validation.passwordMinLength, 'Password must be at least 8 characters'),
+      t(translationKeys.validation.passwordMaxLength, 'Password must not exceed 128 characters'),
+      t(translationKeys.validation.passwordInvalidChars, 'Password must not contain < or >'),
+      t(translationKeys.validation.passwordNeedsLetter, 'Password must contain at least one letter'),
+      t(translationKeys.validation.passwordNeedsNumber, 'Password must contain at least one number'),
+    ).required(t(translationKeys.validation.passwordRequired, 'Password is required')),
+    confirmPassword: yup
+      .string()
+      .oneOf([yup.ref('password')], t(translationKeys.validation.confirmPasswordMatch, 'Passwords must match'))
+      .required(t(translationKeys.validation.confirmPasswordRequired, 'Please confirm your password')),
+    firstName: safeStringSchema(
+      VALIDATION.NAME_MAX_LENGTH,
+      t(translationKeys.validation.valueTooLong, 'Value is too long'),
+      t(translationKeys.validation.invalidCharacters, 'Invalid characters (no < > or quotes)'),
+    ).optional(),
+    lastName: safeStringSchema(
+      VALIDATION.NAME_MAX_LENGTH,
+      t(translationKeys.validation.valueTooLong, 'Value is too long'),
+      t(translationKeys.validation.invalidCharacters, 'Invalid characters (no < > or quotes)'),
+    ).optional(),
+  });
+}
 
-type RegisterFormData = yup.InferType<typeof registerSchema>;
+type RegisterFormData = yup.InferType<ReturnType<typeof createRegisterSchema>>;
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -44,7 +69,7 @@ export default function RegisterPage() {
     handleSubmit,
     formState: { errors },
   } = useForm<RegisterFormData>({
-    resolver: yupResolver(registerSchema),
+    resolver: yupResolver(createRegisterSchema(t)),
     defaultValues: {
       email: defaultEmail,
       firstName: defaultFirstName,
@@ -86,7 +111,7 @@ export default function RegisterPage() {
       router.push('/');
       router.refresh();
     } catch (err: any) {
-      setError(err.message || 'Registration failed. Please try again.');
+      setError(err.message || t(translationKeys.auth.registerFailed, 'Registration failed. Please try again.'));
     } finally {
       setIsLoading(false);
     }
@@ -100,6 +125,10 @@ export default function RegisterPage() {
           <CardDescription>{t(translationKeys.auth.signUpDescription, 'Sign up to get started')}</CardDescription>
         </CardHeader>
         <CardContent>
+          <SocialLoginButtons />
+          <p className="mt-4 mb-3 text-sm font-medium text-muted-foreground">
+            {t(translationKeys.auth.registerWithEmailPassword, 'Create account with email and password')}
+          </p>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             {error && (
               <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
@@ -108,10 +137,10 @@ export default function RegisterPage() {
             )}
 
             <FormField
-              label="Email"
+              label={t(translationKeys.auth.email, 'Email')}
               name="email"
               type="email"
-              placeholder="you@example.com"
+              placeholder={t(translationKeys.auth.emailPlaceholder, 'you@example.com')}
               error={errors.email?.message}
               register={register}
               required
@@ -119,7 +148,7 @@ export default function RegisterPage() {
 
             <div className="grid grid-cols-2 gap-4">
               <FormField
-                label="First Name"
+                label={t(translationKeys.auth.firstName, 'First Name')}
                 name="firstName"
                 type="text"
                 placeholder="John"
@@ -128,7 +157,7 @@ export default function RegisterPage() {
               />
 
               <FormField
-                label="Last Name"
+                label={t(translationKeys.auth.lastName, 'Last Name')}
                 name="lastName"
                 type="text"
                 placeholder="Doe"
@@ -138,33 +167,33 @@ export default function RegisterPage() {
             </div>
 
             <FormField
-              label="Password"
+              label={t(translationKeys.auth.password, 'Password')}
               name="password"
               type="password"
-              placeholder="••••••••"
+              placeholder={t(translationKeys.auth.passwordPlaceholder, '••••••••')}
               error={errors.password?.message}
               register={register}
               required
             />
 
             <FormField
-              label="Confirm Password"
+              label={t(translationKeys.auth.confirmPassword, 'Confirm Password')}
               name="confirmPassword"
               type="password"
-              placeholder="••••••••"
+              placeholder={t(translationKeys.auth.passwordPlaceholder, '••••••••')}
               error={errors.confirmPassword?.message}
               register={register}
               required
             />
 
             <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? 'Creating account...' : 'Register'}
+              {isLoading ? t(translationKeys.auth.creatingAccount, 'Creating account...') : t(translationKeys.auth.register, 'Register')}
             </Button>
 
             <div className="text-center text-sm text-muted-foreground">
-              Already have an account?{' '}
+              {t(translationKeys.auth.alreadyHaveAccount, 'Already have an account?')}{' '}
               <Link href="/auth/login" className="text-foreground hover:underline">
-                Login
+                {t(translationKeys.auth.login, 'Login')}
               </Link>
             </div>
           </form>

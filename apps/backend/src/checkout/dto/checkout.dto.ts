@@ -1,7 +1,8 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
-import { IsArray, IsEmail, IsOptional, IsString, ValidateNested, Min, IsNumber } from 'class-validator';
+import { Type, Transform } from 'class-transformer';
+import { IsArray, IsEmail, IsOptional, IsString, ValidateNested, Min, IsNumber, MaxLength } from 'class-validator';
 import { AddressDto } from '../../orders/dto/address.dto';
+import { sanitizeEmail } from '../../common/sanitize';
 
 class CheckoutItemDto {
   @ApiProperty()
@@ -50,7 +51,9 @@ export class CreateCheckoutDto {
   billingAddress: AddressDto;
 
   @ApiProperty()
-  @IsEmail()
+  @IsEmail({}, { message: 'Please provide a valid email address' })
+  @MaxLength(255)
+  @Transform(({ value }) => sanitizeEmail(value))
   guestEmail: string;
 
   @ApiProperty()

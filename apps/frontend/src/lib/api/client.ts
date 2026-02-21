@@ -8,7 +8,7 @@ import { logout } from '@/lib/auth';
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 /** Base URL for API (origin only, no trailing /api) so env can be origin or origin/api */
-function getApiBase(): string {
+export function getApiBase(): string {
   return (API_URL || '').replace(/\/api\/?$/, '') || API_URL;
 }
 

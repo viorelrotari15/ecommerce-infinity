@@ -401,6 +401,61 @@ configure_currency() {
   info "Restart backend and rebuild frontend to apply: docker compose -f docker-compose.prod.yml up -d --build backend frontend"
 }
 
+# Setup Firebase private key: paste the full service account JSON object from Firebase Console.
+# Expects: {"type":"service_account","project_id":"...","private_key_id":"...","private_key":"...","client_email":"...",...}
+# Paste multi-line JSON, then type END and press Enter.
+configure_firebase_private_key() {
+  [[ ! -f .env ]] && { err ".env not found. Run 'Setup .env' first."; return 1; }
+  echo ""
+  info "Firebase private key = service account JSON from Firebase Console."
+  info "Path: Project settings → Service accounts → Generate new private key."
+  echo ""
+  info "Paste the full JSON object below (same shape as from Firebase):"
+  info "  {\"type\":\"service_account\",\"project_id\":\"...\",\"private_key_id\":\"...\",\"private_key\":\"...\",\"client_email\":\"...\",\"client_id\":\"...\",\"auth_uri\":\"...\",\"token_uri\":\"...\",\"auth_provider_x509_cert_url\":\"...\",\"client_x509_cert_url\":\"...\",\"universe_domain\":\"...\"}"
+  echo ""
+  info "Paste your JSON (multi-line is OK). When finished, type END and press Enter."
+  echo ""
+  local json_lines=""
+  while IFS= read -r line; do
+    [[ "$line" == "END" ]] && break
+    json_lines="${json_lines}${line}"
+  done
+  json_lines=$(echo "$json_lines" | tr -d '\n\r' | tr -s ' ')
+  [[ -z "$json_lines" ]] && { err "No JSON received."; return 1; }
+  local project_id=""
+  local compact="$json_lines"
+  if command -v jq &>/dev/null; then
+    project_id=$(echo "$json_lines" | jq -r '.project_id // empty' 2>/dev/null)
+    compact=$(echo "$json_lines" | jq -c . 2>/dev/null) || compact="$json_lines"
+  fi
+  [[ -z "$project_id" ]] && project_id=$(echo "$json_lines" | grep -o '"project_id"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | sed 's/.*"project_id"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/')
+  [[ -z "$project_id" ]] && { err "Could not read project_id from JSON. Check the pasted object."; return 1; }
+  if command -v jq &>/dev/null && ! echo "$json_lines" | jq -e . &>/dev/null; then
+    err "Invalid JSON. Check brackets, quotes, and commas."
+    return 1
+  fi
+  local escaped
+  escaped=$(echo "$compact" | sed 's/"/\\"/g')
+  for key in FIREBASE_PROJECT_ID FIREBASE_SERVICE_ACCOUNT; do
+    if grep -q "^${key}=" .env 2>/dev/null; then
+      if [[ "$key" == "FIREBASE_SERVICE_ACCOUNT" ]]; then
+        sed -i.bak "s|^${key}=.*|${key}=\"${escaped}\"|" .env
+      else
+        sed -i.bak "s|^${key}=.*|${key}=${project_id}|" .env
+      fi
+    else
+      if [[ "$key" == "FIREBASE_SERVICE_ACCOUNT" ]]; then
+        echo "${key}=\"${escaped}\"" >> .env
+      else
+        echo "${key}=${project_id}" >> .env
+      fi
+    fi
+  done
+  rm -f .env.bak
+  ok "Firebase project ID and service account saved to .env."
+  info "Restart backend to apply: docker compose -f docker-compose.prod.yml up -d backend (or your stack)."
+}
+
 main_menu() {
   check_project
   while true; do
@@ -424,9 +479,10 @@ main_menu() {
     echo " 16) Create admin user"
     echo " 17) Configure Stripe (payment keys)"
     echo " 18) Configure currency (app-wide: EUR, USD, etc.)"
+    echo " 19) Setup Firebase private key (paste service account JSON)"
     echo "  0) Exit"
     echo ""
-    read -p "Choice (0–18): " -r choice
+    read -p "Choice (0–19): " -r choice
     case "$choice" in
       1) install_docker ;;
       2) setup_env ;;
@@ -446,6 +502,7 @@ main_menu() {
       16) create_admin_user ;;
       17) configure_stripe ;;
       18) configure_currency ;;
+      19) configure_firebase_private_key ;;
       0) ok "Bye."; exit 0 ;;
       *) warn "Invalid choice." ;;
     esac

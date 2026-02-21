@@ -3,6 +3,7 @@ import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
+import { FirebaseLoginDto } from './dto/firebase-login.dto';
 import { CreateAdminDto } from './dto/create-admin.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
@@ -22,6 +23,16 @@ export class AuthController {
       throw new UnauthorizedException('Invalid credentials');
     }
     return this.authService.login(user);
+  }
+
+  @Post('firebase')
+  @ApiOperation({ summary: 'Login with Firebase ID token (Google, Facebook, etc. via Firebase Auth)' })
+  async loginWithFirebase(@Body() dto: FirebaseLoginDto) {
+    const result = await this.authService.loginWithFirebaseToken(dto.idToken);
+    if (!result) {
+      throw new UnauthorizedException('Invalid or expired Firebase token, or Firebase not configured');
+    }
+    return result;
   }
 
   @Post('register')

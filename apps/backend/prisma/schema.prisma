@@ -90,7 +90,9 @@ model ShippingRule {
 model User {
   id                     String   @id @default(uuid())
   email                  String   @unique
-  password               String
+  password               String?  // null when user signed up with Firebase only
+  firebaseUid            String?  @unique // Firebase Auth (Google, Facebook, etc. – one free provider)
+  avatarUrl              String?  // profile picture from Firebase (or other)
   firstName              String?
   lastName               String?
   phone                  String?

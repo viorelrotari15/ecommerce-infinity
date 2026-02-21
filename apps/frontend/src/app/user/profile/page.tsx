@@ -37,28 +37,8 @@ import { AddressForm } from '@/components/checkout/address-form';
 import { useToast } from '@/hooks/use-toast';
 import { DEFAULT_REGION_CODE } from '@/lib/config';
 import { getDialCodeByIso2, phoneCountries } from '@/lib/phone-countries';
+import { createAddressSchema } from '@/lib/validation';
 
-const addressSchema = yup.object({
-  shippingAddress: yup.object({
-    firstName: yup.string().required('First name is required'),
-    lastName: yup.string().required('Last name is required'),
-    phoneCountryCode: yup.string().required('Phone country code is required'),
-    phoneNumber: yup
-      .string()
-      .matches(/^[0-9\s-]{6,18}$/, 'Phone number is invalid')
-      .required('Phone number is required'),
-    street: yup.string().required('Street is required'),
-    houseNumber: yup.string().required('House number is required'),
-    city: yup.string().required('City is required'),
-    postalCode: yup
-      .string()
-      .matches(/^\d{5}$/, 'Postal code must be 5 digits')
-      .required('Postal code is required'),
-    country: yup.string().oneOf([DEFAULT_REGION_CODE]).required('Country is required'),
-  }),
-});
-
-type AddressFormValues = yup.InferType<typeof addressSchema>;
 type SavedAddressType = 'shipping' | 'billing';
 
 function splitPhone(value?: string | null): { phoneCountryCode: string; phoneNumber: string } {
@@ -86,6 +66,8 @@ function addressContentKey(addr: Record<string, unknown>): string {
   const { type, ...rest } = addr;
   return JSON.stringify(rest);
 }
+
+type AddressFormValues = { shippingAddress: yup.InferType<ReturnType<typeof createAddressSchema>> };
 
 function getEditFormDefaultValues(
   editAddress: { type: SavedAddressType; address: Record<string, unknown> | null },
@@ -133,8 +115,12 @@ function EditAddressForm({
     () => ({ shippingAddress: getEditFormDefaultValues(editAddress) }),
     [editAddress.type, editAddress.address ? addressContentKey(editAddress.address) : 'new'],
   );
+  const addressSchemaWithT = useMemo(
+    () => yup.object({ shippingAddress: createAddressSchema(DEFAULT_REGION_CODE, t) }),
+    [t],
+  );
   const form = useForm<AddressFormValues>({
-    resolver: yupResolver(addressSchema),
+    resolver: yupResolver(addressSchemaWithT),
     defaultValues,
   });
 

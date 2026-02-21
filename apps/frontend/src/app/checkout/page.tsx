@@ -22,30 +22,24 @@ import { useT, translationKeys } from '@/lib/utils/translations';
 import { DEFAULT_REGION_CODE } from '@/lib/config';
 import { getDialCodeByIso2, phoneCountries } from '@/lib/phone-countries';
 import { useUpdateProfile, useUserProfile } from '@/lib/hooks/use-user-profile';
+import { createAddressSchema, emailSchema } from '@/lib/validation';
 
-const addressSchema = yup.object({
-  firstName: yup.string().required('First name is required'),
-  lastName: yup.string().required('Last name is required'),
-  phoneCountryCode: yup.string().required('Phone country code is required'),
-  phoneNumber: yup
-    .string()
-    .matches(/^[0-9\s-]{6,18}$/, 'Phone number is invalid')
-    .required('Phone number is required'),
-  street: yup.string().required('Street is required'),
-  houseNumber: yup.string().required('House number is required'),
-  city: yup.string().required('City is required'),
-  postalCode: yup
-    .string()
-    .matches(/^\d{5}$/, 'Postal code must be 5 digits')
-    .required('Postal code is required'),
-  country: yup.string().oneOf([DEFAULT_REGION_CODE]).required('Country is required'),
-});
+type TranslateFn = (key: string, fallback?: string) => string;
 
-const createCheckoutSchema = (isGuest: boolean) =>
+const createCheckoutSchema = (
+  isGuest: boolean,
+  t: TranslateFn,
+  addressSchema: ReturnType<typeof createAddressSchema>,
+) =>
   yup.object({
-    guestEmail: isGuest ? yup.string().email('Invalid email').required('Email is required') : yup.string().optional(),
+    guestEmail: isGuest
+      ? emailSchema(
+          t(translationKeys.validation.emailInvalid, 'Please provide a valid email address'),
+          t(translationKeys.validation.emailTooLong, 'Email is too long'),
+        ).required(t(translationKeys.validation.emailRequired, 'Email is required'))
+      : yup.string().optional(),
     billingSameAsShipping: yup.boolean().default(true),
-    shippingMethodId: yup.string().required('Select a shipping method'),
+    shippingMethodId: yup.string().required(t(translationKeys.checkout.shippingMethodRequired, 'Please select a shipping method')),
     shippingAddress: addressSchema,
     billingAddress: yup.mixed().when('billingSameAsShipping', {
       is: true,
@@ -75,6 +69,11 @@ export default function CheckoutPage() {
   const [showShippingForm, setShowShippingForm] = useState(false);
   const [showBillingForm, setShowBillingForm] = useState(false);
 
+  const checkoutSchemas = useMemo(() => {
+    const addressSchema = createAddressSchema(DEFAULT_REGION_CODE, t);
+    return { checkoutSchema: createCheckoutSchema(isGuest, t, addressSchema), addressSchema };
+  }, [isGuest, t]);
+
   const {
     register,
     handleSubmit,
@@ -82,7 +81,7 @@ export default function CheckoutPage() {
     setValue,
     formState: { errors },
   } = useForm<CheckoutFormData>({
-    resolver: yupResolver(createCheckoutSchema(isGuest)),
+    resolver: yupResolver(checkoutSchemas.checkoutSchema),
     defaultValues: {
       guestEmail: currentUser?.email || '',
       billingSameAsShipping: true,
@@ -380,7 +379,7 @@ export default function CheckoutPage() {
   };
 
   const handleSaveDefaultShipping = async () => {
-    const isValid = await addressSchema.isValid(shippingAddress);
+    const isValid = await checkoutSchemas.addressSchema.isValid(shippingAddress);
     if (!isValid) {
       toast({
         variant: 'destructive',
@@ -401,14 +400,14 @@ export default function CheckoutPage() {
       setShowShippingForm(false);
       toast({
         variant: 'success',
-        title: 'Saved',
-        description: 'Shipping address saved to your account.',
+        title: t(translationKeys.checkout.addressSavedTitle, 'Saved'),
+        description: t(translationKeys.checkout.shippingAddressSaved, 'Shipping address saved to your account.'),
       });
     } catch {
       toast({
         variant: 'destructive',
         title: t(translationKeys.common.error, 'Error'),
-        description: 'Failed to save shipping address.',
+        description: t(translationKeys.checkout.addressSaveFailed, 'Failed to save address.'),
       });
     }
   };
@@ -423,7 +422,7 @@ export default function CheckoutPage() {
       return;
     }
     const billingValue = billingAddress as CheckoutFormData['shippingAddress'];
-    const isValid = await addressSchema.isValid(billingValue);
+    const isValid = await checkoutSchemas.addressSchema.isValid(billingValue);
     if (!isValid) {
       toast({
         variant: 'destructive',
@@ -444,14 +443,14 @@ export default function CheckoutPage() {
       setShowBillingForm(false);
       toast({
         variant: 'success',
-        title: 'Saved',
-        description: 'Billing address saved to your account.',
+        title: t(translationKeys.checkout.addressSavedTitle, 'Saved'),
+        description: t(translationKeys.checkout.billingAddressSaved, 'Billing address saved to your account.'),
       });
     } catch {
       toast({
         variant: 'destructive',
         title: t(translationKeys.common.error, 'Error'),
-        description: 'Failed to save billing address.',
+        description: t(translationKeys.checkout.addressSaveFailed, 'Failed to save address.'),
       });
     }
   };
