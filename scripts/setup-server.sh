@@ -456,6 +456,54 @@ configure_firebase_private_key() {
   info "Restart backend to apply: docker compose -f docker-compose.prod.yml up -d backend (or your stack)."
 }
 
+# Configure Resend for transactional emails (order confirmations, admin notifications).
+configure_resend() {
+  [[ ! -f .env ]] && { err ".env not found. Run 'Setup .env' first."; return 1; }
+  echo ""
+  info "Configure Resend for sending emails (order confirmations, admin alerts). Get API key at https://resend.com/api-keys"
+  info "From address: use onboarding@resend.dev for testing, or a verified domain (e.g. no-reply@yourdomain.com)."
+  echo ""
+  read -sp "Resend API Key (re_...): " -r api_key
+  echo ""
+  if [[ -n "$api_key" ]]; then
+    if grep -q "^RESEND_API_KEY=" .env 2>/dev/null; then
+      sed -i.bak "s|^RESEND_API_KEY=.*|RESEND_API_KEY=${api_key}|" .env
+    else
+      echo "RESEND_API_KEY=${api_key}" >> .env
+    fi
+    ok "Resend API key set."
+  fi
+  read -p "From email (default: onboarding@resend.dev): " -r from_email
+  from_email="${from_email:-onboarding@resend.dev}"
+  if grep -q "^RESEND_FROM_EMAIL=" .env 2>/dev/null; then
+    sed -i.bak "s|^RESEND_FROM_EMAIL=.*|RESEND_FROM_EMAIL=${from_email}|" .env
+  else
+    echo "RESEND_FROM_EMAIL=${from_email}" >> .env
+  fi
+  ok "From email set to: $from_email"
+  read -p "From name (e.g. your store name, default from branding): " -r from_name
+  if [[ -n "$from_name" ]]; then
+    if grep -q "^RESEND_FROM_NAME=" .env 2>/dev/null; then
+      sed -i.bak "s|^RESEND_FROM_NAME=.*|RESEND_FROM_NAME=${from_name}|" .env
+    else
+      echo "RESEND_FROM_NAME=${from_name}" >> .env
+    fi
+    ok "From name set."
+  fi
+  read -p "Admin email for new-order notifications (optional): " -r admin_email
+  if [[ -n "$admin_email" ]]; then
+    if grep -q "^ADMIN_ORDER_EMAIL=" .env 2>/dev/null; then
+      sed -i.bak "s|^ADMIN_ORDER_EMAIL=.*|ADMIN_ORDER_EMAIL=${admin_email}|" .env
+    else
+      echo "ADMIN_ORDER_EMAIL=${admin_email}" >> .env
+    fi
+    ok "Admin order email set to: $admin_email"
+  fi
+  rm -f .env.bak
+  ok "Resend keys saved to .env."
+  info "Restart backend to apply: docker compose -f docker-compose.prod.yml up -d backend"
+}
+
 main_menu() {
   check_project
   while true; do
@@ -480,9 +528,10 @@ main_menu() {
     echo " 17) Configure Stripe (payment keys)"
     echo " 18) Configure currency (app-wide: EUR, USD, etc.)"
     echo " 19) Setup Firebase private key (paste service account JSON)"
+    echo " 20) Configure Resend (email: order confirmations, admin alerts)"
     echo "  0) Exit"
     echo ""
-    read -p "Choice (0–19): " -r choice
+    read -p "Choice (0–20): " -r choice
     case "$choice" in
       1) install_docker ;;
       2) setup_env ;;
@@ -503,6 +552,7 @@ main_menu() {
       17) configure_stripe ;;
       18) configure_currency ;;
       19) configure_firebase_private_key ;;
+      20) configure_resend ;;
       0) ok "Bye."; exit 0 ;;
       *) warn "Invalid choice." ;;
     esac

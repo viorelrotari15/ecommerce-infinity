@@ -1,11 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import type { Transporter } from 'nodemailer';
-import * as nodemailerNamespace from 'nodemailer';
-
-// Handle CJS/ESM interop: default import can be undefined in compiled output
-const nodemailer =
-  (nodemailerNamespace as { default?: typeof nodemailerNamespace }).default ?? nodemailerNamespace;
+import { Resend } from 'resend';
+import * as path from 'path';
+import * as fs from 'fs';
 
 type OrderItemSummary = {
   productVariant: {
@@ -41,36 +38,97 @@ type EmailOrder = {
   } | null;
 };
 
+type BrandingPalette = {
+  primary?: string;
+  primaryForeground?: string;
+  secondary?: string;
+  muted?: string;
+  mutedForeground?: string;
+  foreground?: string;
+  background?: string;
+  [key: string]: string | undefined;
+};
+
+type BrandingConfig = {
+  name: string;
+  shortName?: string;
+  tagline?: string;
+  siteUrl?: string;
+  logo?: {
+    primary?: string;
+    favicon?: string;
+    appleTouch?: string;
+  };
+  palette?: BrandingPalette;
+};
+
 @Injectable()
 export class EmailService {
-  private transporter: Transporter | null = null;
+  private resend: Resend | null = null;
   private isConfigured = false;
+  private branding: BrandingConfig | null = null;
 
   constructor(private configService: ConfigService) {
-    const host = this.configService.get<string>('SMTP_HOST');
-    const port = Number(this.configService.get<string>('SMTP_PORT') || 0);
-    const user = this.configService.get<string>('SMTP_USER');
-    const pass = this.configService.get<string>('SMTP_PASS');
-    const secure = this.configService.get<string>('SMTP_SECURE') === 'true';
-
-    if (host && port && user && pass) {
-      this.transporter = nodemailer.createTransport({
-        host,
-        port,
-        secure,
-        auth: { user, pass },
-      });
+    const apiKey = this.configService.get<string>('RESEND_API_KEY');
+    if (apiKey?.trim()) {
+      this.resend = new Resend(apiKey.trim());
       this.isConfigured = true;
     }
+    this.loadBranding();
+  }
+
+  private loadBranding(): void {
+    try {
+      const baseDir = process.cwd();
+      const candidates = [
+        path.join(baseDir, 'dist', 'config', 'branding.json'),
+        path.join(baseDir, 'src', 'config', 'branding.json'),
+      ];
+      for (const p of candidates) {
+        if (fs.existsSync(p)) {
+          const raw = fs.readFileSync(p, 'utf-8');
+          this.branding = JSON.parse(raw) as BrandingConfig;
+          return;
+        }
+      }
+    } catch {
+      // ignore
+    }
+    this.branding = {
+      name: this.configService.get<string>('BRAND_NAME') || 'Ecommerce Infinity',
+      siteUrl: this.configService.get<string>('FRONTEND_URL') || this.configService.get<string>('BRAND_WEBSITE') || '',
+      palette: {
+        primary: this.configService.get<string>('BRAND_PRIMARY_COLOR') || '#111827',
+        foreground: '#111827',
+        mutedForeground: '#6b7280',
+      },
+    };
   }
 
   private getBranding() {
+    const name = this.branding?.name ?? this.configService.get<string>('BRAND_NAME') ?? 'Ecommerce Infinity';
+    const siteUrl =
+      this.branding?.siteUrl ??
+      this.configService.get<string>('FRONTEND_URL') ??
+      this.configService.get<string>('BRAND_WEBSITE') ??
+      '';
+    const logoPath = this.branding?.logo?.primary ?? '';
+    const logoUrl = logoPath && siteUrl ? `${siteUrl.replace(/\/$/, '')}${logoPath.startsWith('/') ? logoPath : `/${logoPath}`}` : (this.configService.get<string>('BRAND_LOGO_URL') || '');
+    const palette = this.branding?.palette ?? {};
+    const primaryColor = palette.primary ?? this.configService.get<string>('BRAND_PRIMARY_COLOR') ?? '#111827';
+    const website = siteUrl || this.configService.get<string>('BRAND_WEBSITE') || '';
+    const supportEmail = this.configService.get<string>('BRAND_SUPPORT_EMAIL') || '';
+
     return {
-      name: this.configService.get<string>('BRAND_NAME') || 'Ecommerce Infinity',
-      logoUrl: this.configService.get<string>('BRAND_LOGO_URL') || '',
-      primaryColor: this.configService.get<string>('BRAND_PRIMARY_COLOR') || '#111827',
-      website: this.configService.get<string>('BRAND_WEBSITE') || '',
-      supportEmail: this.configService.get<string>('BRAND_SUPPORT_EMAIL') || '',
+      name,
+      logoUrl,
+      primaryColor,
+      mutedColor: palette.muted ?? '#f3f4f6',
+      mutedForeground: palette.mutedForeground ?? '#6b7280',
+      foreground: palette.foreground ?? '#111827',
+      background: palette.background ?? '#ffffff',
+      website,
+      supportEmail,
     };
   }
 
@@ -125,14 +183,14 @@ export class EmailService {
       : `<div style="font-size: 20px; font-weight: 700; color: ${brand.primaryColor}; margin-bottom: 16px;">${brand.name}</div>`;
 
     const footer = `
-      <div style="margin-top: 32px; font-size: 12px; color: #6b7280;">
+      <div style="margin-top: 32px; font-size: 12px; color: ${brand.mutedForeground};">
         ${brand.website ? `<div>Website: <a href="${brand.website}" style="color: ${brand.primaryColor};">${brand.website}</a></div>` : ''}
         ${brand.supportEmail ? `<div>Support: ${brand.supportEmail}</div>` : ''}
       </div>
     `;
 
     return `
-      <div style="font-family: Arial, sans-serif; color: #111827; line-height: 1.5;">
+      <div style="font-family: Arial, sans-serif; color: ${brand.foreground}; background-color: ${brand.background}; line-height: 1.5;">
         ${logo}
         <h2 style="color: ${brand.primaryColor}; margin: 0 0 12px;">${title}</h2>
         <div>${content}</div>
@@ -154,17 +212,17 @@ export class EmailService {
   }
 
   private async sendMail(to: string, subject: string, html: string) {
-    if (!this.transporter || !this.isConfigured) {
-      console.warn('Email service not configured. Skipping email.');
+    if (!this.resend || !this.isConfigured) {
+      console.warn('Resend email service not configured (RESEND_API_KEY missing). Skipping email.');
       return;
     }
 
-    const fromAddress = this.configService.get<string>('SMTP_FROM') || 'no-reply@localhost';
-    const fromName = this.configService.get<string>('SMTP_FROM_NAME') || this.getBranding().name;
+    const fromEmail = this.configService.get<string>('RESEND_FROM_EMAIL') || 'onboarding@resend.dev';
+    const fromName = this.configService.get<string>('RESEND_FROM_NAME') || this.getBranding().name;
 
-    await this.transporter.sendMail({
+    await this.resend.emails.send({
+      from: `${fromName} <${fromEmail}>`,
       to,
-      from: `${fromName} <${fromAddress}>`,
       subject,
       html,
     });

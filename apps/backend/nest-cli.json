@@ -6,6 +6,6 @@
     "deleteOutDir": true,
     "webpack": true,
     "tsConfigPath": "tsconfig.json"
-  }
+  },
+  "assets": [{ "include": "config/**/*.json", "outDir": "dist" }]
 }
-

@@ -1,0 +1,34 @@
+{
+  "name": "MISTICO",
+  "shortName": "MISTICO.DE",
+  "tagline": "Premium fragrances and luxury perfumes for every occasion.",
+  "description": "Discover premium fragrances and luxury perfumes. Shop the finest collection of scents for men and women.",
+  "keywords": ["perfume", "fragrance", "luxury", "e-commerce"],
+  "siteUrl": "http://localhost:3000",
+  "logo": {
+    "primary": "/branding/logo.svg",
+    "favicon": "/branding/favicon.svg",
+    "appleTouch": "/branding/favicon.svg"
+  },
+  "palette": {
+    "primary": "#C25CA4",
+    "primaryForeground": "#1A0B18",
+    "secondary": "#8B5BC2",
+    "secondaryForeground": "#1A0B18",
+    "accent": "#E07BB7",
+    "accentForeground": "#1A0B18",
+    "background": "#FFFFFF",
+    "foreground": "#1B0A1A",
+    "card": "#FFFFFF",
+    "cardForeground": "#1B0A1A",
+    "popover": "#FFFFFF",
+    "popoverForeground": "#1B0A1A",
+    "muted": "#F3E6F5",
+    "mutedForeground": "#6B5B70",
+    "border": "#E9D9EF",
+    "input": "#E9D9EF",
+    "ring": "#8B5BC2",
+    "destructive": "#B91C1C",
+    "destructiveForeground": "#FEF2F2"
+  }
+}
