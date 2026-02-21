@@ -38,7 +38,9 @@ ENV HOSTNAME=0.0.0.0
 COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/public ./public
-RUN npm ci --omit=dev
+# Use npm install so build works when package-lock.json is out of sync with package.json.
+# For reproducible installs, run `npm install` in apps/frontend and commit package-lock.json, then switch back to: RUN npm ci --omit=dev
+RUN npm install --omit=dev
 
 EXPOSE 3000
 
