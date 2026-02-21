@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { APP_INTERCEPTOR } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
@@ -28,6 +29,12 @@ import { LogsModule } from './logs/logs.module';
     ConfigModule.forRoot({
       isGlobal: true,
     }),
+    // Rate limiting: prevent loop/abuse calls (per IP)
+    ThrottlerModule.forRoot([
+      { name: 'short', ttl: 1000, limit: 10 },   // 10 req/sec
+      { name: 'medium', ttl: 10000, limit: 50 }, // 50 req/10s
+      { name: 'long', ttl: 60000, limit: 100 },  // 100 req/min
+    ]),
     PrismaModule,
     AuthModule,
     UsersModule,
@@ -49,6 +56,10 @@ import { LogsModule } from './logs/logs.module';
     LogsModule,
   ],
   providers: [
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
     {
       provide: APP_INTERCEPTOR,
       useClass: LanguageInterceptor,

@@ -1,5 +1,6 @@
 import { Body, Controller, Get, Headers, HttpCode, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { SkipThrottle } from '@nestjs/throttler';
 import { PaymentsService } from './payments.service';
 import { ConfirmPaymentSuccessDto } from './dto/confirm-payment-success.dto';
 import { CreatePaymentDto } from './dto/create-payment.dto';
@@ -27,6 +28,7 @@ export class PaymentsController {
     return this.paymentsService.confirmPaymentSuccess(dto.orderId);
   }
 
+  @SkipThrottle()
   @Post('webhook')
   @HttpCode(200)
   @ApiOperation({ summary: 'Stripe webhook' })
