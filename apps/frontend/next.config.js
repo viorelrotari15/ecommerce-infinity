@@ -42,6 +42,14 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  // Prefer browser build for Firebase; avoid node-esm (undici) in client bundle
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      config.resolve.conditionNames = ['browser', 'import', 'require', 'default'];
+    }
+    return config;
+  },
+  transpilePackages: ['firebase'],
   images: {
     domains: getImageDomains(),
     remotePatterns: [

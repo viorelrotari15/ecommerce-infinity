@@ -19,7 +19,12 @@ import {
   safeStringSchema,
   VALIDATION,
 } from '@/lib/validation';
-import { SocialLoginButtons } from '@/components/auth/social-login-buttons';
+import dynamic from 'next/dynamic';
+
+const SocialLoginButtons = dynamic(
+  () => import('@/components/auth/social-login-buttons').then((m) => ({ default: m.SocialLoginButtons })),
+  { ssr: false },
+);
 
 function createRegisterSchema(t: (key: string, fallback?: string) => string) {
   return yup.object({

@@ -16,7 +16,12 @@ import { getCart, updateCart as updateCartAPI } from '@/lib/api/client';
 import { notifyAuthStateChanged } from '@/lib/auth';
 import { useT, translationKeys } from '@/lib/utils/translations';
 import { emailSchema, passwordLoginSchema } from '@/lib/validation';
-import { SocialLoginButtons } from '@/components/auth/social-login-buttons';
+import dynamic from 'next/dynamic';
+
+const SocialLoginButtons = dynamic(
+  () => import('@/components/auth/social-login-buttons').then((m) => ({ default: m.SocialLoginButtons })),
+  { ssr: false },
+);
 
 type LoginFormData = {
   email: string;
