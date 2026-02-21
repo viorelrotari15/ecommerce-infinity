@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
@@ -95,37 +95,53 @@ export default function EditProductPage() {
   const { data: languages = [] } = useLanguages(true);
   const { data: defaultLanguageCode = 'en' } = useDefaultLanguage();
 
-  const productSchema = yup.object({
-    // Name, description, shortDescription, metaTitle, metaDescription come from translations
-    name: yup.string().optional(),
-    description: yup.string().optional(),
-    shortDescription: yup.string().optional(),
-    brandId: yup.string().required(t(translationKeys.admin.products.brandRequired, 'Brand is required')),
-    productTypeId: yup.string().optional(),
-    categoryIds: yup.array().of(yup.string().required()).min(1, t(translationKeys.admin.products.categoryRequired, 'At least one category is required')).required(),
-    isActive: yup.boolean().default(true),
-    isFeatured: yup.boolean().default(false),
-    metaTitle: yup.string().optional(),
-    metaDescription: yup.string().optional(),
-    variants: yup
-      .array()
-      .of(
-        yup.object({
-          name: yup.string().required(t(translationKeys.admin.products.variantNameRequired, 'Variant name is required')),
-          price: yup.number().min(0, t(translationKeys.admin.products.pricePositive, 'Price must be positive')).required(t(translationKeys.admin.products.priceRequired, 'Price is required')),
-          stock: yup.number().min(0, t(translationKeys.admin.products.stockPositive, 'Stock must be positive')).required(t(translationKeys.admin.products.stockRequired, 'Stock is required')),
-          isActive: yup.boolean().default(true),
-        }),
-      )
-      .min(1, t(translationKeys.admin.products.variantRequired, 'At least one variant is required'))
-      .required(),
-    attributes: yup.array().of(
+  const productSchema = useMemo(
+    () =>
       yup.object({
-        attributeId: yup.string().required(t(translationKeys.admin.products.attributeRequired, 'Attribute is required')),
-        value: yup.string().required(t(translationKeys.admin.products.valueRequired, 'Value is required')),
+        name: yup.string().optional(),
+        description: yup.string().optional(),
+        shortDescription: yup.string().optional(),
+        brandId: yup.string().required(t(translationKeys.admin.products.brandRequired, 'Brand is required')),
+        productTypeId: yup.string().optional(),
+        categoryIds: yup.array().of(yup.string().required()).min(1, t(translationKeys.admin.products.categoryRequired, 'At least one category is required')).required(),
+        isActive: yup.boolean().default(true),
+        isFeatured: yup.boolean().default(false),
+        metaTitle: yup.string().optional(),
+        metaDescription: yup.string().optional(),
+        variants: yup
+          .array()
+          .of(
+            yup.object({
+              name: yup.string().required(t(translationKeys.admin.products.variantNameRequired, 'Variant name is required')),
+              price: yup.number().min(0, t(translationKeys.admin.products.pricePositive, 'Price must be positive')).required(t(translationKeys.admin.products.priceRequired, 'Price is required')),
+              stock: yup.number().min(0, t(translationKeys.admin.products.stockPositive, 'Stock must be positive')).required(t(translationKeys.admin.products.stockRequired, 'Stock is required')),
+              isActive: yup.boolean().default(true),
+            }),
+          )
+          .min(1, t(translationKeys.admin.products.variantRequired, 'At least one variant is required'))
+          .required(),
+        attributes: yup.array().of(
+          yup.object({
+            attributeId: yup.string().required(t(translationKeys.admin.products.attributeRequired, 'Attribute is required')),
+            value: yup
+              .string()
+              .required(t(translationKeys.admin.products.valueRequired, 'Value is required'))
+              .test(
+                'subattribute-required',
+                t(translationKeys.admin.products.subattributeRequired, 'Please select a subattribute for this attribute'),
+                function (val) {
+                  const attributeId = this.parent?.attributeId;
+                  if (!attributeId) return true;
+                  const attr = attributes.find((a: Attribute) => a.id === attributeId);
+                  if (!attr?.subattributes?.length) return true;
+                  return !!(val && String(val).trim());
+                },
+              ),
+          }),
+        ),
       }),
-    ),
-  });
+    [attributes, t],
+  );
 
   // Use React Query hooks for brands, categories, and product types
   const { data: brands = [] } = useBrands();
@@ -567,7 +583,7 @@ export default function EditProductPage() {
             <CardHeader>
               <CardTitle>{t(translationKeys.common.productInformationAndTranslations, 'Product Information and Translations')}</CardTitle>
               <CardDescription>
-                {t(translationKeys.common.manageProductTranslations, 'Manage translations for this product in different languages. All active languages must have required fields populated.')}
+                {t(translationKeys.common.translationsHintForAllLanguages, 'Name, Meta Title and Meta Description are required for the default language only. Other languages show a warning if missing and fallback to the default language.')}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -737,11 +753,10 @@ export default function EditProductPage() {
                             value={selectedAttributeId || ''}
                             onValueChange={(value) => {
                               setValue(`attributes.${index}.attributeId`, value);
-                              // Clear value when attribute changes
                               setValue(`attributes.${index}.value`, '');
                             }}
                           >
-                            <SelectTrigger>
+                            <SelectTrigger className={errors.attributes?.[index]?.attributeId ? 'border-destructive' : ''}>
                               <SelectValue placeholder={t(translationKeys.common.selectAttribute, 'Select attribute')} />
                             </SelectTrigger>
                             <SelectContent>
@@ -752,6 +767,9 @@ export default function EditProductPage() {
                               ))}
                             </SelectContent>
                           </Select>
+                          {errors.attributes?.[index]?.attributeId && (
+                            <p className="text-sm text-destructive">{errors.attributes[index]?.attributeId?.message}</p>
+                          )}
                         </div>
                         <div className="space-y-2">
                           <Label>{t(translationKeys.common.value, 'Value')}</Label>
@@ -760,9 +778,9 @@ export default function EditProductPage() {
                               value={watch(`attributes.${index}.value`) || ''}
                               onValueChange={(value) => setValue(`attributes.${index}.value`, value)}
                             >
-                            <SelectTrigger>
-                              <SelectValue placeholder={t(translationKeys.common.selectValue, 'Select value')} />
-                            </SelectTrigger>
+                              <SelectTrigger className={errors.attributes?.[index]?.value ? 'border-destructive' : ''}>
+                                <SelectValue placeholder={t(translationKeys.common.selectValue, 'Select value')} />
+                              </SelectTrigger>
                               <SelectContent>
                                 {subattributes.map((subattr) => (
                                   <SelectItem key={subattr.id} value={subattr.name}>
@@ -780,7 +798,11 @@ export default function EditProductPage() {
                               {...register(`attributes.${index}.value`)} 
                               placeholder={t(translationKeys.admin.products.selectAttributeFirst, 'Select attribute first')}
                               disabled
+                              className={errors.attributes?.[index]?.value ? 'border-destructive' : ''}
                             />
+                          )}
+                          {errors.attributes?.[index]?.value && (
+                            <p className="text-sm text-destructive">{errors.attributes[index]?.value?.message}</p>
                           )}
                         </div>
                         <div className="flex items-end">
@@ -969,7 +991,7 @@ export default function EditProductPage() {
         </Card>
 
         {/* Submit */}
-        <div className="flex justify-end gap-4">
+        <div className="flex flex-wrap justify-end gap-4">
           <Button
             type="button"
             variant="outline"

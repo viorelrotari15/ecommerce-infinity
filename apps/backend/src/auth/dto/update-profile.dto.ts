@@ -1,4 +1,4 @@
-import { IsObject, IsOptional, IsString } from 'class-validator';
+import { IsArray, IsObject, IsOptional, IsString } from 'class-validator';
 
 export class UpdateProfileDto {
   @IsOptional()
@@ -20,4 +20,13 @@ export class UpdateProfileDto {
   @IsOptional()
   @IsObject()
   defaultBillingAddress?: Record<string, any>;
+
+  @IsOptional()
+  @IsArray()
+  savedAddresses?: Record<string, any>[];
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  hiddenAddressKeys?: string[];
 }

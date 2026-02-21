@@ -114,7 +114,7 @@ async function main() {
     },
   });
 
-  // Seed Regions, Tax Rates, and Shipping
+  // Seed Regions and Shipping
   const germany = await prisma.region.upsert({
     where: { code: 'DE' },
     update: {
@@ -131,32 +131,6 @@ async function main() {
       isActive: true,
     },
   });
-
-  const defaultTaxRate = await prisma.taxRate.findFirst({
-    where: { regionId: germany.id, isDefault: true },
-  });
-
-  if (defaultTaxRate) {
-    await prisma.taxRate.update({
-      where: { id: defaultTaxRate.id },
-      data: {
-        name: 'VAT 19%',
-        rate: 0.19,
-        isDefault: true,
-        isActive: true,
-      },
-    });
-  } else {
-    await prisma.taxRate.create({
-      data: {
-        regionId: germany.id,
-        name: 'VAT 19%',
-        rate: 0.19,
-        isDefault: true,
-        isActive: true,
-      },
-    });
-  }
 
   const standardMethod = await prisma.shippingMethod.upsert({
     where: { regionId_code: { regionId: germany.id, code: 'standard' } },

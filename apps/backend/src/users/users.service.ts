@@ -1,4 +1,5 @@
-import { Injectable, ConflictException, NotFoundException } from '@nestjs/common';
+import { Injectable, ConflictException, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateProfileDto } from '../auth/dto/update-profile.dto';
@@ -55,22 +56,53 @@ export class UsersService {
   }
 
   async updateProfile(id: string, updateProfileDto: UpdateProfileDto) {
-    return this.prisma.user.update({
-      where: { id },
-      data: updateProfileDto,
-      select: {
-        id: true,
-        email: true,
-        firstName: true,
-        lastName: true,
-        phone: true,
-        defaultShippingAddress: true,
-        defaultBillingAddress: true,
-        role: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-    });
+    const data: Prisma.UserUpdateInput = {};
+    if (updateProfileDto.firstName !== undefined) data.firstName = updateProfileDto.firstName;
+    if (updateProfileDto.lastName !== undefined) data.lastName = updateProfileDto.lastName;
+    if (updateProfileDto.phone !== undefined) data.phone = updateProfileDto.phone;
+    if (updateProfileDto.defaultShippingAddress !== undefined) {
+      data.defaultShippingAddress = updateProfileDto.defaultShippingAddress as unknown as Prisma.InputJsonValue;
+    }
+    if (updateProfileDto.defaultBillingAddress !== undefined) {
+      data.defaultBillingAddress = updateProfileDto.defaultBillingAddress as unknown as Prisma.InputJsonValue;
+    }
+    if (Array.isArray(updateProfileDto.savedAddresses)) {
+      data.savedAddresses = updateProfileDto.savedAddresses as unknown as Prisma.InputJsonValue;
+    }
+    if (Array.isArray(updateProfileDto.hiddenAddressKeys)) {
+      data.hiddenAddressKeys = updateProfileDto.hiddenAddressKeys as unknown as Prisma.InputJsonValue;
+    }
+    try {
+      return await this.prisma.user.update({
+        where: { id },
+        data,
+        select: {
+          id: true,
+          email: true,
+          firstName: true,
+          lastName: true,
+          phone: true,
+          defaultShippingAddress: true,
+          defaultBillingAddress: true,
+          savedAddresses: true,
+          hiddenAddressKeys: true,
+          role: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
+    } catch (err: any) {
+      const message = err?.message ?? String(err);
+      if (
+        typeof message === 'string' &&
+        (message.includes('savedAddresses') || message.includes('column') || message.includes('does not exist'))
+      ) {
+        throw new ServiceUnavailableException(
+          'Database schema is outdated. Please run: npx prisma migrate deploy',
+        );
+      }
+      throw err;
+    }
   }
 }
 

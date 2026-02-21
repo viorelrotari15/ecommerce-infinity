@@ -12,6 +12,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { notifyAuthStateChanged } from '@/lib/auth';
+import { useT } from '@/lib/utils/translations';
+import { translationKeys } from '@/lib/utils/translations';
 
 const registerSchema = yup.object({
   email: yup.string().email('Invalid email address').required('Email is required'),
@@ -30,6 +32,7 @@ export default function RegisterPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
+  const t = useT();
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const defaultEmail = searchParams.get('email') || '';
@@ -93,8 +96,8 @@ export default function RegisterPage() {
     <div className="container flex min-h-[60vh] items-center justify-center py-12">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl">Create Account</CardTitle>
-          <CardDescription>Sign up to get started</CardDescription>
+          <CardTitle className="text-2xl">{t(translationKeys.auth.createAccountTitle, 'Create Account')}</CardTitle>
+          <CardDescription>{t(translationKeys.auth.signUpDescription, 'Sign up to get started')}</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">

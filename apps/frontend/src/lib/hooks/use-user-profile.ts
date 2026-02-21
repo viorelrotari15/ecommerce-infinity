@@ -12,6 +12,8 @@ export interface UserProfile {
   phone: string | null;
   defaultShippingAddress?: Record<string, any> | null;
   defaultBillingAddress?: Record<string, any> | null;
+  savedAddresses?: Record<string, any>[] | null;
+  hiddenAddressKeys?: string[] | null;
   role: string;
   createdAt: string;
   updatedAt: string;
@@ -43,7 +45,7 @@ export function useUpdateProfile() {
       payload: Partial<
         Pick<
           UserProfile,
-          'firstName' | 'lastName' | 'phone' | 'defaultShippingAddress' | 'defaultBillingAddress'
+          'firstName' | 'lastName' | 'phone' | 'defaultShippingAddress' | 'defaultBillingAddress' | 'savedAddresses' | 'hiddenAddressKeys'
         >
       >,
     ) => {

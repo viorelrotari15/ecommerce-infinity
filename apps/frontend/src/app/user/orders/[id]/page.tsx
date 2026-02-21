@@ -46,7 +46,7 @@ export default function UserOrderDetailsPage() {
   if (isLoading) {
     return (
       <div className="container py-8">
-        <p className="text-muted-foreground">Loading order...</p>
+        <p className="text-muted-foreground">{t(translationKeys.profile.orderDetails.loading, 'Loading order...')}</p>
       </div>
     );
   }
@@ -56,11 +56,11 @@ export default function UserOrderDetailsPage() {
       <div className="container py-8">
         <Card className="max-w-md mx-auto">
           <CardHeader>
-            <CardTitle>Error</CardTitle>
-            <CardDescription>Failed to load order details.</CardDescription>
+            <CardTitle>{t(translationKeys.profile.orderDetails.errorTitle, 'Error')}</CardTitle>
+            <CardDescription>{t(translationKeys.profile.orderDetails.errorDescription, 'Failed to load order details.')}</CardDescription>
           </CardHeader>
           <CardContent>
-            <Button onClick={() => router.push('/user/profile')}>Back to profile</Button>
+            <Button onClick={() => router.push('/user/profile')}>{t(translationKeys.profile.orderDetails.backToProfile, 'Back to profile')}</Button>
           </CardContent>
         </Card>
       </div>
@@ -70,46 +70,45 @@ export default function UserOrderDetailsPage() {
   return (
     <div className="container py-8 space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Order #{formatOrderIdDisplay(order.id)}</h1>
-        <p className="text-muted-foreground">Status: {statusLabel}</p>
+        <h1 className="text-3xl font-bold">{t(translationKeys.profile.orderDetails.title, 'Order')} #{formatOrderIdDisplay(order.id)}</h1>
+        <p className="text-muted-foreground">{t(translationKeys.profile.orderDetails.status, 'Status')}: {statusLabel}</p>
       </div>
 
       {order.trackingNumber && (
         <Card>
           <CardHeader>
-            <CardTitle>Tracking</CardTitle>
+            <CardTitle>{t(translationKeys.profile.orderDetails.trackingTitle, 'Tracking')}</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-muted-foreground">DHL tracking number: {order.trackingNumber}</p>
+            <p className="text-sm text-muted-foreground">{t(translationKeys.profile.orderDetails.trackingLabel, 'DHL tracking number')}: {order.trackingNumber}</p>
           </CardContent>
         </Card>
       )}
 
       <Card>
         <CardHeader>
-          <CardTitle>Addresses</CardTitle>
+          <CardTitle>{t(translationKeys.profile.orderDetails.addressesTitle, 'Addresses')}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2 text-sm text-muted-foreground">
-          <p>Shipping address: {formatAddress(order.shippingAddress)}</p>
-          <p>Billing address: {formatAddress(order.billingAddress)}</p>
+          <p>{t(translationKeys.profile.orderDetails.shippingAddress, 'Shipping address')}: {formatAddress(order.shippingAddress)}</p>
+          <p>{t(translationKeys.profile.orderDetails.billingAddress, 'Billing address')}: {formatAddress(order.billingAddress)}</p>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle>Order totals</CardTitle>
+          <CardTitle>{t(translationKeys.profile.orderDetails.totalsTitle, 'Order totals')}</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-2 text-sm text-muted-foreground md:grid-cols-2">
-          <span>Subtotal: {formatPrice(order.subtotal)}</span>
-          <span>Shipping: {formatPrice(order.shipping)}</span>
-          <span>Tax: {formatPrice(order.tax)}</span>
-          <span>Total: {formatPrice(order.total)}</span>
+          <span>{t(translationKeys.checkout.subtotal, 'Subtotal')}: {formatPrice(order.subtotal)}</span>
+          <span>{t(translationKeys.checkout.shipping, 'Shipping')}: {formatPrice(order.shipping)}</span>
+          <span>{t(translationKeys.checkout.total, 'Total')}: {formatPrice(order.total)}</span>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle>Items</CardTitle>
+          <CardTitle>{t(translationKeys.profile.orderDetails.itemsTitle, 'Items')}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
           {order.items.map((item) => (

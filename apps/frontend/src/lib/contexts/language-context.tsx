@@ -17,7 +17,19 @@ interface LanguageContextType {
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
-export function LanguageProvider({ children }: { children: React.ReactNode }) {
+const DEFAULT_LANGUAGE_VALUE: LanguageContextType = {
+  currentLanguage: 'en',
+  setLanguage: () => {},
+  languages: [],
+  isLoading: true,
+};
+
+/**
+ * Inner provider that uses useRouter/useSearchParams. Only rendered after client
+ * mount so we never call navigation hooks during SSR (avoids "Cannot read
+ * properties of null (reading 'useContext')" when navigation context is missing).
+ */
+function LanguageProviderWithNavigation({ children }: { children: React.ReactNode }) {
   const [currentLanguage, setCurrentLanguageState] = useState<string>('en');
   const [previousLanguage, setPreviousLanguage] = useState<string>('en');
   const { data: languages = [], isLoading: languagesLoading } = useLanguages();
@@ -125,6 +137,19 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   };
 
   return <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>;
+}
+
+export function LanguageProvider({ children }: { children: React.ReactNode }) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  if (!mounted) {
+    return (
+      <LanguageContext.Provider value={DEFAULT_LANGUAGE_VALUE}>
+        {children}
+      </LanguageContext.Provider>
+    );
+  }
+  return <LanguageProviderWithNavigation>{children}</LanguageProviderWithNavigation>;
 }
 
 export function useLanguage() {

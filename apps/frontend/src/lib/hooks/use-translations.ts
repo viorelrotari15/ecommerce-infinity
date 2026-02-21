@@ -25,10 +25,27 @@ function uploadRussianToBackend(flat: Record<string, string>): void {
 }
 
 /**
+ * Flatten nested translation object to flat key-value (e.g. { footer: { legal: { title: 'X' } } } -> { 'footer.legal.title': 'X' }).
+ */
+function nestedToFlat(obj: Record<string, any>, prefix = ''): Record<string, string> {
+  const result: Record<string, string> = {};
+  for (const key of Object.keys(obj)) {
+    const value = obj[key];
+    const fullKey = prefix ? `${prefix}.${key}` : key;
+    if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
+      Object.assign(result, nestedToFlat(value, fullKey));
+    } else if (typeof value === 'string') {
+      result[fullKey] = value;
+    }
+  }
+  return result;
+}
+
+/**
  * Fetch translations for a language from the API and update localStorage cache.
  * Used by useTranslations and by language switch (prefetch + refresh).
- * For Russian (ru), if the API fails or returns empty, built-in Russian translations are used
- * and an attempt is made to upload them to the backend to populate the database.
+ * For Russian (ru) and German (de), if the API fails or returns empty, built-in translations are used.
+ * When API returns partial data for ru/de, it is merged with built-in so missing keys get the correct translation.
  */
 export async function fetchTranslationsForLanguage(lang: string): Promise<Translations> {
   try {
@@ -40,6 +57,31 @@ export async function fetchTranslationsForLanguage(lang: string): Promise<Transl
     if (lang === 'ru' && isEmpty) {
       return await getBuiltInRussianTranslations();
     }
+    if (lang === 'de' && isEmpty) {
+      return await getBuiltInGermanTranslations();
+    }
+    if (lang === 'ru' && data && typeof data === 'object') {
+      const { getRussianTemplate, flatToNested } = await import('../utils/translations');
+      const builtInFlat = getRussianTemplate();
+      const apiFlat = nestedToFlat(data);
+      const mergedFlat = { ...apiFlat, ...builtInFlat };
+      const merged = flatToNested(mergedFlat) as Translations;
+      if (typeof window !== 'undefined') {
+        setCachedTranslations(lang, merged);
+      }
+      return merged;
+    }
+    if (lang === 'de' && data && typeof data === 'object') {
+      const { getGermanTemplate, flatToNested } = await import('../utils/translations');
+      const builtInFlat = getGermanTemplate();
+      const apiFlat = nestedToFlat(data);
+      const mergedFlat = { ...apiFlat, ...builtInFlat };
+      const merged = flatToNested(mergedFlat) as Translations;
+      if (typeof window !== 'undefined') {
+        setCachedTranslations(lang, merged);
+      }
+      return merged;
+    }
     if (typeof window !== 'undefined') {
       setCachedTranslations(lang, data);
     }
@@ -47,6 +89,9 @@ export async function fetchTranslationsForLanguage(lang: string): Promise<Transl
   } catch (err) {
     if (lang === 'ru') {
       return await getBuiltInRussianTranslations();
+    }
+    if (lang === 'de') {
+      return await getBuiltInGermanTranslations();
     }
     throw err;
   }
@@ -64,6 +109,20 @@ async function getBuiltInRussianTranslations(): Promise<Translations> {
   const nested = flatToNested(flat) as Translations;
   if (typeof window !== 'undefined') {
     setCachedTranslations('ru', nested);
+  }
+  return nested;
+}
+
+/**
+ * Built-in German translations (same as getGermanTemplate + flatToNested).
+ * Used when backend has no German translations or API fails.
+ */
+async function getBuiltInGermanTranslations(): Promise<Translations> {
+  const { getGermanTemplate, flatToNested } = await import('../utils/translations');
+  const flat = getGermanTemplate();
+  const nested = flatToNested(flat) as Translations;
+  if (typeof window !== 'undefined') {
+    setCachedTranslations('de', nested);
   }
   return nested;
 }

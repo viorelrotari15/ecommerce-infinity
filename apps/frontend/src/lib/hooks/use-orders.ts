@@ -5,6 +5,7 @@ import {
   apiService,
   getAdminOrderById,
   getUserOrderById,
+  listAdminOrders,
   listStripePayments,
   updateAdminOrderStatus,
   type AdminOrderResponse,
@@ -80,14 +81,20 @@ export function useUserOrders() {
   });
 }
 
-export function useAdminOrders() {
+export interface AdminOrdersParams {
+  orderId?: string;
+  page?: number;
+  limit?: number;
+}
+
+export function useAdminOrders(params?: AdminOrdersParams) {
   const token = getAuthToken();
 
   return useQuery({
-    queryKey: ['admin', 'orders'],
-    queryFn: async (): Promise<AdminOrder[]> => {
+    queryKey: ['admin', 'orders', params],
+    queryFn: async () => {
       if (!token) throw new Error('Not authenticated');
-      return apiService.get<AdminOrder[]>('/orders/admin');
+      return listAdminOrders(params);
     },
     enabled: !!token,
     staleTime: 60 * 1000,

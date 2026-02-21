@@ -371,7 +371,6 @@ export interface ShippingOption {
 export interface CheckoutEstimateResponse {
   region: { id: string; code: string; currency: string };
   subtotal: number;
-  tax: number;
   shippingOptions: ShippingOption[];
 }
 
@@ -441,6 +440,27 @@ export interface AdminOrderResponse {
   user?: { id: string; email: string; firstName: string; lastName: string } | null;
 }
 
+export interface AdminOrdersListResponse {
+  data: AdminOrderResponse[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export async function listAdminOrders(params?: {
+  orderId?: string;
+  page?: number;
+  limit?: number;
+}): Promise<AdminOrdersListResponse> {
+  const query = new URLSearchParams();
+  if (params?.orderId?.trim()) query.set('orderId', params.orderId.trim());
+  if (params?.page != null && params.page > 1) query.set('page', String(params.page));
+  if (params?.limit != null && params.limit !== 20) query.set('limit', String(params.limit));
+  const suffix = query.toString() ? `?${query.toString()}` : '';
+  return apiService.get<AdminOrdersListResponse>(`/orders/admin${suffix}`);
+}
+
 export async function getAdminOrderById(orderId: string): Promise<AdminOrderResponse> {
   return apiService.get<AdminOrderResponse>(`/orders/admin/${orderId}`);
 }
@@ -496,23 +516,6 @@ export async function listStripePayments(params?: { orderId?: string; email?: st
 
 export async function listAdminRegions() {
   return apiService.get('/pricing/admin/regions');
-}
-
-export async function listAdminTaxRates(regionCode?: string) {
-  const query = regionCode ? `?regionCode=${encodeURIComponent(regionCode)}` : '';
-  return apiService.get(`/pricing/admin/tax-rates${query}`);
-}
-
-export async function createAdminTaxRate(payload: any) {
-  return apiService.post('/pricing/admin/tax-rates', payload);
-}
-
-export async function updateAdminTaxRate(id: string, payload: any) {
-  return apiService.patch(`/pricing/admin/tax-rates/${id}`, payload);
-}
-
-export async function deleteAdminTaxRate(id: string) {
-  return apiService.delete(`/pricing/admin/tax-rates/${id}`);
 }
 
 export async function listAdminShippingMethods(regionCode?: string) {

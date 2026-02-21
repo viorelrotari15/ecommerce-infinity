@@ -215,49 +215,52 @@ export function Header() {
               <Button variant="ghost" size="icon" className="relative">
                 <ShoppingCart className="h-5 w-5" />
                 {mounted && cartItemCount > 0 && (
-                  <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
+                  <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-xs font-bold text-white">
                     {cartItemCount > 99 ? '99+' : cartItemCount}
                   </span>
                 )}
               </Button>
             </Link>
-            {!mounted ? (
-              <Link href="/auth/login">
-                <Button variant="outline" size="sm" className="hidden lg:inline-flex">
-                  {t(translationKeys.header.actions.login, 'Login')}
-                </Button>
-              </Link>
-            ) : isLoggedIn ? (
-              <>
-                {isUserAdmin && (
-                  <Link href="/admin/dashboard">
-                    <Button variant="ghost" size="icon" title="Dashboard">
-                      <LayoutDashboard className="h-5 w-5" />
-                    </Button>
-                  </Link>
-                )}
-                <Link href="/user/profile">
-                  <Button variant="ghost" size="icon" title="Profile" className="hidden lg:inline-flex">
-                    <User className="h-5 w-5" />
+            {/* Single wrapper keeps DOM structure stable for hydration (same number of children before/after mount) */}
+            <div className="flex items-center gap-2">
+              {!mounted ? (
+                <Link href="/auth/login">
+                  <Button variant="outline" size="sm" className="hidden lg:inline-flex">
+                    {t(translationKeys.header.actions.login, 'Login')}
                   </Button>
                 </Link>
-                <div className="hidden lg:flex items-center gap-2 min-w-0">
-                  <span className="text-sm text-muted-foreground truncate max-w-[150px]">
-                    {user?.firstName || user?.email}
-                  </span>
-                  <Button variant="outline" onClick={handleLogout} size="sm" className="flex-shrink-0">
-                    <LogOut className="h-4 w-4 mr-2" />
-                    {t(translationKeys.header.actions.logout, 'Logout')}
+              ) : isLoggedIn ? (
+                <>
+                  {isUserAdmin && (
+                    <Link href="/admin/dashboard">
+                      <Button variant="ghost" size="icon" title={t(translationKeys.header.menu.dashboard, 'Dashboard')}>
+                        <LayoutDashboard className="h-5 w-5" />
+                      </Button>
+                    </Link>
+                  )}
+                  <Link href="/user/profile">
+                    <Button variant="ghost" size="icon" title={t(translationKeys.header.actions.profile, 'Profile')} className="hidden lg:inline-flex">
+                      <User className="h-5 w-5" />
+                    </Button>
+                  </Link>
+                  <div className="hidden lg:flex items-center gap-2 min-w-0">
+                    <span className="text-sm text-muted-foreground truncate max-w-[150px]">
+                      {user?.firstName || user?.email}
+                    </span>
+                    <Button variant="outline" onClick={handleLogout} size="sm" className="flex-shrink-0">
+                      <LogOut className="h-4 w-4 mr-2" />
+                      {t(translationKeys.header.actions.logout, 'Logout')}
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <Link href="/auth/login">
+                  <Button variant="outline" size="sm" className="hidden lg:inline-flex">
+                    {t(translationKeys.header.actions.login, 'Login')}
                   </Button>
-                </div>
-              </>
-            ) : (
-              <Link href="/auth/login">
-                <Button variant="outline" size="sm" className="hidden lg:inline-flex">
-                  {t(translationKeys.header.actions.login, 'Login')}
-                </Button>
-              </Link>
-            )}
+                </Link>
+              )}
+            </div>
           </div>
         </div>
       </header>
@@ -381,7 +384,7 @@ export function Header() {
                     <ShoppingCart className="h-5 w-5" />
                     {t(translationKeys.header.menu.cart, 'Cart')}
                     {mounted && cartItemCount > 0 && (
-                      <span className="ml-auto px-2 py-0.5 rounded-full bg-primary text-xs font-bold text-primary-foreground">
+                      <span className="ml-auto px-2 py-0.5 rounded-full bg-primary text-xs font-bold text-white">
                         {cartItemCount > 99 ? '99+' : cartItemCount}
                       </span>
                     )}

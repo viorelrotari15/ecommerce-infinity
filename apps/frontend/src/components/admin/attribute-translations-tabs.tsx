@@ -9,6 +9,7 @@ import { useLanguages } from '@/lib/hooks/use-languages';
 import { useAttributeTranslations, useUpsertAttributeTranslation } from '@/lib/hooks/use-attributes';
 import { useToast } from '@/hooks/use-toast';
 import { AlertCircle } from 'lucide-react';
+import { useT, translationKeys } from '@/lib/utils/translations';
 
 interface AttributeTranslationsTabsProps {
   attributeId?: string;
@@ -29,6 +30,7 @@ export const AttributeTranslationsTabs = forwardRef<AttributeTranslationsTabsRef
   creationMode = false,
   onTranslationDataChange,
 }, ref) => {
+  const t = useT();
   const { data: languages = [] } = useLanguages(true);
   const { data: translations = [], isLoading: isLoadingTranslations, refetch: refetchTranslations } = useAttributeTranslations(attributeId || '');
   const upsertTranslation = useUpsertAttributeTranslation();
@@ -201,8 +203,8 @@ export const AttributeTranslationsTabs = forwardRef<AttributeTranslationsTabsRef
           allErrors[defaultLang.code] = validation.errorMessages;
         }
       } else {
-        allFieldErrors[defaultLang.code] = { name: 'Translation data is missing' };
-        allErrors[defaultLang.code] = ['Translation data is missing'];
+        allFieldErrors[defaultLang.code] = { name: t(translationKeys.common.translationDataMissing, 'Translation data is missing') };
+        allErrors[defaultLang.code] = [t(translationKeys.common.translationDataMissing, 'Translation data is missing')];
       }
       
       // Set field errors so they display in the UI
@@ -233,7 +235,7 @@ export const AttributeTranslationsTabs = forwardRef<AttributeTranslationsTabsRef
   if (activeLanguages.length === 0) {
     return (
       <div className="text-sm text-muted-foreground">
-        No active languages configured
+        {t(translationKeys.common.noActiveLanguages, 'No active languages configured')}
       </div>
     );
   }
@@ -250,7 +252,7 @@ export const AttributeTranslationsTabs = forwardRef<AttributeTranslationsTabsRef
                 {lang.name}
                 {lang.isDefault && <span className="ml-1 text-xs">★</span>}
                 {!hasTranslation && (
-                  <span className="ml-1 text-xs text-muted-foreground">(missing)</span>
+                  <span className="ml-1 text-xs text-muted-foreground">{t(translationKeys.common.missingLabel, '(missing)')}</span>
                 )}
                 {hasErrors && (
                   <span className="ml-1 text-xs text-destructive">⚠</span>
@@ -267,7 +269,7 @@ export const AttributeTranslationsTabs = forwardRef<AttributeTranslationsTabsRef
               <AlertCircle className="h-5 w-5 text-destructive flex-shrink-0 mt-0.5" />
               <div className="flex-1">
                 <p className="text-sm font-medium text-destructive mb-1">
-                  Required fields are missing in the following languages:
+                  {t(translationKeys.common.requiredFieldsMissingInLanguages, 'Required fields are missing in the following languages:')}
                 </p>
                 <ul className="text-sm text-destructive/90 space-y-1">
                   {Object.entries(fieldErrors).map(([langCode, errors]) => {
@@ -278,7 +280,7 @@ export const AttributeTranslationsTabs = forwardRef<AttributeTranslationsTabsRef
                       <li key={langCode} className="flex items-center gap-2">
                         <span className="font-medium">{langName}:</span>
                         <span>{errorFields.map(field => {
-                          if (field === 'name') return 'Attribute Name';
+                          if (field === 'name') return t(translationKeys.admin.attributes.name, 'Attribute Name');
                           return field;
                         }).join(', ')}</span>
                         <button
@@ -286,7 +288,7 @@ export const AttributeTranslationsTabs = forwardRef<AttributeTranslationsTabsRef
                           className="ml-auto text-xs text-destructive hover:underline"
                           onClick={() => setActiveTab(langCode)}
                         >
-                          Go to {langName}
+                          {t(translationKeys.common.goToLanguage, 'Go to {langName}').replace('{langName}', langName)}
                         </button>
                       </li>
                     );
@@ -301,13 +303,13 @@ export const AttributeTranslationsTabs = forwardRef<AttributeTranslationsTabsRef
           <TabsContent key={lang.code} value={lang.code} className="space-y-6 mt-4">
             <Card>
               <CardHeader>
-                <CardTitle>Basic Information</CardTitle>
-                <CardDescription>Attribute name in {lang.name}</CardDescription>
+                <CardTitle>{t(translationKeys.common.basicInfo, 'Basic Information')}</CardTitle>
+                <CardDescription>{t(translationKeys.admin.attributes.nameInLanguage, 'Attribute name in {langName}').replace('{langName}', lang.name)}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor={`name-${lang.code}`}>
-                    Attribute Name <span className="text-destructive">*</span>
+                    {t(translationKeys.admin.attributes.name, 'Attribute Name')} <span className="text-destructive">*</span>
                   </Label>
                   <Input
                     id={`name-${lang.code}`}

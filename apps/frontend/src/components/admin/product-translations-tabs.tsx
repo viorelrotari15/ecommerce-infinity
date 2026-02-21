@@ -12,6 +12,7 @@ import { useLanguages } from '@/lib/hooks/use-languages';
 import { useProductTranslations, useCreateProductTranslation, useUpdateProductTranslation } from '@/lib/hooks/use-product-translations';
 import { useToast } from '@/hooks/use-toast';
 import { AlertCircle } from 'lucide-react';
+import { useT, translationKeys } from '@/lib/utils/translations';
 
 interface ProductTranslationsTabsProps {
   productId?: string;
@@ -40,6 +41,7 @@ export const ProductTranslationsTabs = forwardRef<ProductTranslationsTabsRef, Pr
   creationMode = false,
   onTranslationDataChange,
 }, ref) => {
+  const t = useT();
   const { data: languages = [] } = useLanguages(true);
   const { data: translations = [] } = useProductTranslations(productId || '');
   const createTranslation = useCreateProductTranslation();
@@ -168,32 +170,43 @@ export const ProductTranslationsTabs = forwardRef<ProductTranslationsTabsRef, Pr
     });
   };
 
-  // Updated validation to return field-specific errors
-  const validateTranslation = (data: { name: string; description: string; shortDescription: string; metaTitle: string; metaDescription: string }): { 
-    hasErrors: boolean; 
+  const activeLanguages = languages.filter((l) => l.isActive);
+  const defaultLanguage = languages.find((l) => l.isDefault);
+
+  // Validation: required fields (name, metaTitle, metaDescription) only for default language
+  const validateTranslation = (
+    data: { name: string; description: string; shortDescription: string; metaTitle: string; metaDescription: string },
+    languageCode: string,
+  ): {
+    hasErrors: boolean;
     errors: { name?: string; metaTitle?: string; metaDescription?: string };
     errorMessages: string[];
   } => {
     const errors: { name?: string; metaTitle?: string; metaDescription?: string } = {};
     const errorMessages: string[] = [];
-    
+    const isDefaultLang = defaultLanguage && languageCode === defaultLanguage.code;
+
+    if (!isDefaultLang) {
+      return { hasErrors: false, errors, errorMessages };
+    }
+
     if (!data.name || data.name.trim() === '') {
-      errors.name = 'Product name is required';
-      errorMessages.push('Product name is required');
+      errors.name = t(translationKeys.admin.products.productNameRequired, 'Product name is required');
+      errorMessages.push(t(translationKeys.admin.products.productNameRequired, 'Product name is required'));
     }
     if (!data.metaTitle || data.metaTitle.trim() === '') {
-      errors.metaTitle = 'Meta title is required';
-      errorMessages.push('Meta title is required');
+      errors.metaTitle = t(translationKeys.admin.products.metaTitleRequired, 'Meta title is required');
+      errorMessages.push(errors.metaTitle);
     }
     if (!data.metaDescription || data.metaDescription.trim() === '') {
-      errors.metaDescription = 'Meta description is required';
-      errorMessages.push('Meta description is required');
+      errors.metaDescription = t(translationKeys.admin.products.metaDescriptionRequired, 'Meta description is required');
+      errorMessages.push(errors.metaDescription);
     }
-    
-    return { 
-      hasErrors: Object.keys(errors).length > 0, 
+
+    return {
+      hasErrors: Object.keys(errors).length > 0,
       errors,
-      errorMessages
+      errorMessages,
     };
   };
 
@@ -216,8 +229,8 @@ export const ProductTranslationsTabs = forwardRef<ProductTranslationsTabsRef, Pr
     const data = translationData[language];
     if (!data) return;
 
-    // Validate translation
-    const validation = validateTranslation(data);
+    // Validate translation (required only for default language)
+    const validation = validateTranslation(data, language);
     if (validation.hasErrors) {
       setFieldErrors(prev => ({
         ...prev,
@@ -289,44 +302,31 @@ export const ProductTranslationsTabs = forwardRef<ProductTranslationsTabsRef, Pr
       return;
     }
 
-    // Validate all active languages - all must have required fields populated
-    const allFieldErrors: Record<string, { name?: string; metaTitle?: string; metaDescription?: string }> = {};
-    const allErrors: Record<string, string[]> = {};
-    
-    activeLanguages.forEach((lang) => {
-      const data = translationData[lang.code];
-      if (data) {
-        const validation = validateTranslation(data);
-        if (validation.hasErrors) {
-          allFieldErrors[lang.code] = validation.errors;
-          allErrors[lang.code] = validation.errorMessages;
-        }
-      } else {
-        allFieldErrors[lang.code] = { name: 'Translation data is missing' };
-        allErrors[lang.code] = ['Translation data is missing'];
-      }
-    });
-
-    // Check that all active languages have translations
-    if (activeLanguages.length === 0) {
+    // Only default language is required; validate it before saving all
+    if (!defaultLanguage) {
       toast({
         variant: 'destructive',
-        title: 'Validation Error',
-        description: 'No active languages configured.',
+        title: t(translationKeys.common.validationError, 'Validation Error'),
+        description: t(translationKeys.common.noDefaultLanguage, 'No default language configured'),
       });
       return;
     }
 
-    if (Object.keys(allErrors).length > 0) {
-      setFieldErrors(allFieldErrors);
-      // Switch to the first tab with errors
-      const firstErrorLang = activeLanguages.find(lang => allFieldErrors[lang.code]);
-      if (firstErrorLang) {
-        setActiveTab(firstErrorLang.code);
+    const defaultData = translationData[defaultLanguage.code];
+    if (defaultData) {
+      const validation = validateTranslation(defaultData, defaultLanguage.code);
+      if (validation.hasErrors) {
+        setFieldErrors({ [defaultLanguage.code]: validation.errors });
+        setActiveTab(defaultLanguage.code);
+        return;
       }
-      // Inline errors are displayed below fields, no toast needed
+    } else {
+      setFieldErrors({ [defaultLanguage.code]: { name: t(translationKeys.common.translationDataMissing, 'Translation data is missing') } });
+      setActiveTab(defaultLanguage.code);
       return;
     }
+
+    setFieldErrors({});
 
     // Clear all errors if validation passes
     setFieldErrors({});
@@ -388,32 +388,32 @@ export const ProductTranslationsTabs = forwardRef<ProductTranslationsTabsRef, Pr
     validateAll: (): { isValid: boolean; errors: Record<string, string[]> } => {
       const allErrors: Record<string, string[]> = {};
       const allFieldErrors: Record<string, { name?: string; metaTitle?: string; metaDescription?: string }> = {};
-      
-      // Validate all active languages - all must have required fields populated
-      activeLanguages.forEach((lang) => {
-        const data = translationData[lang.code];
-        if (data) {
-          const validation = validateTranslation(data);
-          if (validation.hasErrors) {
-            allFieldErrors[lang.code] = validation.errors;
-            allErrors[lang.code] = validation.errorMessages;
-          }
-        } else {
-          allFieldErrors[lang.code] = { name: 'Translation data is missing' };
-          allErrors[lang.code] = ['Translation data is missing'];
+
+      // Only default language is required; other languages optional (warning + fallback)
+      if (!defaultLanguage) {
+        return {
+          isValid: false,
+          errors: { general: [t(translationKeys.common.noDefaultLanguage, 'No default language configured')] },
+        };
+      }
+
+      const data = translationData[defaultLanguage.code];
+      if (data) {
+        const validation = validateTranslation(data, defaultLanguage.code);
+        if (validation.hasErrors) {
+          allFieldErrors[defaultLanguage.code] = validation.errors;
+          allErrors[defaultLanguage.code] = validation.errorMessages;
         }
-      });
-      
-      // Set field errors so they display in the UI
+      } else {
+        allFieldErrors[defaultLanguage.code] = { name: t(translationKeys.common.translationDataMissing, 'Translation data is missing') };
+        allErrors[defaultLanguage.code] = [t(translationKeys.common.translationDataMissing, 'Translation data is missing')];
+      }
+
       if (Object.keys(allFieldErrors).length > 0) {
         setFieldErrors(allFieldErrors);
-        // Switch to the first tab with errors so user can see them
-        const firstErrorLang = activeLanguages.find(lang => allFieldErrors[lang.code]);
-        if (firstErrorLang) {
-          setActiveTab(firstErrorLang.code);
-        }
+        setActiveTab(defaultLanguage.code);
       }
-      
+
       return {
         isValid: Object.keys(allErrors).length === 0,
         errors: allErrors,
@@ -422,8 +422,22 @@ export const ProductTranslationsTabs = forwardRef<ProductTranslationsTabsRef, Pr
     getTranslationData: () => translationData,
   }));
 
-  const activeLanguages = languages.filter((l) => l.isActive);
-  const defaultLanguage = languages.find((l) => l.isDefault);
+  // Non-default language has "missing" translation when required fields are empty (same logic as brands/categories)
+  const isMissingTranslation = (lang: { code: string; isDefault?: boolean }) => {
+    const data = translationData[lang.code];
+    if (lang.isDefault) return fieldErrors[lang.code] && Object.keys(fieldErrors[lang.code]).length > 0;
+    return !data?.name?.trim() && !data?.metaTitle?.trim() && !data?.metaDescription?.trim();
+  };
+
+  // Display value: use default language value when current language value is empty (for non-default only)
+  const getDisplayValue = (field: 'name' | 'metaTitle' | 'metaDescription', lang: { code: string; isDefault?: boolean }) => {
+    const val = translationData[lang.code]?.[field];
+    if (val != null && String(val).trim() !== '') return val;
+    if (defaultLanguage && lang.code !== defaultLanguage.code) {
+      return translationData[defaultLanguage.code]?.[field] ?? '';
+    }
+    return '';
+  };
 
   // Initialize active tab
   useEffect(() => {
@@ -451,13 +465,13 @@ export const ProductTranslationsTabs = forwardRef<ProductTranslationsTabsRef, Pr
                 {(() => {
                   const selectedLang = activeLanguages.find(l => l.code === (activeTab || defaultLanguage?.code || activeLanguages[0]?.code));
                   if (!selectedLang) return 'Select Language';
-                  const hasTranslation = translations.some((t) => t.language === selectedLang.code);
+                  const missing = isMissingTranslation(selectedLang);
                   const hasErrors = fieldErrors[selectedLang.code] && Object.keys(fieldErrors[selectedLang.code]).length > 0;
                   return (
                     <span>
                       {selectedLang.name}
                       {selectedLang.isDefault && ' ★'}
-                      {!hasTranslation && ' (missing)'}
+                      {missing && <span className="ml-1 text-xs text-muted-foreground">{t(translationKeys.common.missingLabel, '(missing)')}</span>}
                       {hasErrors && ' ⚠'}
                     </span>
                   );
@@ -466,13 +480,13 @@ export const ProductTranslationsTabs = forwardRef<ProductTranslationsTabsRef, Pr
             </SelectTrigger>
             <SelectContent>
               {activeLanguages.map((lang) => {
-                const hasTranslation = translations.some((t) => t.language === lang.code);
+                const missing = isMissingTranslation(lang);
                 const hasErrors = fieldErrors[lang.code] && Object.keys(fieldErrors[lang.code]).length > 0;
                 return (
                   <SelectItem key={lang.code} value={lang.code}>
                     {lang.name}
                     {lang.isDefault && ' ★'}
-                    {!hasTranslation && ' (missing)'}
+                    {missing && ` ${t(translationKeys.common.missingLabel, '(missing)')}`}
                     {hasErrors && ' ⚠'}
                   </SelectItem>
                 );
@@ -482,14 +496,14 @@ export const ProductTranslationsTabs = forwardRef<ProductTranslationsTabsRef, Pr
         </div>
         <TabsList className="hidden md:grid w-full" style={{ gridTemplateColumns: `repeat(${activeLanguages.length}, minmax(0, 1fr))` }}>
           {activeLanguages.map((lang) => {
-            const hasTranslation = translations.some((t) => t.language === lang.code);
+            const missing = isMissingTranslation(lang);
             const hasErrors = fieldErrors[lang.code] && Object.keys(fieldErrors[lang.code]).length > 0;
             return (
               <TabsTrigger key={lang.code} value={lang.code} className="relative">
                 {lang.name}
                 {lang.isDefault && <span className="ml-1 text-xs">★</span>}
-                {!hasTranslation && (
-                  <span className="ml-1 text-xs text-muted-foreground">(missing)</span>
+                {missing && (
+                  <span className="ml-1 text-xs text-muted-foreground">{t(translationKeys.common.missingLabel, '(missing)')}</span>
                 )}
                 {hasErrors && (
                   <span className="ml-1 text-xs text-destructive">⚠</span>
@@ -506,7 +520,7 @@ export const ProductTranslationsTabs = forwardRef<ProductTranslationsTabsRef, Pr
               <AlertCircle className="h-5 w-5 text-destructive flex-shrink-0 mt-0.5" />
               <div className="flex-1">
                 <p className="text-sm font-medium text-destructive mb-1">
-                  Required fields are missing in the following languages:
+                  {t(translationKeys.common.requiredFieldsMissingInLanguages, 'Required fields are missing in the default language:')}
                 </p>
                 <ul className="text-sm text-destructive/90 space-y-1">
                   {Object.entries(fieldErrors).map(([langCode, errors]) => {
@@ -545,17 +559,17 @@ export const ProductTranslationsTabs = forwardRef<ProductTranslationsTabsRef, Pr
             {/* Basic Information Group */}
             <Card>
               <CardHeader>
-                <CardTitle>Basic Information</CardTitle>
-                <CardDescription>Product name and description details</CardDescription>
+                <CardTitle>{t(translationKeys.common.basicInfo, 'Basic Information')}</CardTitle>
+                <CardDescription>{t(translationKeys.common.basicInfoDescription, 'Product name and description details')}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor={`name-${lang.code}`}>
-                    Product Name <span className="text-destructive">*</span>
+                    {t(translationKeys.common.productName, 'Product Name')} {lang.isDefault && <span className="text-destructive">*</span>}
                   </Label>
                   <Input
                     id={`name-${lang.code}`}
-                    value={translationData[lang.code]?.name || ''}
+                    value={getDisplayValue('name', lang)}
                     onChange={(e) => {
                       updateTranslationData({
                         [lang.code]: {
@@ -565,6 +579,7 @@ export const ProductTranslationsTabs = forwardRef<ProductTranslationsTabsRef, Pr
                       });
                       clearFieldError(lang.code, 'name');
                     }}
+                    placeholder={defaultLanguage && lang.code !== defaultLanguage.code ? (translationData[defaultLanguage.code]?.name || '') : undefined}
                     className={fieldErrors[lang.code]?.name ? 'border-destructive' : ''}
                   />
                   {fieldErrors[lang.code]?.name && (
@@ -573,7 +588,7 @@ export const ProductTranslationsTabs = forwardRef<ProductTranslationsTabsRef, Pr
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor={`shortDescription-${lang.code}`}>Short Description</Label>
+                  <Label htmlFor={`shortDescription-${lang.code}`}>{t(translationKeys.common.shortDescription, 'Short Description')}</Label>
                   <Textarea
                     id={`shortDescription-${lang.code}`}
                     value={translationData[lang.code]?.shortDescription || ''}
@@ -590,7 +605,7 @@ export const ProductTranslationsTabs = forwardRef<ProductTranslationsTabsRef, Pr
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor={`description-${lang.code}`}>Description</Label>
+                  <Label htmlFor={`description-${lang.code}`}>{t(translationKeys.common.description, 'Description')}</Label>
                   <Textarea
                     id={`description-${lang.code}`}
                     value={translationData[lang.code]?.description || ''}
@@ -611,26 +626,26 @@ export const ProductTranslationsTabs = forwardRef<ProductTranslationsTabsRef, Pr
             {/* SEO Settings Group */}
             <Card>
               <CardHeader>
-                <CardTitle>SEO Settings</CardTitle>
-                <CardDescription>Meta title and description for search engines</CardDescription>
+                <CardTitle>{t(translationKeys.common.seoSettings, 'SEO Settings')}</CardTitle>
+                <CardDescription>{t(translationKeys.common.seoDescription, 'Meta title and description for search engines')}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="mb-4 p-3 bg-muted rounded-md text-sm">
-                  <p className="font-medium mb-2">Example SEO Settings:</p>
+                  <p className="font-medium mb-2">{t(translationKeys.common.exampleSeoSettings, 'Example SEO Settings:')}</p>
                   <p className="text-muted-foreground mb-1">
-                    <strong>Meta Title:</strong> Premium Quality Product - Best Deals Online
+                    <strong>{t(translationKeys.common.metaTitle, 'Meta Title')}:</strong> Premium Quality Product - Best Deals Online
                   </p>
                   <p className="text-muted-foreground">
-                    <strong>Meta Description:</strong> Discover our premium quality product with exceptional features. Shop now for the best deals and free shipping on orders over $50.
+                    <strong>{t(translationKeys.common.metaDescription, 'Meta Description')}:</strong> Discover our premium quality product with exceptional features. Shop now for the best deals and free shipping on orders over $50.
                   </p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor={`metaTitle-${lang.code}`}>
-                    Meta Title <span className="text-destructive">*</span>
+                    {t(translationKeys.common.metaTitle, 'Meta Title')} {lang.isDefault && <span className="text-destructive">*</span>}
                   </Label>
                   <Input
                     id={`metaTitle-${lang.code}`}
-                    value={translationData[lang.code]?.metaTitle || ''}
+                    value={getDisplayValue('metaTitle', lang)}
                     onChange={(e) => {
                       updateTranslationData({
                         [lang.code]: {
@@ -640,7 +655,7 @@ export const ProductTranslationsTabs = forwardRef<ProductTranslationsTabsRef, Pr
                       });
                       clearFieldError(lang.code, 'metaTitle');
                     }}
-                    placeholder="e.g., Premium Quality Product - Best Deals Online"
+                    placeholder={defaultLanguage && lang.code !== defaultLanguage.code ? (translationData[defaultLanguage.code]?.metaTitle || 'e.g., Premium Quality Product - Best Deals Online') : 'e.g., Premium Quality Product - Best Deals Online'}
                     className={fieldErrors[lang.code]?.metaTitle ? 'border-destructive' : ''}
                   />
                   {fieldErrors[lang.code]?.metaTitle && (
@@ -650,11 +665,11 @@ export const ProductTranslationsTabs = forwardRef<ProductTranslationsTabsRef, Pr
 
                 <div className="space-y-2">
                   <Label htmlFor={`metaDescription-${lang.code}`}>
-                    Meta Description <span className="text-destructive">*</span>
+                    {t(translationKeys.common.metaDescription, 'Meta Description')} {lang.isDefault && <span className="text-destructive">*</span>}
                   </Label>
                   <Textarea
                     id={`metaDescription-${lang.code}`}
-                    value={translationData[lang.code]?.metaDescription || ''}
+                    value={getDisplayValue('metaDescription', lang)}
                     onChange={(e) => {
                       updateTranslationData({
                         [lang.code]: {
@@ -665,7 +680,7 @@ export const ProductTranslationsTabs = forwardRef<ProductTranslationsTabsRef, Pr
                       clearFieldError(lang.code, 'metaDescription');
                     }}
                     rows={3}
-                    placeholder="e.g., Discover our premium quality product with exceptional features. Shop now for the best deals and free shipping on orders over $50."
+                    placeholder={defaultLanguage && lang.code !== defaultLanguage.code ? (translationData[defaultLanguage.code]?.metaDescription || 'e.g., Discover our premium quality product...') : 'e.g., Discover our premium quality product with exceptional features. Shop now for the best deals and free shipping on orders over $50.'}
                     className={fieldErrors[lang.code]?.metaDescription ? 'border-destructive' : ''}
                   />
                   {fieldErrors[lang.code]?.metaDescription && (

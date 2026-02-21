@@ -16,6 +16,9 @@ function ensureDir() {
 }
 
 function append(message: string) {
+  if (process.env.NODE_ENV !== 'production') {
+    return;
+  }
   try {
     ensureDir();
     const line = `[${new Date().toISOString()}] ${message}\n`;
