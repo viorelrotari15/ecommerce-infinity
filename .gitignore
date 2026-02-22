@@ -53,6 +53,6 @@ next-env.d.ts
 # Local backups (dumps)
 backups/
 
-# Logs (development and runtime)
-logs/
+# Logs (development and runtime) - only root-level logs dir, not backend source apps/backend/src/logs/
+/logs/
 *.log
