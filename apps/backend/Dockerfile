@@ -22,8 +22,8 @@ RUN dos2unix /app/docker-entrypoint.sh && chmod +x /app/docker-entrypoint.sh
 # Copy source code
 COPY . .
 
-# Generate Prisma Client
-RUN npx prisma generate
+# Generate Prisma Client and build for production (so runtime only runs migrate + start)
+RUN npx prisma generate && npm run build
 
 EXPOSE 3001
 
