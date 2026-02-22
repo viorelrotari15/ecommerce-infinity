@@ -24,9 +24,11 @@ export class FirebaseService implements OnModuleInit {
       try {
         const parsed = JSON.parse(configJson) as Record<string, unknown>;
         const fc = (parsed.firebaseConfig ?? parsed) as Record<string, unknown> | undefined;
-        const sa = parsed.serviceAccount as admin.ServiceAccount | undefined;
+        const sa = parsed.serviceAccount as Record<string, unknown> | undefined;
         if (fc && typeof fc.projectId === 'string') projectId = fc.projectId;
-        if (sa && typeof sa.private_key === 'string') serviceAccount = sa;
+        // Firebase JSON uses snake_case; TypeScript ServiceAccount uses camelCase
+        const hasKey = sa && (typeof sa.private_key === 'string' || typeof sa.privateKey === 'string');
+        if (hasKey) serviceAccount = sa as admin.ServiceAccount;
       } catch {
         // ignore invalid FIREBASE_CONFIG
       }
@@ -46,7 +48,7 @@ export class FirebaseService implements OnModuleInit {
         if (!admin.apps.length) {
           admin.initializeApp({
             credential: admin.credential.cert(serviceAccount),
-            projectId: projectId || serviceAccount.project_id,
+            projectId: projectId || serviceAccount.projectId || (serviceAccount as Record<string, unknown>).project_id as string,
           });
         }
         this.initialized = true;

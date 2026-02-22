@@ -56,6 +56,8 @@ For a physical server in the production office, use the production compose file 
    ```
 4. Issue TLS certs (see `docs/ENV_SETUP.md` for certbot command).
 
+If the backend fails to start (e.g. “dependency backend failed to start”), see **`docs/DOCKER_TROUBLESHOOTING.md`** for how to view logs and fix common causes (missing `JWT_SECRET`, MinIO env, migrations).
+
 ## 📁 Project Structure
 
 ```

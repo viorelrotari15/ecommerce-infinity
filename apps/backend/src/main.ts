@@ -7,7 +7,18 @@ import { AppModule } from './app.module';
 import { FileLogger } from './logs/file-logger';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 
+function assertRequiredEnv(keys: string[]): void {
+  const missing = keys.filter((k) => !process.env[k]?.trim());
+  if (missing.length) {
+    console.error(
+      `[Backend] Missing required env: ${missing.join(', ')}. Set them in .env or the environment.`,
+    );
+    process.exit(1);
+  }
+}
+
 async function bootstrap() {
+  assertRequiredEnv(['JWT_SECRET']);
   Logger.overrideLogger(new FileLogger());
   const app = await NestFactory.create(AppModule);
 
