@@ -48,6 +48,10 @@ services:
       STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
       STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
       STRIPE_CURRENCY: ${STRIPE_CURRENCY:-EUR}
+      # Firebase (for Google/Facebook login). Same project as frontend; backend needs service account to verify ID tokens.
+      FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID:-}
+      FIREBASE_CONFIG: ${FIREBASE_CONFIG:-}
+      FIREBASE_SERVICE_ACCOUNT: ${FIREBASE_SERVICE_ACCOUNT:-}
     depends_on:
       postgres:
         condition: service_healthy

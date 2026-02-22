@@ -4,6 +4,7 @@ import * as path from 'path';
 
 const LOG_DIR = process.env.LOG_DIR || path.join(process.cwd(), 'logs');
 const LOG_FILE = process.env.LOG_FILE || path.join(LOG_DIR, 'backend.log');
+const CLIENT_ERRORS_FILE = process.env.LOG_CLIENT_ERRORS_FILE || path.join(LOG_DIR, 'client-errors.log');
 
 function ensureDir() {
   try {
@@ -66,4 +67,22 @@ export class FileLogger implements LoggerService {
 
 export function getLogFilePath(): string {
   return LOG_FILE;
+}
+
+export function getClientErrorsLogFilePath(): string {
+  return CLIENT_ERRORS_FILE;
+}
+
+/**
+ * Append a frontend/client error line to client-errors.log (and optionally to backend.log).
+ * Safe to call from any context; ignores write errors.
+ */
+export function appendClientError(line: string): void {
+  try {
+    ensureDir();
+    const entry = `[${new Date().toISOString()}] ${line}\n`;
+    fs.appendFileSync(CLIENT_ERRORS_FILE, entry);
+  } catch {
+    // ignore
+  }
 }

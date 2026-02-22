@@ -13,6 +13,10 @@ export class AuthService {
     private firebaseService: FirebaseService,
   ) {}
 
+  isFirebaseConfigured(): boolean {
+    return this.firebaseService.isConfigured();
+  }
+
   async validateUser(email: string, password: string): Promise<any> {
     const user = await this.usersService.findByEmail(email);
     if (!user?.password) return null;

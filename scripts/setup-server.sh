@@ -401,19 +401,16 @@ configure_currency() {
   info "Restart backend and rebuild frontend to apply: docker compose -f docker-compose.prod.yml up -d --build backend frontend"
 }
 
-# Setup Firebase private key: paste the full service account JSON object from Firebase Console.
-# Expects: {"type":"service_account","project_id":"...","private_key_id":"...","private_key":"...","client_email":"...",...}
-# Paste multi-line JSON, then type END and press Enter.
+# Firebase wrap-up: backend needs service account JSON to verify Google/Facebook ID tokens.
+# Frontend uses apps/frontend/firebase-config.json (same project). Paste JSON, type END, Enter.
 configure_firebase_private_key() {
   [[ ! -f .env ]] && { err ".env not found. Run 'Setup .env' first."; return 1; }
   echo ""
-  info "Firebase private key = service account JSON from Firebase Console."
-  info "Path: Project settings → Service accounts → Generate new private key."
+  info "Firebase (Google/Facebook login): backend verifies ID tokens using a service account."
+  info "Get it: Firebase Console → Project settings → Service accounts → Generate new private key."
+  info "Use the SAME project as in apps/frontend/firebase-config.json."
   echo ""
-  info "Paste the full JSON object below (same shape as from Firebase):"
-  info "  {\"type\":\"service_account\",\"project_id\":\"...\",\"private_key_id\":\"...\",\"private_key\":\"...\",\"client_email\":\"...\",\"client_id\":\"...\",\"auth_uri\":\"...\",\"token_uri\":\"...\",\"auth_provider_x509_cert_url\":\"...\",\"client_x509_cert_url\":\"...\",\"universe_domain\":\"...\"}"
-  echo ""
-  info "Paste your JSON (multi-line is OK). When finished, type END and press Enter."
+  info "Paste the full service account JSON below (multi-line OK). When finished, type END and press Enter."
   echo ""
   local json_lines=""
   while IFS= read -r line; do
@@ -453,7 +450,26 @@ configure_firebase_private_key() {
   done
   rm -f .env.bak
   ok "Firebase project ID and service account saved to .env."
-  info "Restart backend to apply: docker compose -f docker-compose.prod.yml up -d backend (or your stack)."
+  echo ""
+  read -p "Restart backend now so it can verify Google/Facebook tokens? (Y/n): " -r do_restart
+  if [[ ! "$do_restart" =~ ^[nN]$ ]]; then
+    if docker compose -f docker-compose.prod.yml -f docker-compose.tunnel.yml up -d backend 2>/dev/null; then
+      ok "Backend restarted (prod+tunnel)."
+    elif docker compose -f docker-compose.prod.yml up -d backend 2>/dev/null; then
+      ok "Backend restarted (prod)."
+    elif docker compose up -d backend 2>/dev/null; then
+      ok "Backend restarted (dev)."
+    else
+      warn "Could not restart backend. Run manually: docker compose -f docker-compose.prod.yml up -d backend"
+    fi
+  fi
+  echo ""
+  info "Firebase wrap-up checklist:"
+  echo "  • Backend: FIREBASE_SERVICE_ACCOUNT and FIREBASE_PROJECT_ID are set (this script)."
+  echo "  • Frontend: Use the SAME Firebase project in apps/frontend/firebase-config.json"
+  echo "    (Project settings → General → Your apps → Web app → firebaseConfig)."
+  echo "  • Firebase Console: Enable Google and/or Facebook in Authentication → Sign-in method."
+  echo "  • If you changed firebase-config.json, rebuild frontend: docker compose -f docker-compose.prod.yml build frontend && docker compose -f docker-compose.prod.yml up -d frontend"
 }
 
 # Configure Resend for transactional emails (order confirmations, admin notifications).
@@ -527,7 +543,7 @@ main_menu() {
     echo " 16) Create admin user"
     echo " 17) Configure Stripe (payment keys)"
     echo " 18) Configure currency (app-wide: EUR, USD, etc.)"
-    echo " 19) Setup Firebase private key (paste service account JSON)"
+    echo " 19) Setup Firebase (backend: paste service account JSON for Google/Facebook login)"
     echo " 20) Configure Resend (email: order confirmations, admin alerts)"
     echo "  0) Exit"
     echo ""

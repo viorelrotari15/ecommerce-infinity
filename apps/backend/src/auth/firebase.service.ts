@@ -43,12 +43,13 @@ export class FirebaseService implements OnModuleInit {
         }
       }
     }
-    if (serviceAccount && projectId) {
+    const resolvedProjectId = projectId || serviceAccount?.projectId || (serviceAccount as Record<string, unknown> | undefined)?.project_id as string | undefined;
+    if (serviceAccount && resolvedProjectId) {
       try {
         if (!admin.apps.length) {
           admin.initializeApp({
             credential: admin.credential.cert(serviceAccount),
-            projectId: projectId || serviceAccount.projectId || (serviceAccount as Record<string, unknown>).project_id as string,
+            projectId: resolvedProjectId,
           });
         }
         this.initialized = true;

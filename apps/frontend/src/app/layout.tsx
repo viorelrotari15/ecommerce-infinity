@@ -14,6 +14,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { CookieConsentBanner } from '@/components/cookie-consent-banner';
 import { getBranding } from '@/lib/branding';
 import { WebVitalsReporter } from '@/components/monitoring/web-vitals-reporter';
+import { ClientErrorReporter } from '@/components/monitoring/client-error-reporter';
 
 const inter = Inter({ subsets: ['latin'] });
 const branding = getBranding();
@@ -60,6 +61,7 @@ export default function RootLayout({
       <body className={inter.className} style={branding.cssVars as CSSProperties}>
         <Providers>
           <WebVitalsReporter />
+          <ClientErrorReporter />
           <div className="flex min-h-screen flex-col">
             <Suspense
               fallback={

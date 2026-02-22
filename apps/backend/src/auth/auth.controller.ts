@@ -28,9 +28,14 @@ export class AuthController {
   @Post('firebase')
   @ApiOperation({ summary: 'Login with Firebase ID token (Google, Facebook, etc. via Firebase Auth)' })
   async loginWithFirebase(@Body() dto: FirebaseLoginDto) {
+    if (!this.authService.isFirebaseConfigured()) {
+      throw new UnauthorizedException(
+        'Firebase auth is not configured on the server. Set FIREBASE_SERVICE_ACCOUNT or FIREBASE_CONFIG (with serviceAccount) and FIREBASE_PROJECT_ID on the backend.',
+      );
+    }
     const result = await this.authService.loginWithFirebaseToken(dto.idToken);
     if (!result) {
-      throw new UnauthorizedException('Invalid or expired Firebase token, or Firebase not configured');
+      throw new UnauthorizedException('Invalid or expired Firebase token');
     }
     return result;
   }

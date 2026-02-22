@@ -236,6 +236,10 @@ const translationKeysObject = {
     billingAddressSaved: 'checkout.billingAddressSaved',
     addressSaveFailed: 'checkout.addressSaveFailed',
   },
+  // Error page (boundary)
+  errorPage: {
+    description: 'errorPage.description',
+  },
   // Auth
   auth: {
     login: 'auth.login',
@@ -1652,6 +1656,7 @@ export function getEnglishTemplate(): Record<string, string> {
     'common.hoverToZoom': 'Hover over image to zoom',
     'common.pageNotFound': 'Page not found',
     'common.somethingWentWrong': 'Something went wrong',
+    'errorPage.description': "We've been notified. Please try again or return to the homepage.",
     'common.unexpectedError': 'An unexpected error occurred.',
     'common.details': 'Details',
     'common.refresh': 'Refresh',
@@ -2475,6 +2480,7 @@ export function getRussianTemplate(): Record<string, string> {
     'common.hoverToZoom': 'Наведите для увеличения',
     'common.pageNotFound': 'Страница не найдена',
     'common.somethingWentWrong': 'Что-то пошло не так',
+    'errorPage.description': 'Мы уведомлены. Попробуйте снова или вернитесь на главную.',
     'common.unexpectedError': 'Произошла непредвиденная ошибка.',
     'common.details': 'Детали',
     'common.refresh': 'Обновить',
@@ -3307,6 +3313,7 @@ export function getGermanTemplate(): Record<string, string> {
     'common.hoverToZoom': 'Zum Zoomen über Bild fahren',
     'common.pageNotFound': 'Seite nicht gefunden',
     'common.somethingWentWrong': 'Etwas ist schiefgelaufen',
+    'errorPage.description': 'Wir wurden benachrichtigt. Bitte versuchen Sie es erneut oder kehren Sie zur Startseite zurück.',
     'common.unexpectedError': 'Ein unerwarteter Fehler ist aufgetreten.',
     'common.details': 'Einzelheiten',
     'common.refresh': 'Aktualisieren',

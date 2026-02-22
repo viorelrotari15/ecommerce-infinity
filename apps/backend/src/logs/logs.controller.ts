@@ -11,7 +11,7 @@ import { Response } from 'express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
-import { getLogFilePath } from './file-logger';
+import { getLogFilePath, getClientErrorsLogFilePath } from './file-logger';
 import * as fs from 'fs';
 
 @ApiTags('admin')
@@ -21,13 +21,15 @@ import * as fs from 'fs';
 @ApiBearerAuth()
 export class LogsController {
   @Get()
-  @ApiOperation({ summary: 'View or download backend logs (Admin only)' })
+  @ApiOperation({ summary: 'View or download backend logs or client-error log (Admin only)' })
   async getLogs(
     @Query('tail') tailStr: string | undefined,
     @Query('download') download: string | undefined,
+    @Query('file') file: string | undefined,
     @Res() res: Response,
   ) {
-    const logPath = getLogFilePath();
+    const logPath =
+      file === 'client-errors' ? getClientErrorsLogFilePath() : getLogFilePath();
     if (!fs.existsSync(logPath)) {
       throw new NotFoundException('Log file not found. Logs are written after the first requests.');
     }
@@ -37,8 +39,9 @@ export class LogsController {
       const lines = content.split('\n');
       content = lines.slice(-tail).join('\n');
     }
+    const basename = file === 'client-errors' ? 'client-errors' : 'backend-logs';
     if (download === '1' || download === 'true') {
-      res.setHeader('Content-Disposition', `attachment; filename="backend-logs-${Date.now()}.txt"`);
+      res.setHeader('Content-Disposition', `attachment; filename="${basename}-${Date.now()}.txt"`);
       res.setHeader('Content-Type', 'text/plain; charset=utf-8');
       return res.send(content);
     }

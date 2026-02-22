@@ -14,6 +14,8 @@ const API_BASE = (typeof window !== 'undefined' && process.env.NEXT_PUBLIC_API_U
   ? process.env.NEXT_PUBLIC_API_URL.replace(/\/api\/?$/, '')
   : '';
 
+type LogFile = 'backend' | 'client-errors';
+
 export default function AdminLogsPage() {
   const router = useRouter();
   const t = useT();
@@ -21,6 +23,7 @@ export default function AdminLogsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [tail, setTail] = useState(500);
+  const [logFile, setLogFile] = useState<LogFile>('backend');
 
   useEffect(() => {
     if (!isAdmin()) {
@@ -38,8 +41,9 @@ export default function AdminLogsPage() {
     setError(null);
     try {
       const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+      const fileParam = logFile === 'client-errors' ? '&file=client-errors' : '';
       const res = await fetchAPIAuth<{ logs: string; tail: number | null }>(
-        `/admin/logs?tail=${tail}`,
+        `/admin/logs?tail=${tail}${fileParam}`,
         token || undefined,
         { method: 'GET' },
       );
@@ -54,13 +58,14 @@ export default function AdminLogsPage() {
 
   useEffect(() => {
     if (isAdmin() && API_BASE) loadLogs();
-  }, [tail]);
+  }, [tail, logFile]);
 
   const handleDownload = async () => {
     const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
     if (!token || !API_BASE) return;
     try {
-      const url = `${API_BASE}/api/admin/logs?download=1&tail=10000`;
+      const fileParam = logFile === 'client-errors' ? '&file=client-errors' : '';
+      const url = `${API_BASE}/api/admin/logs?download=1&tail=10000${fileParam}`;
       const res = await fetch(url, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -68,7 +73,7 @@ export default function AdminLogsPage() {
       const blob = await res.blob();
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
-      a.download = `backend-logs-${Date.now()}.txt`;
+      a.download = `${logFile === 'client-errors' ? 'client-errors' : 'backend-logs'}-${Date.now()}.txt`;
       a.click();
       URL.revokeObjectURL(a.href);
     } catch (e) {
@@ -91,6 +96,14 @@ export default function AdminLogsPage() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <select
+            value={logFile}
+            onChange={(e) => setLogFile(e.target.value as LogFile)}
+            className="rounded-md border bg-background px-3 py-2 text-sm"
+          >
+            <option value="backend">Backend logs</option>
+            <option value="client-errors">Client errors (frontend)</option>
+          </select>
           <select
             value={tail}
             onChange={(e) => setTail(Number(e.target.value))}
@@ -117,7 +130,9 @@ export default function AdminLogsPage() {
         <CardHeader>
           <CardTitle>{t(translationKeys.common.logOutput, 'Log output')}</CardTitle>
           <CardDescription>
-            Logs are written by the backend; the file may be empty until some activity occurs.
+            {logFile === 'client-errors'
+              ? 'Errors from the browser (window.onerror, unhandledrejection). Empty until a frontend error is reported.'
+              : 'Logs are written by the backend; the file may be empty until some activity occurs.'}
           </CardDescription>
         </CardHeader>
         <CardContent>
