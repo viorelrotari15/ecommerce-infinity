@@ -484,19 +484,19 @@ configure_firebase_private_key() {
   printf '%s' "$compact" > "$firebase_json_file"
   ok "Wrote service account JSON to $firebase_json_file"
 
-  # .env gets the path; backend will read from file when FIREBASE_SERVICE_ACCOUNT_FILE is set
+  # .env gets the path; backend will read from file when FIREBASE_SERVICE_ACCOUNT_FILE is set. Quote values so / and other chars don't break parsing.
   for key in FIREBASE_PROJECT_ID FIREBASE_SERVICE_ACCOUNT_FILE; do
     if grep -q "^${key}=" .env 2>/dev/null; then
       if [[ "$key" == "FIREBASE_SERVICE_ACCOUNT_FILE" ]]; then
-        sed -i.bak "s|^${key}=.*|${key}=/app/.firebase-service-account.json|" .env
+        sed -i.bak "s|^${key}=.*|${key}=\"/app/.firebase-service-account.json\"|" .env
       else
-        sed -i.bak "s|^${key}=.*|${key}=${project_id}|" .env
+        sed -i.bak "s|^${key}=.*|${key}=\"${project_id}\"|" .env
       fi
     else
       if [[ "$key" == "FIREBASE_SERVICE_ACCOUNT_FILE" ]]; then
-        echo "${key}=/app/.firebase-service-account.json" >> .env
+        echo "${key}=\"/app/.firebase-service-account.json\"" >> .env
       else
-        echo "${key}=${project_id}" >> .env
+        echo "${key}=\"${project_id}\"" >> .env
       fi
     fi
   done
