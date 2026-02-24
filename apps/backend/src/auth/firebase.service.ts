@@ -46,13 +46,18 @@ export class FirebaseService implements OnModuleInit {
       }
     }
     if (!serviceAccount) {
-      const filePath = this.configService.get<string>('FIREBASE_SERVICE_ACCOUNT_FILE');
+      const filePathRaw = this.configService.get<string>('FIREBASE_SERVICE_ACCOUNT_FILE');
+      const filePath = typeof filePathRaw === 'string' ? filePathRaw.replace(/^["']|["']$/g, '').trim() : undefined;
       if (filePath) {
-        this.logger.log(`Firebase: FIREBASE_SERVICE_ACCOUNT_FILE=${filePath}`);
+        this.logger.log(`Firebase: FIREBASE_SERVICE_ACCOUNT_FILE="${filePath}" (length=${filePath.length})`);
         try {
           const exists = fs.existsSync(filePath);
           this.logger.log(`Firebase: file exists=${exists}`);
+          if (!exists) {
+            this.logger.warn(`Firebase: path does not exist in container; check volume mount ./.firebase-service-account.json:/app/.firebase-service-account.json`);
+          }
           const raw = fs.readFileSync(filePath, 'utf-8');
+          this.logger.log(`Firebase: file size=${raw.length} bytes`);
           const parsed = JSON.parse(raw) as Record<string, unknown>;
           const hasKey = parsed && (typeof parsed.private_key === 'string' || typeof parsed.privateKey === 'string');
           if (hasKey) {
@@ -60,7 +65,9 @@ export class FirebaseService implements OnModuleInit {
             source = 'FIREBASE_SERVICE_ACCOUNT_FILE';
             this.logger.log(`Firebase: service account loaded from file, project_id=${(parsed as { project_id?: string }).project_id ?? 'n/a'}`);
           } else {
-            this.logger.warn('Firebase: file read but no private_key in JSON (empty or invalid object)');
+            this.logger.warn(
+              `Firebase: file read but no private_key in JSON (size=${raw.length}). Ensure .firebase-service-account.json on host has full service account from Firebase Console.`,
+            );
           }
         } catch (e) {
           this.logger.warn(`Firebase: failed to read/parse file: ${e instanceof Error ? e.message : String(e)}`);
@@ -88,6 +95,13 @@ export class FirebaseService implements OnModuleInit {
     const resolvedProjectId = projectId || serviceAccount?.projectId || (serviceAccount as Record<string, unknown> | undefined)?.project_id as string | undefined;
     if (serviceAccount && resolvedProjectId) {
       try {
+        // PEM requires real newlines; JSON may have literal \n (backslash-n). Normalize so Firebase SDK accepts it.
+        const sa = serviceAccount as Record<string, unknown>;
+        const pk = (sa.privateKey ?? sa.private_key) as string | undefined;
+        if (typeof pk === 'string' && pk.includes('\\n')) {
+          sa.privateKey = pk.replace(/\\n/g, '\n');
+          if (sa.private_key !== undefined) sa.private_key = sa.privateKey;
+        }
         if (!admin.apps.length) {
           admin.initializeApp({
             credential: admin.credential.cert(serviceAccount),
