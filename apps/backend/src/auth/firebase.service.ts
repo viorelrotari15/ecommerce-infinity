@@ -1,5 +1,6 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import * as fs from 'fs';
 import * as admin from 'firebase-admin';
 
 export interface FirebaseDecodedToken {
@@ -37,7 +38,6 @@ export class FirebaseService implements OnModuleInit {
       const filePath = this.configService.get<string>('FIREBASE_SERVICE_ACCOUNT_FILE');
       if (filePath) {
         try {
-          const fs = require('fs') as typeof import('fs');
           const raw = fs.readFileSync(filePath, 'utf-8');
           const parsed = JSON.parse(raw) as Record<string, unknown>;
           if (parsed && (typeof parsed.private_key === 'string' || typeof parsed.privateKey === 'string')) {
