@@ -472,27 +472,36 @@ configure_firebase_private_key() {
   client_x509_cert_url_j=$(escape_json "$client_x509_cert_url")
   universe_domain_j=$(escape_json "$universe_domain")
 
-  # Build compact JSON (optional fields only if non-empty)
+  # Build compact JSON (optional fields only if non-empty). Remove any newlines so .env stays single-line.
   local json_parts="\"type\":\"service_account\",\"project_id\":\"${project_id_j}\",\"private_key_id\":\"${private_key_id_j}\",\"private_key\":\"${pk_escaped}\",\"client_email\":\"${client_email_j}\",\"client_id\":\"${client_id_j}\",\"auth_uri\":\"${auth_uri_j}\",\"token_uri\":\"${token_uri_j}\",\"auth_provider_x509_cert_url\":\"${auth_provider_x509_cert_url_j}\""
   [[ -n "$client_x509_cert_url" ]] && json_parts="${json_parts},\"client_x509_cert_url\":\"${client_x509_cert_url_j}\""
   json_parts="${json_parts},\"universe_domain\":\"${universe_domain_j}\""
   local compact="{$json_parts}"
+  compact=$(printf '%s' "$compact" | tr -d '\n\r')
 
-  for key in FIREBASE_PROJECT_ID FIREBASE_SERVICE_ACCOUNT; do
+  # Write JSON to a file so .env is not broken by long quoted values (Docker Compose fails on "\" in variable name)
+  local firebase_json_file="${PROJECT_ROOT}/.firebase-service-account.json"
+  printf '%s' "$compact" > "$firebase_json_file"
+  ok "Wrote service account JSON to $firebase_json_file"
+
+  # .env gets the path; backend will read from file when FIREBASE_SERVICE_ACCOUNT_FILE is set
+  for key in FIREBASE_PROJECT_ID FIREBASE_SERVICE_ACCOUNT_FILE; do
     if grep -q "^${key}=" .env 2>/dev/null; then
-      if [[ "$key" == "FIREBASE_SERVICE_ACCOUNT" ]]; then
-        sed -i.bak "s|^${key}=.*|${key}=\"${compact}\"|" .env
+      if [[ "$key" == "FIREBASE_SERVICE_ACCOUNT_FILE" ]]; then
+        sed -i.bak "s|^${key}=.*|${key}=/app/.firebase-service-account.json|" .env
       else
         sed -i.bak "s|^${key}=.*|${key}=${project_id}|" .env
       fi
     else
-      if [[ "$key" == "FIREBASE_SERVICE_ACCOUNT" ]]; then
-        echo "${key}=\"${compact}\"" >> .env
+      if [[ "$key" == "FIREBASE_SERVICE_ACCOUNT_FILE" ]]; then
+        echo "${key}=/app/.firebase-service-account.json" >> .env
       else
         echo "${key}=${project_id}" >> .env
       fi
     fi
   done
+  # Remove old FIREBASE_SERVICE_ACCOUNT if present (we use file now)
+  grep -v '^FIREBASE_SERVICE_ACCOUNT=' .env > .env.tmp 2>/dev/null && mv .env.tmp .env
   rm -f .env.bak
   ok "Firebase project ID and service account saved to .env."
   echo ""

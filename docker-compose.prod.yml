@@ -24,6 +24,7 @@ services:
     container_name: ecommerce-backend
     volumes:
       - backend_logs:/app/logs
+      - ./.firebase-service-account.json:/app/.firebase-service-account.json:ro
     environment:
       NODE_ENV: production
       DATABASE_URL: postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@postgres:5432/${DB_NAME:-ecommerce}
@@ -52,6 +53,7 @@ services:
       FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID:-}
       FIREBASE_CONFIG: ${FIREBASE_CONFIG:-}
       FIREBASE_SERVICE_ACCOUNT: ${FIREBASE_SERVICE_ACCOUNT:-}
+      FIREBASE_SERVICE_ACCOUNT_FILE: ${FIREBASE_SERVICE_ACCOUNT_FILE:-}
     depends_on:
       postgres:
         condition: service_healthy

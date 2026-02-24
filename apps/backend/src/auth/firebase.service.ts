@@ -34,12 +34,27 @@ export class FirebaseService implements OnModuleInit {
       }
     }
     if (!serviceAccount) {
-      const cred = this.configService.get<string>('FIREBASE_SERVICE_ACCOUNT');
-      if (cred) {
+      const filePath = this.configService.get<string>('FIREBASE_SERVICE_ACCOUNT_FILE');
+      if (filePath) {
         try {
-          serviceAccount = JSON.parse(cred) as admin.ServiceAccount;
+          const fs = await import('fs');
+          const raw = fs.readFileSync(filePath, 'utf-8');
+          const parsed = JSON.parse(raw) as Record<string, unknown>;
+          if (parsed && (typeof parsed.private_key === 'string' || typeof parsed.privateKey === 'string')) {
+            serviceAccount = parsed as admin.ServiceAccount;
+          }
         } catch {
-          serviceAccount = null;
+          // file missing or invalid
+        }
+      }
+      if (!serviceAccount) {
+        const cred = this.configService.get<string>('FIREBASE_SERVICE_ACCOUNT');
+        if (cred) {
+          try {
+            serviceAccount = JSON.parse(cred) as admin.ServiceAccount;
+          } catch {
+            serviceAccount = null;
+          }
         }
       }
     }
