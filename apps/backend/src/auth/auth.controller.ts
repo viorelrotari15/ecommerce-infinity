@@ -1,4 +1,14 @@
-import { Controller, Post, Body, UseGuards, Get, Patch, Request, UnauthorizedException } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  UseGuards,
+  Get,
+  Patch,
+  Request,
+  UnauthorizedException,
+  Logger,
+} from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
@@ -10,9 +20,14 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { RolesGuard } from './guards/roles.guard';
 import { Roles } from './decorators/roles.decorator';
 
+const FIREBASE_NOT_CONFIGURED_MSG =
+  'Firebase auth is not configured on the server. Set FIREBASE_PROJECT_ID and either FIREBASE_SERVICE_ACCOUNT_FILE (path to .firebase-service-account.json) or FIREBASE_SERVICE_ACCOUNT (JSON string). Use setup-server.sh option 19 to configure, then restart the backend.';
+
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
+  private readonly logger = new Logger(AuthController.name);
+
   constructor(private authService: AuthService) {}
 
   @Post('login')
@@ -20,6 +35,7 @@ export class AuthController {
   async login(@Body() loginDto: LoginDto) {
     const user = await this.authService.validateUser(loginDto.email, loginDto.password);
     if (!user) {
+      this.logger.warn('Login failed: invalid credentials');
       throw new UnauthorizedException('Invalid credentials');
     }
     return this.authService.login(user);
@@ -29,12 +45,12 @@ export class AuthController {
   @ApiOperation({ summary: 'Login with Firebase ID token (Google, Facebook, etc. via Firebase Auth)' })
   async loginWithFirebase(@Body() dto: FirebaseLoginDto) {
     if (!this.authService.isFirebaseConfigured()) {
-      throw new UnauthorizedException(
-        'Firebase auth is not configured on the server. Set FIREBASE_SERVICE_ACCOUNT or FIREBASE_CONFIG (with serviceAccount) and FIREBASE_PROJECT_ID on the backend.',
-      );
+      this.logger.warn(`POST /auth/firebase rejected: ${FIREBASE_NOT_CONFIGURED_MSG}`);
+      throw new UnauthorizedException(FIREBASE_NOT_CONFIGURED_MSG);
     }
     const result = await this.authService.loginWithFirebaseToken(dto.idToken);
     if (!result) {
+      this.logger.warn('POST /auth/firebase rejected: invalid or expired Firebase token');
       throw new UnauthorizedException('Invalid or expired Firebase token');
     }
     return result;
