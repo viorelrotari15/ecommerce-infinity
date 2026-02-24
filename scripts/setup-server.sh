@@ -401,48 +401,93 @@ configure_currency() {
   info "Restart backend and rebuild frontend to apply: docker compose -f docker-compose.prod.yml up -d --build backend frontend"
 }
 
-# Firebase wrap-up: backend needs service account JSON to verify Google/Facebook ID tokens.
-# Frontend uses apps/frontend/firebase-config.json (same project). Paste JSON, type END, Enter.
+# Firebase: prompt for each service account field one by one, then write FIREBASE_PROJECT_ID and FIREBASE_SERVICE_ACCOUNT to .env.
 configure_firebase_private_key() {
   [[ ! -f .env ]] && { err ".env not found. Run 'Setup .env' first."; return 1; }
   echo ""
-  info "Firebase (Google/Facebook login): backend verifies ID tokens using a service account."
-  info "Get it: Firebase Console → Project settings → Service accounts → Generate new private key."
+  info "Firebase (Google/Facebook login): enter each value from your service account JSON."
+  info "Get the JSON: Firebase Console → Project settings → Service accounts → Generate new private key."
   info "Use the SAME project as in apps/frontend/firebase-config.json."
   echo ""
-  info "Paste the full service account JSON below (multi-line OK). When finished, type END and press Enter."
+
+  read -p "Project ID (e.g. my-project-123): " -r project_id
+  project_id=$(echo "$project_id" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+  [[ -z "$project_id" ]] && { err "Project ID is required."; return 1; }
+
+  read -p "Private key ID: " -r private_key_id
+  private_key_id=$(echo "$private_key_id" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+  [[ -z "$private_key_id" ]] && { err "Private key ID is required."; return 1; }
+
   echo ""
-  local json_lines=""
+  info "Paste the private key (including -----BEGIN and -----END lines)."
+  info "After the last line of the key, type exactly: END   (then press Enter)"
+  echo ""
+  local private_key_lines=""
   while IFS= read -r line; do
     [[ "$line" == "END" ]] && break
-    json_lines="${json_lines}${line}"
+    private_key_lines="${private_key_lines}${line}"$'\n'
   done
-  json_lines=$(echo "$json_lines" | tr -d '\n\r' | tr -s ' ')
-  [[ -z "$json_lines" ]] && { err "No JSON received."; return 1; }
-  local project_id=""
-  local compact="$json_lines"
-  if command -v jq &>/dev/null; then
-    project_id=$(echo "$json_lines" | jq -r '.project_id // empty' 2>/dev/null)
-    compact=$(echo "$json_lines" | jq -c . 2>/dev/null) || compact="$json_lines"
-  fi
-  [[ -z "$project_id" ]] && project_id=$(echo "$json_lines" | grep -o '"project_id"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | sed 's/.*"project_id"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/')
-  [[ -z "$project_id" ]] && { err "Could not read project_id from JSON. Check the pasted object."; return 1; }
-  if command -v jq &>/dev/null && ! echo "$json_lines" | jq -e . &>/dev/null; then
-    err "Invalid JSON. Check brackets, quotes, and commas."
-    return 1
-  fi
-  local escaped
-  escaped=$(echo "$compact" | sed 's/"/\\"/g')
+  private_key_lines="${private_key_lines%$'\n'}"
+  [[ -z "$private_key_lines" ]] && { err "Private key is required."; return 1; }
+
+  read -p "Client email (e.g. firebase-adminsdk-xxx@project.iam.gserviceaccount.com): " -r client_email
+  client_email=$(echo "$client_email" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+  [[ -z "$client_email" ]] && { err "Client email is required."; return 1; }
+
+  read -p "Client ID (numeric): " -r client_id
+  client_id=$(echo "$client_id" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+  [[ -z "$client_id" ]] && { err "Client ID is required."; return 1; }
+
+  read -p "Auth URI [default: https://accounts.google.com/o/oauth2/auth]: " -r auth_uri
+  auth_uri=$(echo "$auth_uri" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+  auth_uri="${auth_uri:-https://accounts.google.com/o/oauth2/auth}"
+
+  read -p "Token URI [default: https://oauth2.googleapis.com/token]: " -r token_uri
+  token_uri=$(echo "$token_uri" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+  token_uri="${token_uri:-https://oauth2.googleapis.com/token}"
+
+  read -p "Auth provider x509 cert URL [default: https://www.googleapis.com/oauth2/v1/certs]: " -r auth_provider_x509_cert_url
+  auth_provider_x509_cert_url=$(echo "$auth_provider_x509_cert_url" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+  auth_provider_x509_cert_url="${auth_provider_x509_cert_url:-https://www.googleapis.com/oauth2/v1/certs}"
+
+  read -p "Client x509 cert URL (optional, press Enter to skip): " -r client_x509_cert_url
+  client_x509_cert_url=$(echo "$client_x509_cert_url" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+
+  read -p "Universe domain [default: googleapis.com]: " -r universe_domain
+  universe_domain=$(echo "$universe_domain" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+  universe_domain="${universe_domain:-googleapis.com}"
+
+  # Escape private key for JSON: escape backslash then quote then newlines -> \n
+  local pk_escaped
+  pk_escaped=$(echo "$private_key_lines" | sed 's/\\/\\\\/g' | sed 's/"/\\"/g' | sed ':a;N;$!ba;s/\n/\\n/g')
+  # Escape other fields for JSON (double quotes and backslashes)
+  escape_json() { echo "$1" | sed 's/\\/\\\\/g' | sed 's/"/\\"/g'; }
+  project_id_j=$(escape_json "$project_id")
+  private_key_id_j=$(escape_json "$private_key_id")
+  client_email_j=$(escape_json "$client_email")
+  client_id_j=$(escape_json "$client_id")
+  auth_uri_j=$(escape_json "$auth_uri")
+  token_uri_j=$(escape_json "$token_uri")
+  auth_provider_x509_cert_url_j=$(escape_json "$auth_provider_x509_cert_url")
+  client_x509_cert_url_j=$(escape_json "$client_x509_cert_url")
+  universe_domain_j=$(escape_json "$universe_domain")
+
+  # Build compact JSON (optional fields only if non-empty)
+  local json_parts="\"type\":\"service_account\",\"project_id\":\"${project_id_j}\",\"private_key_id\":\"${private_key_id_j}\",\"private_key\":\"${pk_escaped}\",\"client_email\":\"${client_email_j}\",\"client_id\":\"${client_id_j}\",\"auth_uri\":\"${auth_uri_j}\",\"token_uri\":\"${token_uri_j}\",\"auth_provider_x509_cert_url\":\"${auth_provider_x509_cert_url_j}\""
+  [[ -n "$client_x509_cert_url" ]] && json_parts="${json_parts},\"client_x509_cert_url\":\"${client_x509_cert_url_j}\""
+  json_parts="${json_parts},\"universe_domain\":\"${universe_domain_j}\""
+  local compact="{$json_parts}"
+
   for key in FIREBASE_PROJECT_ID FIREBASE_SERVICE_ACCOUNT; do
     if grep -q "^${key}=" .env 2>/dev/null; then
       if [[ "$key" == "FIREBASE_SERVICE_ACCOUNT" ]]; then
-        sed -i.bak "s|^${key}=.*|${key}=\"${escaped}\"|" .env
+        sed -i.bak "s|^${key}=.*|${key}=\"${compact}\"|" .env
       else
         sed -i.bak "s|^${key}=.*|${key}=${project_id}|" .env
       fi
     else
       if [[ "$key" == "FIREBASE_SERVICE_ACCOUNT" ]]; then
-        echo "${key}=\"${escaped}\"" >> .env
+        echo "${key}=\"${compact}\"" >> .env
       else
         echo "${key}=${project_id}" >> .env
       fi
@@ -467,7 +512,6 @@ configure_firebase_private_key() {
   info "Firebase wrap-up checklist:"
   echo "  • Backend: FIREBASE_SERVICE_ACCOUNT and FIREBASE_PROJECT_ID are set (this script)."
   echo "  • Frontend: Use the SAME Firebase project in apps/frontend/firebase-config.json"
-  echo "    (Project settings → General → Your apps → Web app → firebaseConfig)."
   echo "  • Firebase Console: Enable Google and/or Facebook in Authentication → Sign-in method."
   echo "  • If you changed firebase-config.json, rebuild frontend: docker compose -f docker-compose.prod.yml build frontend && docker compose -f docker-compose.prod.yml up -d frontend"
 }
@@ -543,7 +587,7 @@ main_menu() {
     echo " 16) Create admin user"
     echo " 17) Configure Stripe (payment keys)"
     echo " 18) Configure currency (app-wide: EUR, USD, etc.)"
-    echo " 19) Setup Firebase (backend: paste service account JSON for Google/Facebook login)"
+    echo " 19) Setup Firebase (backend: service account file path or paste JSON for Google/Facebook login)"
     echo " 20) Configure Resend (email: order confirmations, admin alerts)"
     echo "  0) Exit"
     echo ""
