@@ -159,6 +159,12 @@ export class EmailService {
     }).format(numeric);
   }
 
+  /** Short, user-friendly order ID for display (matches frontend formatOrderIdDisplay). */
+  private formatOrderIdDisplay(orderId: string): string {
+    if (!orderId) return orderId;
+    return orderId.replace(/-/g, '').slice(0, 8).toUpperCase();
+  }
+
   private formatAddress(address: any) {
     if (!address) return 'N/A';
     const parts = [
@@ -281,9 +287,10 @@ export class EmailService {
     }
 
     const currency = order.region?.currency || 'EUR';
+    const shortId = this.formatOrderIdDisplay(order.id);
     const content = `
       <p>A new order has been placed and paid.</p>
-      <p><strong>Order ID:</strong> ${order.id}</p>
+      <p><strong>Order ID:</strong> #${shortId}</p>
       <p><strong>Total:</strong> ${this.formatCurrency(order.total, currency)}</p>
       <p><strong>Customer:</strong> ${order.user?.email || order.guestEmail || 'Guest'}</p>
       <p><strong>Items:</strong></p>
@@ -294,7 +301,7 @@ export class EmailService {
       `Sending admin order placed email. orderId=${order.id}, adminEmail=${adminEmail}, status=${order.status}`,
     );
 
-    await this.sendMail(adminEmail, `New order received - ${order.id}`, this.buildEmailLayout('New order received', content));
+    await this.sendMail(adminEmail, `New order received - #${shortId}`, this.buildEmailLayout('New order received', content));
   }
 
   async sendOrderConfirmationCustomer(order: EmailOrder) {
@@ -307,9 +314,10 @@ export class EmailService {
     }
 
     const currency = order.region?.currency || 'EUR';
+    const shortId = this.formatOrderIdDisplay(order.id);
     const content = `
       <p>Your order has been confirmed and payment was successful.</p>
-      <p><strong>Order ID:</strong> ${order.id}</p>
+      <p><strong>Order ID:</strong> #${shortId}</p>
       <p><strong>Total:</strong> ${this.formatCurrency(order.total, currency)}</p>
       <p><strong>Shipping address:</strong> ${this.formatAddress(order.shippingAddress)}</p>
       <p><strong>Items:</strong></p>
@@ -322,7 +330,7 @@ export class EmailService {
 
     await this.sendMail(
       customerEmail,
-      `Order confirmation - ${order.id}`,
+      `Order confirmation - #${shortId}`,
       this.buildEmailLayout('Order confirmed', content),
     );
   }
@@ -341,9 +349,10 @@ export class EmailService {
       ? `<p><strong>Tracking number (DHL):</strong> ${order.trackingNumber}</p>`
       : '';
 
+    const shortId = this.formatOrderIdDisplay(order.id);
     const content = `
       <p>Your order status has been updated to <strong>${this.getStatusLabel(order.status)}</strong>.</p>
-      <p><strong>Order ID:</strong> ${order.id}</p>
+      <p><strong>Order ID:</strong> #${shortId}</p>
       ${trackingLine}
       <p><strong>Total:</strong> ${this.formatCurrency(order.total, currency)}</p>
       <p><strong>Shipping address:</strong> ${this.formatAddress(order.shippingAddress)}</p>
@@ -357,7 +366,7 @@ export class EmailService {
 
     await this.sendMail(
       customerEmail,
-      `Order update - ${order.status}`,
+      `Order #${shortId} - ${order.status}`,
       this.buildEmailLayout('Order status update', content),
     );
   }
