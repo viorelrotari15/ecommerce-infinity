@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Resend } from 'resend';
 import * as path from 'path';
@@ -67,12 +67,27 @@ export class EmailService {
   private resend: Resend | null = null;
   private isConfigured = false;
   private branding: BrandingConfig | null = null;
+  private readonly logger = new Logger(EmailService.name);
 
   constructor(private configService: ConfigService) {
-    const apiKey = this.configService.get<string>('RESEND_API_KEY');
-    if (apiKey?.trim()) {
-      this.resend = new Resend(apiKey.trim());
+    const apiKeyRaw = this.configService.get<string>('RESEND_API_KEY');
+    const apiKey = apiKeyRaw?.trim();
+    const nodeEnv = process.env.NODE_ENV;
+
+    if (!apiKey) {
+      this.logger.warn(`Resend not configured: RESEND_API_KEY is missing or empty. NODE_ENV=${nodeEnv}`);
+    } else {
+      const fromEmail = this.configService.get<string>('RESEND_FROM_EMAIL') || 'onboarding@resend.dev';
+      const fromName = this.configService.get<string>('RESEND_FROM_NAME') || 'Ecommerce Infinity';
+      const maskedKey =
+        apiKey.length > 8 ? `${apiKey.slice(0, 4)}...${apiKey.slice(-4)}` : '***masked***';
+
+      this.resend = new Resend(apiKey);
       this.isConfigured = true;
+
+      this.logger.log(
+        `Resend configured successfully. key=${maskedKey}, fromEmail=${fromEmail}, fromName=${fromName}, NODE_ENV=${nodeEnv}`,
+      );
     }
     this.loadBranding();
   }
@@ -213,24 +228,55 @@ export class EmailService {
 
   private async sendMail(to: string, subject: string, html: string) {
     if (!this.resend || !this.isConfigured) {
-      console.warn('Resend email service not configured (RESEND_API_KEY missing). Skipping email.');
+      this.logger.warn('Resend email service not configured (RESEND_API_KEY missing). Skipping email.');
       return;
     }
 
     const fromEmail = this.configService.get<string>('RESEND_FROM_EMAIL') || 'onboarding@resend.dev';
     const fromName = this.configService.get<string>('RESEND_FROM_NAME') || this.getBranding().name;
 
-    await this.resend.emails.send({
-      from: `${fromName} <${fromEmail}>`,
-      to,
-      subject,
-      html,
-    });
+    this.logger.log(
+      `Attempting to send email via Resend. to=${to}, subject=${subject}, from=${fromName} <${fromEmail}>`,
+    );
+
+    try {
+      const result = await this.resend.emails.send({
+        from: `${fromName} <${fromEmail}>`,
+        to,
+        subject,
+        html,
+      });
+
+      const data: any = (result as any)?.data;
+      const error: any = (result as any)?.error;
+
+      if (error) {
+        this.logger.error(
+          `Resend reported an error while sending email. to=${to}, subject=${subject}, code=${error.code}, name=${error.name}, message=${error.message}`,
+        );
+      } else {
+        this.logger.log(
+          `Email sent via Resend successfully. to=${to}, subject=${subject}, id=${data?.id ?? 'unknown'}`,
+        );
+      }
+    } catch (err) {
+      const error = err as Error;
+      this.logger.error(
+        `Unexpected error while sending email via Resend. to=${to}, subject=${subject}, message=${
+          error.message
+        }`,
+        error.stack,
+      );
+      throw err;
+    }
   }
 
   async sendOrderPlacedAdmin(order: EmailOrder) {
     const adminEmail = this.configService.get<string>('ADMIN_ORDER_EMAIL');
     if (!adminEmail) {
+      this.logger.warn(
+        `ADMIN_ORDER_EMAIL is not configured. Skipping admin notification email for order ${order.id}.`,
+      );
       return;
     }
 
@@ -244,12 +290,19 @@ export class EmailService {
       <ul>${this.buildOrderItems(order)}</ul>
     `;
 
+    this.logger.log(
+      `Sending admin order placed email. orderId=${order.id}, adminEmail=${adminEmail}, status=${order.status}`,
+    );
+
     await this.sendMail(adminEmail, `New order received - ${order.id}`, this.buildEmailLayout('New order received', content));
   }
 
   async sendOrderConfirmationCustomer(order: EmailOrder) {
     const customerEmail = order.user?.email || order.guestEmail;
     if (!customerEmail) {
+      this.logger.warn(
+        `Customer email missing for order ${order.id}. Skipping order confirmation email.`,
+      );
       return;
     }
 
@@ -263,6 +316,10 @@ export class EmailService {
       <ul>${this.buildOrderItems(order)}</ul>
     `;
 
+    this.logger.log(
+      `Sending customer order confirmation email. orderId=${order.id}, customerEmail=${customerEmail}, status=${order.status}`,
+    );
+
     await this.sendMail(
       customerEmail,
       `Order confirmation - ${order.id}`,
@@ -273,6 +330,9 @@ export class EmailService {
   async sendOrderStatusUpdate(order: EmailOrder) {
     const customerEmail = order.user?.email || order.guestEmail;
     if (!customerEmail) {
+      this.logger.warn(
+        `Customer email missing for order ${order.id}. Skipping order status update email.`,
+      );
       return;
     }
 
@@ -290,6 +350,10 @@ export class EmailService {
       <p><strong>Items:</strong></p>
       <ul>${this.buildOrderItems(order)}</ul>
     `;
+
+    this.logger.log(
+      `Sending customer order status update email. orderId=${order.id}, customerEmail=${customerEmail}, status=${order.status}`,
+    );
 
     await this.sendMail(
       customerEmail,
