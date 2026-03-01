@@ -3438,12 +3438,26 @@ export function getGermanTemplate(): Record<string, string> {
 }
 
 /**
+ * Get flat translation template for a language.
+ * Reused by getServerT and use-translations.
+ */
+export function getFlatTemplateForLanguage(lang: string): Record<string, string> {
+  switch (lang) {
+    case 'ru':
+      return getRussianTemplate();
+    case 'de':
+      return getGermanTemplate();
+    default:
+      return getEnglishTemplate();
+  }
+}
+
+/**
  * Server-side translation function for use in Server Components.
  * Uses built-in EN/RU/DE templates (no API call). Prefer useT() in Client Components.
  */
 export function getServerT(lang: string): (key: string, fallback?: string) => string {
-  const flat =
-    lang === 'ru' ? getRussianTemplate() : lang === 'de' ? getGermanTemplate() : getEnglishTemplate();
+  const flat = getFlatTemplateForLanguage(lang);
   return (key: string, fallback?: string) => {
     if (!key) return fallback ?? '';
     const value = flat[key];

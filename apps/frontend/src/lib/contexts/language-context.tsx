@@ -4,8 +4,6 @@ import React, { createContext, useContext, useEffect, useState, useCallback } fr
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
 import { useDefaultLanguage, useLanguages } from '../hooks/use-languages';
-import { clearCachedTranslations } from '../utils/translation-cache';
-import { fetchTranslationsForLanguage } from '../hooks/use-translations';
 import { useCookieConsent } from './cookie-consent-context';
 
 interface LanguageContextType {
@@ -64,15 +62,10 @@ function LanguageProviderWithNavigation({ children }: { children: React.ReactNod
         : effectiveDefault;
     
     if (newLanguage !== currentLanguage) {
-      // Language changed, clear old cache
-      if (currentLanguage && currentLanguage !== newLanguage) {
-        clearCachedTranslations(currentLanguage);
-        queryClient.removeQueries({ queryKey: ['translations', currentLanguage] });
-      }
       setPreviousLanguage(currentLanguage);
       setCurrentLanguageState(newLanguage);
     }
-  }, [defaultLanguage, activeLanguages, currentLanguage, queryClient]);
+  }, [defaultLanguage, activeLanguages, currentLanguage]);
 
   // Sync ?lang= from URL to cookie when the page loads so that refresh (without ?lang= in URL) still has the cookie
   useEffect(() => {
@@ -98,35 +91,17 @@ function LanguageProviderWithNavigation({ children }: { children: React.ReactNod
   const setLanguage = useCallback((lang: string) => {
     if (lang === currentLanguage) return;
 
-    const previous = currentLanguage;
-    clearCachedTranslations(previous);
-    clearCachedTranslations(lang);
-
-    // Only remove the previous language's query so UI stops reading it; keep new key ready for setQueryData
-    queryClient.removeQueries({ queryKey: ['translations', previous] });
-    setPreviousLanguage(previous);
+    setPreviousLanguage(currentLanguage);
     setCurrentLanguageState(lang);
 
     document.cookie = `lang=${lang}; path=/; max-age=${365 * 24 * 60 * 60}; SameSite=Lax`;
 
-    fetchTranslationsForLanguage(lang)
-      .then((data) => {
-        queryClient.setQueryData(['translations', lang], data);
-        // Invalidate data that depends on language (products, categories, brands) so they refetch with new cookie
-        queryClient.invalidateQueries({ queryKey: ['products'] });
-        queryClient.invalidateQueries({ queryKey: ['categories'] });
-        queryClient.invalidateQueries({ queryKey: ['brands'] });
-        queryClient.invalidateQueries();
-        router.refresh();
-      })
-      .catch(() => {
-        queryClient.invalidateQueries({ queryKey: ['translations', lang] });
-        queryClient.invalidateQueries({ queryKey: ['products'] });
-        queryClient.invalidateQueries({ queryKey: ['categories'] });
-        queryClient.invalidateQueries({ queryKey: ['brands'] });
-        queryClient.invalidateQueries();
-        router.refresh();
-      });
+    // UI strings come from frontend only; invalidate multilingual data (products, categories, brands) so they refetch with new language
+    queryClient.invalidateQueries({ queryKey: ['products'] });
+    queryClient.invalidateQueries({ queryKey: ['categories'] });
+    queryClient.invalidateQueries({ queryKey: ['brands'] });
+    queryClient.invalidateQueries();
+    router.refresh();
   }, [currentLanguage, queryClient, router]);
 
   const value: LanguageContextType = {
