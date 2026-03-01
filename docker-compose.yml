@@ -42,6 +42,11 @@ services:
       NEXT_PUBLIC_CDN_URL: ${NEXT_PUBLIC_CDN_URL:-}
       # Redis Configuration
       REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+      # Resend (transactional emails). Set via setup-server.sh option 20 or .env
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      RESEND_FROM_EMAIL: ${RESEND_FROM_EMAIL:-onboarding@resend.dev}
+      RESEND_FROM_NAME: ${RESEND_FROM_NAME:-}
+      ADMIN_ORDER_EMAIL: ${ADMIN_ORDER_EMAIL:-}
     ports:
       - "3001:3001"
     volumes:

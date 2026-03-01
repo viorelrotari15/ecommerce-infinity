@@ -49,6 +49,11 @@ services:
       STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
       STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
       STRIPE_CURRENCY: ${STRIPE_CURRENCY:-EUR}
+      # Resend (transactional emails: order confirmations, admin notifications). Set via setup-server.sh option 20 or .env
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      RESEND_FROM_EMAIL: ${RESEND_FROM_EMAIL:-onboarding@resend.dev}
+      RESEND_FROM_NAME: ${RESEND_FROM_NAME:-}
+      ADMIN_ORDER_EMAIL: ${ADMIN_ORDER_EMAIL:-}
       # Firebase (for Google/Facebook login). Same project as frontend; backend needs service account to verify ID tokens.
       FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID:-}
       FIREBASE_CONFIG: ${FIREBASE_CONFIG:-}
