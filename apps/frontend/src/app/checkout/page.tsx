@@ -635,7 +635,7 @@ export default function CheckoutPage() {
                             </div>
                             <div className="flex items-center gap-2 text-sm">
                               {isSelected && (
-                                <span className="inline-flex items-center gap-1 text-primary font-medium">
+                                <span className="inline-flex items-center gap-1 font-medium text-white">
                                   <Check className="h-4 w-4" />
                                   {t(translationKeys.checkout.selectedAddress, 'Selected')}
                                 </span>
@@ -806,7 +806,7 @@ export default function CheckoutPage() {
                                 </div>
                                 <div className="flex items-center gap-2 text-sm">
                                   {isSelected && (
-                                    <span className="inline-flex items-center gap-1 text-primary font-medium">
+                                    <span className="inline-flex items-center gap-1 font-medium text-white">
                                       <Check className="h-4 w-4" />
                                       {t(translationKeys.checkout.selectedAddress, 'Selected')}
                                     </span>
