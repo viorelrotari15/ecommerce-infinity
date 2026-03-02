@@ -42,7 +42,13 @@ async function bootstrap() {
     origin: frontendOrigin,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Accept-Language'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'Accept',
+      'Accept-Language',
+      'x-language',
+    ],
   });
 
   // Security: don't leak stack traces or internal errors in production

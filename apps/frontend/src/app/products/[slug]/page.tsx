@@ -186,14 +186,29 @@ export default async function ProductPage({
   return (
     <div className="w-full px-4 md:px-6 lg:px-8 py-8">
       <div className="grid gap-8 lg:grid-cols-2">
-        {/* Product Images */}
-        <ProductImageGallery
-          images={productImages}
-          productName={product.name}
-          primaryImage={primaryImage}
-        />
+        {/* Left column: Images + long description */}
+        <div className="space-y-6">
+          <ProductImageGallery
+            images={productImages}
+            productName={product.name}
+            primaryImage={primaryImage}
+          />
 
-        {/* Product Info */}
+          {product.description && (
+            <Card>
+              <CardHeader>
+                <CardTitle>{t(translationKeys.common.description, 'Description')}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="whitespace-pre-line text-muted-foreground">
+                  {product.description}
+                </p>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+
+        {/* Right column: Product Info, attributes, variants, etc. */}
         <div className="space-y-6">
           <div>
             <p className="text-sm text-muted-foreground">{product.brand.name}</p>
@@ -279,19 +294,6 @@ export default async function ProductPage({
             variants={product.variants}
             primaryImage={primaryImage}
           />
-
-          {product.description && (
-            <Card>
-              <CardHeader>
-                <CardTitle>{t(translationKeys.common.description, 'Description')}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="whitespace-pre-line text-muted-foreground">
-                  {product.description}
-                </p>
-              </CardContent>
-            </Card>
-          )}
         </div>
       </div>
 

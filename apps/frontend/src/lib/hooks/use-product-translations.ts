@@ -1,6 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiService } from '../api/client';
-import { getAuthToken } from '../auth';
 
 export interface ProductTranslation {
   id?: string;
@@ -14,15 +13,14 @@ export interface ProductTranslation {
 }
 
 export function useProductTranslations(productId: string) {
-  const token = getAuthToken();
-  
   return useQuery({
     queryKey: ['product-translations', productId],
     queryFn: async () => {
       // Fetch translations directly
       return apiService.get<ProductTranslation[]>(`/products/${productId}/translations`);
     },
-    enabled: !!token && !!productId,
+    // Only depend on productId; translations should load regardless of auth token state.
+    enabled: !!productId,
   });
 }
 
