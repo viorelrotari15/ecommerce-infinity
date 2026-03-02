@@ -67,26 +67,16 @@ function LanguageProviderWithNavigation({ children }: { children: React.ReactNod
     }
   }, [defaultLanguage, activeLanguages, currentLanguage]);
 
-  // Sync ?lang= from URL to cookie when the page loads so that refresh (without ?lang= in URL) still has the cookie
+  // Sync ?lang= from URL to cookie once when the page loads
   useEffect(() => {
     const langFromUrl = searchParams.get('lang');
     if (langFromUrl && activeLanguages.some((l) => l.code === langFromUrl)) {
       document.cookie = `lang=${langFromUrl}; path=/; max-age=${365 * 24 * 60 * 60}; SameSite=Lax`;
     }
-  }, [searchParams, activeLanguages]);
-
-  // When user accepted preferences, keep lang cookie in sync with current language. Do not clear lang when they reject preferences (language is essential).
-  useEffect(() => {
-    if (hasConsented() && consent?.preferences && currentLanguage) {
-      const cookieLang = document.cookie
-        .split('; ')
-        .find((row) => row.startsWith('lang='))
-        ?.split('=')[1];
-      if (cookieLang !== currentLanguage) {
-        document.cookie = `lang=${currentLanguage}; path=/; max-age=${365 * 24 * 60 * 60}; SameSite=Lax`;
-      }
-    }
-  }, [hasConsented, consent?.preferences, currentLanguage]);
+    // We intentionally run this only on initial mount to avoid any chance of
+    // feedback loops between URL/search params and language changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const setLanguage = useCallback((lang: string) => {
     if (lang === currentLanguage) return;

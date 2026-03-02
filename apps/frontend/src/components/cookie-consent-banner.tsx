@@ -33,15 +33,14 @@ export function CookieConsentBanner() {
       return;
     }
 
-    // Show banner if user hasn't consented yet
-    if (!hasConsented()) {
-      setShowBanner(true);
-      // Initialize custom consent with current consent if available
-      if (consent) {
-        setCustomConsent(consent);
-      }
-    } else {
-      setShowBanner(false);
+    const shouldShow = !hasConsented();
+
+    // Only update state if the desired visibility actually changed
+    setShowBanner((prev) => (prev === shouldShow ? prev : shouldShow));
+
+    // When we decide to show the banner, initialize custom consent from existing value once
+    if (shouldShow && consent) {
+      setCustomConsent(consent);
     }
   }, [isInitialized, hasConsented, consent]);
 

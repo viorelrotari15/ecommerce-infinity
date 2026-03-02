@@ -461,9 +461,8 @@ export default function AdminPaymentsPage() {
             </CardContent>
           </Card>
 
-          {selectedPayment !== null && (
-            <Dialog open onOpenChange={(open) => !open && setSelectedPayment(null)}>
-              <DialogContent className="max-w-3xl">
+          <Dialog open={!!selectedPayment} onOpenChange={(open) => !open && setSelectedPayment(null)}>
+            <DialogContent className="max-w-3xl">
               <DialogHeader>
                 <DialogTitle>
                   {t(translationKeys.admin.payments.orderDetailsTitle, 'Order details')}
@@ -551,9 +550,8 @@ export default function AdminPaymentsPage() {
                   )}
                 </p>
               )}
-              </DialogContent>
-            </Dialog>
-          )}
+            </DialogContent>
+          </Dialog>
         </div>
       )}
     </div>
