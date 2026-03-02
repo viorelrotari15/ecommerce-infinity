@@ -67,11 +67,21 @@ function LanguageProviderWithNavigation({ children }: { children: React.ReactNod
     }
   }, [defaultLanguage, activeLanguages, currentLanguage]);
 
-  // Sync ?lang= from URL to cookie once when the page loads
+  // Sync ?lang= from URL to cookie when the page loads so that refresh (without ?lang= in URL) still has the cookie.
+  // Be defensive in case navigation context/searchParams are temporarily unavailable.
   useEffect(() => {
-    const langFromUrl = searchParams.get('lang');
-    if (langFromUrl && activeLanguages.some((l) => l.code === langFromUrl)) {
-      document.cookie = `lang=${langFromUrl}; path=/; max-age=${365 * 24 * 60 * 60}; SameSite=Lax`;
+    try {
+      const langFromUrl =
+        (searchParams as ReturnType<typeof useSearchParams> | null)?.get?.('lang') ??
+        (typeof window !== 'undefined'
+          ? new URLSearchParams(window.location.search).get('lang')
+          : null);
+
+      if (langFromUrl && activeLanguages.some((l) => l.code === langFromUrl)) {
+        document.cookie = `lang=${langFromUrl}; path=/; max-age=${365 * 24 * 60 * 60}; SameSite=Lax`;
+      }
+    } catch {
+      // Ignore and rely on existing cookie/default language.
     }
     // We intentionally run this only on initial mount to avoid any chance of
     // feedback loops between URL/search params and language changes.

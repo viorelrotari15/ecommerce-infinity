@@ -174,17 +174,6 @@ export default function AdminDashboard() {
             </CardDescription>
           </CardHeader>
         </Card>
-        <Card className="group cursor-pointer hover:bg-accent hover:text-white transition-colors" onClick={() => router.push('/admin/logs')}>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <ScrollText className="h-5 w-5" />
-              {t(translationKeys.admin.dashboard.backendLogsTitle, 'Backend logs')}
-            </CardTitle>
-            <CardDescription className="group-hover:text-white">
-              {t(translationKeys.admin.dashboard.backendLogsDescription, 'View or download backend application logs')}
-            </CardDescription>
-          </CardHeader>
-        </Card>
       </div>
     </div>
   );

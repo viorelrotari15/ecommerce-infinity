@@ -14,11 +14,15 @@ export async function getServerLanguage(
     if (lang && typeof lang === 'string') return lang;
   }
 
-  // 2. Check cookie
-  const cookieStore = await cookies();
-  const cookieLang = cookieStore.get('lang')?.value;
-  if (cookieLang) {
-    return cookieLang;
+  // 2. Check cookie (defensive in case cookies() is unavailable)
+  try {
+    const cookieStore = cookies();
+    const cookieLang = typeof cookieStore?.get === 'function' ? cookieStore.get('lang')?.value : undefined;
+    if (cookieLang) {
+      return cookieLang;
+    }
+  } catch {
+    // Ignore and fall through to default
   }
 
   // 3. Default to 'en'

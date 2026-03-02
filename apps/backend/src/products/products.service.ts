@@ -911,38 +911,13 @@ export class ProductsService {
         new Map(attributes.map((attr) => [attr.attributeId, { attributeId: attr.attributeId, value: attr.value }])).values(),
       );
 
-    // Always auto-generate variant SKUs (ignore any user input)
-    let variantsWithSku:
-      | Array<{
-          name: string;
-          price: number;
-          stock: number;
-          sku: string;
-          isActive: boolean;
-        }>
-      | undefined;
-    if (variants) {
-      variantsWithSku = await Promise.all(
-        variants.map(async (variant) => {
-          const variantSku = await this.generateVariantSku(productSku, variant.name);
-          return {
-            name: variant.name,
-            price: variant.price,
-            stock: variant.stock,
-            sku: variantSku,
-            isActive: variant.isActive ?? true,
-          };
-        }),
-      );
-    }
-
     // Update product. Use a transaction so we delete product attributes first, then update;
     // Prisma's nested deleteMany+create in one update can run in an order that hits the unique constraint.
     const updatedProduct = await this.prisma.$transaction(async (tx) => {
       if (attributes !== undefined) {
         await tx.productAttribute.deleteMany({ where: { productId: id } });
       }
-      return tx.product.update({
+      await tx.product.update({
         where: { id },
         data: {
           ...productData,
@@ -957,12 +932,6 @@ export class ProductsService {
               })),
             },
           }),
-          ...(variantsWithSku && {
-            variants: {
-              deleteMany: {},
-              create: variantsWithSku,
-            },
-          }),
           ...(attributesDeduped && attributesDeduped.length > 0 && {
             attributes: {
               create: attributesDeduped.map((attr: { attributeId: string; value: string }) => ({
@@ -972,6 +941,68 @@ export class ProductsService {
             },
           }),
         },
+      });
+
+      // Variants cannot be hard-deleted because OrderItems reference them.
+      // Sync semantics when `variants` is provided: update/create incoming, deactivate missing.
+      if (variants !== undefined) {
+        const existingVariants = await tx.productVariant.findMany({
+          where: { productId: id },
+        });
+
+        const existingBySku = new Map(existingVariants.map((v) => [v.sku, v]));
+        const existingByName = new Map(
+          existingVariants
+            .filter((v) => v.name)
+            .map((v) => [v.name as string, v]),
+        );
+
+        const keepVariantIds = new Set<string>();
+
+        for (const incoming of variants) {
+          const match =
+            (incoming.sku ? existingBySku.get(incoming.sku) : undefined) ??
+            existingByName.get(incoming.name);
+
+          if (match) {
+            await tx.productVariant.update({
+              where: { id: match.id },
+              data: {
+                name: incoming.name,
+                price: incoming.price,
+                stock: incoming.stock,
+                isActive: incoming.isActive ?? true,
+              },
+            });
+            keepVariantIds.add(match.id);
+            continue;
+          }
+
+          const skuToUse = incoming.sku ?? (await this.generateVariantSku(productSku, incoming.name));
+          const created = await tx.productVariant.create({
+            data: {
+              productId: id,
+              name: incoming.name,
+              sku: skuToUse,
+              price: incoming.price,
+              stock: incoming.stock,
+              isActive: incoming.isActive ?? true,
+            },
+          });
+          keepVariantIds.add(created.id);
+        }
+
+        await tx.productVariant.updateMany({
+          where: {
+            productId: id,
+            id: { notIn: Array.from(keepVariantIds) },
+          },
+          data: { isActive: false },
+        });
+      }
+
+      return tx.product.findUniqueOrThrow({
+        where: { id },
         include: {
           brand: true,
           categories: {
