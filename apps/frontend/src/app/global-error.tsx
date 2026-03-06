@@ -14,7 +14,7 @@ export default function GlobalError({
   reset: () => void;
 }) {
   return (
-    <html lang="en">
+    <html lang="de">
       <body style={{ margin: 0, minHeight: '100vh' }}>
         <MinimalErrorFallback error={error} reset={reset} />
       </body>

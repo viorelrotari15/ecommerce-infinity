@@ -1,4 +1,15 @@
-import { Body, Controller, Get, Headers, HttpCode, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Headers,
+  HttpCode,
+  Param,
+  Post,
+  Query,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { SkipThrottle } from '@nestjs/throttler';
 import { PaymentsService } from './payments.service';
@@ -24,8 +35,12 @@ export class PaymentsController {
 
   @Post('confirm-success')
   @ApiOperation({ summary: 'Confirm payment success (after client-side Stripe success)' })
-  confirmSuccess(@Body() dto: ConfirmPaymentSuccessDto) {
-    return this.paymentsService.confirmPaymentSuccess(dto.orderId);
+  confirmSuccess(
+    @Body() dto: ConfirmPaymentSuccessDto,
+    @Headers('x-language') languageHeader?: string,
+  ) {
+    const language = dto.language?.trim() || languageHeader?.trim() || undefined;
+    return this.paymentsService.confirmPaymentSuccess(dto.orderId, language);
   }
 
   @SkipThrottle()

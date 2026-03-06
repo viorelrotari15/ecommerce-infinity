@@ -19,7 +19,7 @@ function getTranslationsForLanguage(lang: string): Translations {
  * Uses only frontend hardcoded templates — no API calls.
  */
 export function useTranslation(language?: string) {
-  const effectiveLanguage = language || 'en';
+  const effectiveLanguage = language || 'de';
   const translations = useMemo(
     () => getTranslationsForLanguage(effectiveLanguage),
     [effectiveLanguage],

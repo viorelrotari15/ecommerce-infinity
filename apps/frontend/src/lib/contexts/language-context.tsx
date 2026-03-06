@@ -16,7 +16,7 @@ interface LanguageContextType {
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
 const DEFAULT_LANGUAGE_VALUE: LanguageContextType = {
-  currentLanguage: 'en',
+  currentLanguage: 'de',
   setLanguage: () => {},
   languages: [],
   isLoading: true,
@@ -28,8 +28,8 @@ const DEFAULT_LANGUAGE_VALUE: LanguageContextType = {
  * properties of null (reading 'useContext')" when navigation context is missing).
  */
 function LanguageProviderWithNavigation({ children }: { children: React.ReactNode }) {
-  const [currentLanguage, setCurrentLanguageState] = useState<string>('en');
-  const [previousLanguage, setPreviousLanguage] = useState<string>('en');
+  const [currentLanguage, setCurrentLanguageState] = useState<string>('de');
+  const [previousLanguage, setPreviousLanguage] = useState<string>('de');
   const { data: languages = [], isLoading: languagesLoading } = useLanguages();
   const { data: defaultLanguage, isLoading: defaultLoading } = useDefaultLanguage();
   const queryClient = useQueryClient();
@@ -44,7 +44,7 @@ function LanguageProviderWithNavigation({ children }: { children: React.ReactNod
 
   // Initialize language from cookie or use default
   useEffect(() => {
-    const effectiveDefault = defaultLanguage || 'en';
+    const effectiveDefault = defaultLanguage || 'de';
     
     // Check cookie first
     const cookieLang = document.cookie

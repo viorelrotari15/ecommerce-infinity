@@ -25,8 +25,8 @@ export async function getServerLanguage(
     // Ignore and fall through to default
   }
 
-  // 3. Default to 'en'
-  return 'en';
+  // 3. Default to 'de'
+  return 'de';
 }
 
 /**

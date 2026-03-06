@@ -315,8 +315,9 @@ export class PaymentsService {
    * Confirm payment success for an order after client-side Stripe confirmPayment succeeds.
    * Verifies with Stripe that the payment intent is succeeded, then marks payment COMPLETED.
    * Use when the webhook is not received (e.g. local dev without Stripe CLI).
+   * @param language Optional UI language code for order confirmation emails (e.g. en, de).
    */
-  async confirmPaymentSuccess(orderId: string) {
+  async confirmPaymentSuccess(orderId: string, language?: string) {
     const stripe = this.getStripeClient();
     const order = await this.prisma.order.findUnique({
       where: { id: orderId },
@@ -387,8 +388,8 @@ export class PaymentsService {
 
     if (existingPaymentStatus !== 'COMPLETED') {
       await this.decrementStockForOrder(order);
-      await this.emailService.sendOrderPlacedAdmin(order);
-      await this.emailService.sendOrderConfirmationCustomer(order);
+      await this.emailService.sendOrderPlacedAdmin(order, language);
+      await this.emailService.sendOrderConfirmationCustomer(order, language);
     }
 
     return { success: true };

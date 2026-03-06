@@ -43,8 +43,8 @@ export function useDefaultLanguage() {
         return response.data.code;
       } catch (error) {
         console.error('Error fetching default language:', error);
-        // Fallback to 'en' if API fails
-        return 'en';
+        // Fallback to 'de' if API fails
+        return 'de';
       }
     },
     retry: 1,

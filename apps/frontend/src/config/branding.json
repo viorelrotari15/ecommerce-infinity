@@ -1,10 +1,23 @@
 {
   "name": "MISTICO",
   "shortName": "MISTICO.DE",
-  "tagline": "Premium fragrances and luxury perfumes for every occasion.",
-  "description": "Discover premium fragrances and luxury perfumes. Shop the finest collection of scents for men and women.",
-  "keywords": ["perfume", "fragrance", "luxury", "e-commerce"],
+  "tagline": "Premium-Düfte und Luxusparfums für jeden Anlass.",
+  "description": "Entdecken Sie Premium-Düfte und Luxusparfums. Shoppen Sie die feinste Kollektion an Düften für Damen und Herren.",
+  "keywords": ["Parfum", "Duft", "Luxus", "E-Commerce"],
   "siteUrl": "http://localhost:3000",
+  "company": {
+    "legalName": "Mistico Parfume",
+    "displayName": "Mistico Parfume",
+    "street": "Koburger 18",
+    "postalCode": "51103",
+    "city": "Köln",
+    "country": "Deutschland",
+    "email": "misticoperfumerie@gmail.com",
+    "phone": "+49 178 5933116"
+  },
+  "footer": {
+    "copyright": "© 2026 Mistico Parfume. Alle Rechte vorbehalten."
+  },
   "logo": {
     "primary": "/branding/logo.svg",
     "favicon": "/branding/favicon.svg",

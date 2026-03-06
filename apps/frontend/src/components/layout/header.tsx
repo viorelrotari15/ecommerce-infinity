@@ -208,9 +208,11 @@ export function Header() {
 
           {/* Right side actions */}
           <div className="flex items-center gap-2 lg:gap-4 flex-shrink-0 min-w-0">
-            <div className="hidden lg:block">
-              <LanguageSelector />
-            </div>
+            {mounted && isUserAdmin && (
+              <div className="hidden lg:block">
+                <LanguageSelector />
+              </div>
+            )}
             <Link href="/cart">
               <Button variant="ghost" size="icon" className="relative">
                 <ShoppingCart className="h-5 w-5" />
@@ -395,9 +397,11 @@ export function Header() {
               {/* User actions */}
               {mounted && (
                 <div className="pt-4 border-t space-y-2">
-                  <div className="px-4">
-                    <LanguageSelector />
-                  </div>
+                  {isUserAdmin && (
+                    <div className="px-4">
+                      <LanguageSelector />
+                    </div>
+                  )}
                   {isLoggedIn ? (
                     <>
                       <Link

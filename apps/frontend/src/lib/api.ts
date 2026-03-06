@@ -4,5 +4,13 @@
  */
 
 // Re-export client-side functions for backward compatibility
-export { fetchAPI, fetchAPIAuth, apiService, uploadImage, deleteImage, setPrimaryImage } from './api/client';
+export {
+  fetchAPI,
+  fetchAPIAuth,
+  apiService,
+  APIError,
+  uploadImage,
+  deleteImage,
+  setPrimaryImage,
+} from './api/client';
 

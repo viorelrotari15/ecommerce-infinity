@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { Resend } from 'resend';
 import * as path from 'path';
 import * as fs from 'fs';
+import { getEmailCopy, type EmailCopy } from './email-i18n';
 
 type OrderItemSummary = {
   productVariant: {
@@ -61,6 +62,15 @@ type BrandingConfig = {
   };
   palette?: BrandingPalette;
 };
+
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
 
 @Injectable()
 export class EmailService {
@@ -180,18 +190,18 @@ export class EmailService {
     return parts.join(', ');
   }
 
-  private getStatusLabel(status: string) {
+  private getStatusLabel(status: string, copy: EmailCopy): string {
     switch (status) {
       case 'PENDING':
-        return 'Pending';
+        return copy.statusPending;
       case 'PROCESSING':
-        return 'Processing';
+        return copy.statusProcessing;
       case 'SHIPPED':
-        return 'Shipped';
+        return copy.statusShipped;
       case 'DELIVERED':
-        return 'Delivered';
+        return copy.statusDelivered;
       case 'CANCELLED':
-        return 'Cancelled';
+        return copy.statusCancelled;
       default:
         return status;
     }
@@ -277,7 +287,7 @@ export class EmailService {
     }
   }
 
-  async sendOrderPlacedAdmin(order: EmailOrder) {
+  async sendOrderPlacedAdmin(order: EmailOrder, language?: string) {
     const adminEmail = this.configService.get<string>('ADMIN_ORDER_EMAIL');
     if (!adminEmail) {
       this.logger.warn(
@@ -286,14 +296,15 @@ export class EmailService {
       return;
     }
 
+    const copy = getEmailCopy(language);
     const currency = order.region?.currency || 'EUR';
     const shortId = this.formatOrderIdDisplay(order.id);
     const content = `
-      <p>A new order has been placed and paid.</p>
-      <p><strong>Order ID:</strong> #${shortId}</p>
-      <p><strong>Total:</strong> ${this.formatCurrency(order.total, currency)}</p>
-      <p><strong>Customer:</strong> ${order.user?.email || order.guestEmail || 'Guest'}</p>
-      <p><strong>Items:</strong></p>
+      <p>${copy.adminOrderNewPlaced}</p>
+      <p><strong>${copy.orderId}:</strong> #${shortId}</p>
+      <p><strong>${copy.total}:</strong> ${this.formatCurrency(order.total, currency)}</p>
+      <p><strong>${copy.customer}:</strong> ${order.user?.email || order.guestEmail || copy.guest}</p>
+      <p><strong>${copy.items}:</strong></p>
       <ul>${this.buildOrderItems(order)}</ul>
     `;
 
@@ -301,10 +312,14 @@ export class EmailService {
       `Sending admin order placed email. orderId=${order.id}, adminEmail=${adminEmail}, status=${order.status}`,
     );
 
-    await this.sendMail(adminEmail, `New order received - #${shortId}`, this.buildEmailLayout('New order received', content));
+    await this.sendMail(
+      adminEmail,
+      `${copy.adminOrderSubject} - #${shortId}`,
+      this.buildEmailLayout(copy.adminOrderTitle, content),
+    );
   }
 
-  async sendOrderConfirmationCustomer(order: EmailOrder) {
+  async sendOrderConfirmationCustomer(order: EmailOrder, language?: string) {
     const customerEmail = order.user?.email || order.guestEmail;
     if (!customerEmail) {
       this.logger.warn(
@@ -313,14 +328,15 @@ export class EmailService {
       return;
     }
 
+    const copy = getEmailCopy(language);
     const currency = order.region?.currency || 'EUR';
     const shortId = this.formatOrderIdDisplay(order.id);
     const content = `
-      <p>Your order has been confirmed and payment was successful.</p>
-      <p><strong>Order ID:</strong> #${shortId}</p>
-      <p><strong>Total:</strong> ${this.formatCurrency(order.total, currency)}</p>
-      <p><strong>Shipping address:</strong> ${this.formatAddress(order.shippingAddress)}</p>
-      <p><strong>Items:</strong></p>
+      <p>${copy.orderConfirmationIntro}</p>
+      <p><strong>${copy.orderId}:</strong> #${shortId}</p>
+      <p><strong>${copy.total}:</strong> ${this.formatCurrency(order.total, currency)}</p>
+      <p><strong>${copy.shippingAddress}:</strong> ${this.formatAddress(order.shippingAddress)}</p>
+      <p><strong>${copy.items}:</strong></p>
       <ul>${this.buildOrderItems(order)}</ul>
     `;
 
@@ -330,12 +346,61 @@ export class EmailService {
 
     await this.sendMail(
       customerEmail,
-      `Order confirmation - #${shortId}`,
-      this.buildEmailLayout('Order confirmed', content),
+      `${copy.orderConfirmationSubject} - #${shortId}`,
+      this.buildEmailLayout(copy.orderConfirmationTitle, content),
     );
   }
 
-  async sendOrderStatusUpdate(order: EmailOrder) {
+  /**
+   * Sends a withdrawal/return/cancellation request from the customer to the company email.
+   * Recipient is company email from branding or ADMIN_ORDER_EMAIL.
+   * Email subject and labels use the language from the request (payload.language / frontend language).
+   */
+  async sendWithdrawalReturnRequest(payload: {
+    orderNumber: string;
+    fullName: string;
+    email: string;
+    deliveryAddress: string;
+    requestType: string;
+    reason: string;
+    language?: string;
+  }): Promise<void> {
+    const company = (this.branding as { company?: { email?: string } })?.company;
+    const toEmail =
+      company?.email?.trim() || this.configService.get<string>('ADMIN_ORDER_EMAIL')?.trim();
+    if (!toEmail) {
+      this.logger.warn(
+        'Neither branding.company.email nor ADMIN_ORDER_EMAIL is set. Skipping withdrawal/return request email.',
+      );
+      return;
+    }
+
+    const copy = getEmailCopy(payload.language);
+    const subject = `${copy.withdrawalSubject} ${payload.orderNumber}`;
+    const content = `
+      <p>${copy.withdrawalIntro}</p>
+      <table style="border-collapse: collapse; width: 100%; max-width: 500px;">
+        <tr><td style="padding: 6px 8px; border: 1px solid #e5e7eb;"><strong>${copy.orderNumber}</strong></td><td style="padding: 6px 8px; border: 1px solid #e5e7eb;">${escapeHtml(payload.orderNumber)}</td></tr>
+        <tr><td style="padding: 6px 8px; border: 1px solid #e5e7eb;"><strong>${copy.name}</strong></td><td style="padding: 6px 8px; border: 1px solid #e5e7eb;">${escapeHtml(payload.fullName)}</td></tr>
+        <tr><td style="padding: 6px 8px; border: 1px solid #e5e7eb;"><strong>${copy.email}</strong></td><td style="padding: 6px 8px; border: 1px solid #e5e7eb;">${escapeHtml(payload.email)}</td></tr>
+        <tr><td style="padding: 6px 8px; border: 1px solid #e5e7eb;"><strong>${copy.deliveryAddress}</strong></td><td style="padding: 6px 8px; border: 1px solid #e5e7eb;">${escapeHtml(payload.deliveryAddress)}</td></tr>
+        <tr><td style="padding: 6px 8px; border: 1px solid #e5e7eb;"><strong>${copy.requestType}</strong></td><td style="padding: 6px 8px; border: 1px solid #e5e7eb;">${escapeHtml(payload.requestType)}</td></tr>
+        <tr><td style="padding: 6px 8px; border: 1px solid #e5e7eb;"><strong>${copy.reasonNotes}</strong></td><td style="padding: 6px 8px; border: 1px solid #e5e7eb;">${escapeHtml(payload.reason)}</td></tr>
+        <tr><td style="padding: 6px 8px; border: 1px solid #e5e7eb;"><strong>${copy.language}</strong></td><td style="padding: 6px 8px; border: 1px solid #e5e7eb;">${escapeHtml(payload.language || '—')}</td></tr>
+      </table>
+    `;
+
+    this.logger.log(
+      `Sending withdrawal/return request email. to=${toEmail}, orderNumber=${payload.orderNumber}`,
+    );
+    await this.sendMail(
+      toEmail,
+      subject,
+      this.buildEmailLayout(copy.withdrawalTitle, content),
+    );
+  }
+
+  async sendOrderStatusUpdate(order: EmailOrder, language?: string) {
     const customerEmail = order.user?.email || order.guestEmail;
     if (!customerEmail) {
       this.logger.warn(
@@ -344,19 +409,21 @@ export class EmailService {
       return;
     }
 
+    const copy = getEmailCopy(language);
     const currency = order.region?.currency || 'EUR';
     const trackingLine = order.trackingNumber
-      ? `<p><strong>Tracking number (DHL):</strong> ${order.trackingNumber}</p>`
+      ? `<p><strong>${copy.trackingNumber}:</strong> ${order.trackingNumber}</p>`
       : '';
 
     const shortId = this.formatOrderIdDisplay(order.id);
+    const statusLabel = this.getStatusLabel(order.status, copy);
     const content = `
-      <p>Your order status has been updated to <strong>${this.getStatusLabel(order.status)}</strong>.</p>
-      <p><strong>Order ID:</strong> #${shortId}</p>
+      <p>${copy.orderStatusIntro} <strong>${statusLabel}</strong>.</p>
+      <p><strong>${copy.orderId}:</strong> #${shortId}</p>
       ${trackingLine}
-      <p><strong>Total:</strong> ${this.formatCurrency(order.total, currency)}</p>
-      <p><strong>Shipping address:</strong> ${this.formatAddress(order.shippingAddress)}</p>
-      <p><strong>Items:</strong></p>
+      <p><strong>${copy.total}:</strong> ${this.formatCurrency(order.total, currency)}</p>
+      <p><strong>${copy.shippingAddress}:</strong> ${this.formatAddress(order.shippingAddress)}</p>
+      <p><strong>${copy.items}:</strong></p>
       <ul>${this.buildOrderItems(order)}</ul>
     `;
 
@@ -366,8 +433,8 @@ export class EmailService {
 
     await this.sendMail(
       customerEmail,
-      `Order #${shortId} - ${order.status}`,
-      this.buildEmailLayout('Order status update', content),
+      `${copy.orderStatusSubject} #${shortId} - ${order.status}`,
+      this.buildEmailLayout(copy.orderStatusTitle, content),
     );
   }
 }

@@ -19,6 +19,7 @@ import {
   Globe,
   Settings,
   ScrollText,
+  RotateCcw,
 } from 'lucide-react';
 import { useT, translationKeys } from '@/lib/utils/translations';
 
@@ -149,6 +150,17 @@ export default function AdminDashboard() {
             </CardTitle>
             <CardDescription className="group-hover:text-white">
               {t(translationKeys.admin.dashboard.manageOrders, 'Review customer orders')}
+            </CardDescription>
+          </CardHeader>
+        </Card>
+        <Card className="group cursor-pointer hover:bg-accent hover:text-white transition-colors" onClick={() => router.push('/admin/returns')}>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <RotateCcw className="h-5 w-5" />
+              {t(translationKeys.admin.returns.title, 'Returns & requests')}
+            </CardTitle>
+            <CardDescription className="group-hover:text-white">
+              {t(translationKeys.admin.returns.description, 'View and manage withdrawal, return and cancellation requests')}
             </CardDescription>
           </CardHeader>
         </Card>

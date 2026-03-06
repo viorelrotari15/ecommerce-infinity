@@ -34,12 +34,11 @@ export function LanguageSelector() {
     );
   }
 
-  // English is guaranteed to exist in the database (auto-created by backend)
-  // This is a safety fallback during loading or edge cases
+  // Default language is used when no languages are loaded (safety fallback)
   if (languages.length === 0) {
     return (
       <div className="text-sm px-3 py-2 rounded-md border border-input bg-background">
-        {currentLanguage || 'en'}
+        {currentLanguage || 'de'}
       </div>
     );
   }

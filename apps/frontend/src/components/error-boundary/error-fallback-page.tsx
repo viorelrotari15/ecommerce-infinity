@@ -1,13 +1,11 @@
 'use client';
 
 import type { CSSProperties } from 'react';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { getBranding } from '@/lib/branding';
 import { Button } from '@/components/ui/button';
-import { useT } from '@/lib/utils/translations';
-import { translationKeys } from '@/lib/utils/translations';
 
 const isProduction = process.env.NODE_ENV === 'production';
 
@@ -16,9 +14,13 @@ interface ErrorFallbackPageProps {
   reset?: () => void;
 }
 
+/**
+ * Error fallback for app/error.tsx. Uses only branding + hardcoded copy so it never
+ * depends on Router or Language context (avoids "Cannot read properties of null (reading 'useContext')"
+ * when those contexts are broken during error state).
+ */
 export function ErrorFallbackPage({ error, reset }: ErrorFallbackPageProps) {
-  const t = useT();
-  const branding = getBranding();
+  const branding = useMemo(() => getBranding(), []);
   const [showDetails, setShowDetails] = useState(false);
 
   return (
@@ -42,13 +44,13 @@ export function ErrorFallbackPage({ error, reset }: ErrorFallbackPageProps) {
         {/* Status + minimal message */}
         <div className="space-y-2">
           <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
-            {isProduction ? t(translationKeys.common.status, 'Status') : 'Error boundary'}
+            {isProduction ? 'Status' : 'Error boundary'}
           </p>
           <h1 className="text-xl font-semibold text-foreground">
-            {t(translationKeys.common.somethingWentWrong, 'Something went wrong')}
+            Something went wrong
           </h1>
           <p className="text-sm text-muted-foreground max-w-sm mx-auto">
-            {t(translationKeys.errorPage.description, "We've been notified. Please try again or return to the homepage.")}
+            We&apos;ve been notified. Please try again or return to the homepage.
           </p>
         </div>
 
@@ -56,11 +58,11 @@ export function ErrorFallbackPage({ error, reset }: ErrorFallbackPageProps) {
         <div className="flex flex-wrap items-center justify-center gap-3">
           {reset && (
             <Button onClick={reset} variant="default" size="lg">
-              {t(translationKeys.common.tryAgain, 'Try again')}
+              Try again
             </Button>
           )}
           <Button asChild variant="outline" size="lg">
-            <Link href="/">{t(translationKeys.header.menu.home, 'Home')}</Link>
+            <Link href="/">Home</Link>
           </Button>
         </div>
 

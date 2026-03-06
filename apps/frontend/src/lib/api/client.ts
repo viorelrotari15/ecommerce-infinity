@@ -18,12 +18,12 @@ const AUTH_REDIRECT_PATH = '/auth/login';
  * Get current language from cookie
  */
 function getCurrentLanguage(): string {
-  if (typeof document === 'undefined') return 'en';
+  if (typeof document === 'undefined') return 'de';
   const cookieLang = document.cookie
     .split('; ')
     .find((row) => row.startsWith('lang='))
     ?.split('=')[1];
-  return cookieLang || 'en';
+  return cookieLang || 'de';
 }
 
 /**
@@ -411,9 +411,12 @@ export async function createPaymentIntent(payload: {
   return apiService.post('/payments/intent', payload);
 }
 
-/** Confirm payment success so backend marks payment COMPLETED (when webhook is not received) */
+/** Confirm payment success so backend marks payment COMPLETED (when webhook is not received). Sends current UI language so confirmation emails are localized. */
 export async function confirmPaymentSuccess(orderId: string): Promise<{ success: boolean }> {
-  return apiService.post('/payments/confirm-success', { orderId });
+  return apiService.post('/payments/confirm-success', {
+    orderId,
+    language: getCurrentLanguage(),
+  });
 }
 
 /** Admin order detail (GET /orders/admin/:id) */
@@ -467,6 +470,60 @@ export async function getAdminOrderById(orderId: string): Promise<AdminOrderResp
 
 export async function updateAdminOrderStatus(orderId: string, payload: { status: string; trackingNumber?: string }) {
   return apiService.patch(`/orders/admin/${orderId}`, payload);
+}
+
+// ========== Admin Returns (withdrawal/return/cancellation requests) ==========
+export type ReturnRequestStatus = 'PENDING' | 'IN_PROGRESS' | 'APPROVED' | 'REJECTED' | 'COMPLETED';
+
+export interface ReturnRequestResponse {
+  id: string;
+  orderNumber: string;
+  fullName: string;
+  email: string;
+  deliveryAddress: string;
+  requestType: string;
+  reason: string;
+  language: string | null;
+  status: ReturnRequestStatus;
+  adminNotes: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AdminReturnsListResponse {
+  data: ReturnRequestResponse[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export async function listAdminReturns(params?: {
+  page?: number;
+  limit?: number;
+  status?: ReturnRequestStatus;
+  orderNumber?: string;
+  email?: string;
+}): Promise<AdminReturnsListResponse> {
+  const query = new URLSearchParams();
+  if (params?.page != null && params.page > 1) query.set('page', String(params.page));
+  if (params?.limit != null && params.limit !== 20) query.set('limit', String(params.limit));
+  if (params?.status) query.set('status', params.status);
+  if (params?.orderNumber?.trim()) query.set('orderNumber', params.orderNumber.trim());
+  if (params?.email?.trim()) query.set('email', params.email.trim());
+  const suffix = query.toString() ? `?${query.toString()}` : '';
+  return apiService.get<AdminReturnsListResponse>(`/returns/admin${suffix}`);
+}
+
+export async function getAdminReturnById(id: string): Promise<ReturnRequestResponse> {
+  return apiService.get<ReturnRequestResponse>(`/returns/admin/${id}`);
+}
+
+export async function updateAdminReturnStatus(
+  id: string,
+  payload: { status: ReturnRequestStatus; adminNotes?: string },
+) {
+  return apiService.patch(`/returns/admin/${id}`, payload);
 }
 
 /** User order detail (GET /orders/:id) - same shape as admin minus sensitive fields */
