@@ -79,8 +79,9 @@ export default function ForgotPasswordPage() {
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
             <CardTitle className="text-2xl">{t(translationKeys.auth.resetLinkSent, 'Check your email')}</CardTitle>
-            <CardDescription>
-              {t(translationKeys.auth.resetLinkSentDescription, "If an account exists for that email, we've sent a password reset link.")}
+            <CardDescription className="space-y-2">
+              <span className="block">{t(translationKeys.auth.resetLinkSentDescription, "If an account exists for that email, we've sent a password reset link.")}</span>
+              <span className="block text-muted-foreground/90">{t(translationKeys.auth.resetLinkCheckSpam, "If you don't see it, check your spam or junk folder.")}</span>
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
