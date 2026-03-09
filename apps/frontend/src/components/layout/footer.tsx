@@ -74,7 +74,7 @@ export function Footer() {
               </ul>
               <ul className="space-y-2 text-sm">
                 <li>
-                  <Link href="/account" className="text-muted-foreground hover:text-foreground">
+                  <Link href="/user/profile" className="text-muted-foreground hover:text-foreground">
                     {t(translationKeys.footer.account.myAccount, 'Contul meu')}
                   </Link>
                 </li>

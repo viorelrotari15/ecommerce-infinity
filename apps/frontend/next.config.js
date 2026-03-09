@@ -24,7 +24,9 @@ function useUnoptimizedImages() {
   return false;
 }
 
-// Security headers to mitigate XSS, clickjacking, MIME sniffing
+// Security headers to mitigate XSS, clickjacking, MIME sniffing.
+// Note: If you see "Unrecognized feature: browsing-topics", it is often injected by the
+// tunnel/CDN (e.g. Cloudflare); this app does not set browsing-topics.
 const securityHeaders = [
   { key: 'X-DNS-Prefetch-Control', value: 'on' },
   { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
