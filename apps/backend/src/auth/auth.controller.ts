@@ -16,6 +16,7 @@ import { RegisterDto } from './dto/register.dto';
 import { FirebaseLoginDto } from './dto/firebase-login.dto';
 import { CreateAdminDto } from './dto/create-admin.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { RolesGuard } from './guards/roles.guard';
 import { Roles } from './decorators/roles.decorator';
@@ -54,6 +55,13 @@ export class AuthController {
       throw new UnauthorizedException('Invalid or expired Firebase token');
     }
     return result;
+  }
+
+  @Post('forgot-password')
+  @ApiOperation({ summary: 'Ensure user exists in Firebase so client can send password reset email' })
+  async forgotPassword(@Body() dto: ForgotPasswordDto) {
+    await this.authService.ensureFirebaseUserForPasswordReset(dto.email);
+    return { ok: true };
   }
 
   @Post('register')

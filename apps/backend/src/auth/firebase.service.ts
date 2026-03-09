@@ -1,5 +1,6 @@
 import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import * as crypto from 'crypto';
 import * as fs from 'fs';
 import * as admin from 'firebase-admin';
 
@@ -156,6 +157,38 @@ export class FirebaseService implements OnModuleInit {
     } catch (e) {
       this.logger.warn(
         `Firebase createUser failed for ${email}: ${e instanceof Error ? e.message : String(e)}`,
+      );
+      return null;
+    }
+  }
+
+  /**
+   * Get or create a Firebase Auth user for the given email (with a random password).
+   * Used so that existing DB-only users can receive password reset emails.
+   * Returns Firebase uid if the user exists or was created, null on failure.
+   */
+  async getOrCreateFirebaseUserForEmail(email: string): Promise<string | null> {
+    if (!this.initialized) return null;
+    const randomPassword = crypto.randomBytes(32).toString('base64').replace(/[^a-zA-Z0-9]/g, '').slice(0, 24) + 'Aa1!';
+    try {
+      const userRecord = await admin.auth().createUser({
+        email,
+        password: randomPassword,
+        emailVerified: false,
+      });
+      return userRecord?.uid ?? null;
+    } catch (e: unknown) {
+      const err = e as { code?: string };
+      if (err?.code === 'auth/email-already-exists') {
+        try {
+          const existing = await admin.auth().getUserByEmail(email);
+          return existing?.uid ?? null;
+        } catch {
+          return null;
+        }
+      }
+      this.logger.warn(
+        `Firebase getOrCreateUser failed for ${email}: ${e instanceof Error ? e.message : String(e)}`,
       );
       return null;
     }

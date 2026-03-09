@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { FormField } from '@/components/forms/form-field';
 import { firebaseAuth } from '@/lib/firebase';
+import { fetchAPI } from '@/lib/api';
 import { useState } from 'react';
 import { useT, translationKeys } from '@/lib/utils/translations';
 import { emailSchema } from '@/lib/validation';
@@ -46,7 +47,17 @@ export default function ForgotPasswordPage() {
     setError(null);
     setSent(false);
 
-    const result = await firebaseAuth.sendPasswordResetEmail(data.email.trim());
+    const email = data.email.trim();
+    try {
+      // Ensure user exists in Firebase (creates/links for existing DB-only users) so the reset email can be sent
+      await fetchAPI<{ ok: boolean }>('/auth/forgot-password', {
+        method: 'POST',
+        body: JSON.stringify({ email }),
+      });
+    } catch {
+      // Continue anyway – backend may be down; Firebase might still have the user
+    }
+    const result = await firebaseAuth.sendPasswordResetEmail(email);
 
     if (result.success) {
       setSent(true);

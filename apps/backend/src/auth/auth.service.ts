@@ -116,5 +116,20 @@ export class AuthService {
   async updateProfile(userId: string, updateProfileDto: UpdateProfileDto) {
     return this.usersService.updateProfile(userId, updateProfileDto);
   }
+
+  /**
+   * Ensure the user exists in Firebase Auth so the client can send a password reset email.
+   * If the user exists in our DB but has no firebaseUid, create them in Firebase (with a random password) and link.
+   * Always returns without throwing (no info leak about whether the email exists).
+   */
+  async ensureFirebaseUserForPasswordReset(email: string): Promise<void> {
+    const user = await this.usersService.findByEmail(email);
+    if (!user || user.firebaseUid) return;
+    if (!this.firebaseService.isConfigured()) return;
+    const uid = await this.firebaseService.getOrCreateFirebaseUserForEmail(email);
+    if (uid) {
+      await this.usersService.linkFirebaseUid(user.id, uid);
+    }
+  }
 }
 
