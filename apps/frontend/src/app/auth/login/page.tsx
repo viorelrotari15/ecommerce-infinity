@@ -16,6 +16,7 @@ import { getCart, updateCart as updateCartAPI } from '@/lib/api/client';
 import { notifyAuthStateChanged } from '@/lib/auth';
 import { useT, translationKeys } from '@/lib/utils/translations';
 import { emailSchema, passwordLoginSchema } from '@/lib/validation';
+import { firebaseAuth } from '@/lib/firebase';
 import dynamic from 'next/dynamic';
 
 const SocialLoginButtons = dynamic(
@@ -61,19 +62,32 @@ export default function LoginPage() {
     setError(null);
 
     try {
-      const response = await fetchAPI<{
+      type AuthResponse = {
         access_token: string;
-        user: {
-          id: string;
-          email: string;
-          firstName: string;
-          lastName: string;
-          role: string;
-        };
-      }>('/auth/login', {
-        method: 'POST',
-        body: JSON.stringify(data),
-      });
+        user: { id: string; email: string; firstName: string; lastName: string; role: string };
+      };
+      let response: AuthResponse;
+      // Prefer Firebase for email/password so that forgot-password reset works (password lives in Firebase)
+      if (firebaseAuth.isConfigured()) {
+        const idToken = await firebaseAuth.signInWithEmail(data.email, data.password);
+        if (idToken) {
+          response = await fetchAPI<AuthResponse>('/auth/firebase', {
+            method: 'POST',
+            body: JSON.stringify({ idToken }),
+          });
+        } else {
+          // Firebase sign-in failed (e.g. user not in Firebase or wrong password) → try backend
+          response = await fetchAPI<AuthResponse>('/auth/login', {
+            method: 'POST',
+            body: JSON.stringify(data),
+          });
+        }
+      } else {
+        response = await fetchAPI<AuthResponse>('/auth/login', {
+          method: 'POST',
+          body: JSON.stringify(data),
+        });
+      }
 
       // Store token in localStorage
       localStorage.setItem('token', response.access_token);
@@ -155,6 +169,12 @@ export default function LoginPage() {
               register={register}
               required
             />
+
+            <div className="text-right text-sm">
+              <Link href="/auth/forgot-password" className="text-muted-foreground hover:underline">
+                {t(translationKeys.auth.forgotPassword, 'Forgot password?')}
+              </Link>
+            </div>
 
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? t(translationKeys.auth.loggingIn, 'Logging in...') : t(translationKeys.auth.login, 'Login')}

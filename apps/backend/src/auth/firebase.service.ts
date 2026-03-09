@@ -139,4 +139,25 @@ export class FirebaseService implements OnModuleInit {
       return null;
     }
   }
+
+  /**
+   * Create an email/password user in Firebase Auth so that password reset (sendPasswordResetEmail) works.
+   * Returns uid if successful, null otherwise (e.g. email already exists in Firebase).
+   */
+  async createUserWithEmailPassword(email: string, password: string): Promise<{ uid: string } | null> {
+    if (!this.initialized) return null;
+    try {
+      const userRecord = await admin.auth().createUser({
+        email,
+        password,
+        emailVerified: false,
+      });
+      return userRecord?.uid ? { uid: userRecord.uid } : null;
+    } catch (e) {
+      this.logger.warn(
+        `Firebase createUser failed for ${email}: ${e instanceof Error ? e.message : String(e)}`,
+      );
+      return null;
+    }
+  }
 }

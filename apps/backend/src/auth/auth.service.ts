@@ -89,6 +89,15 @@ export class AuthService {
       firstName,
       lastName,
     });
+    // Create same user in Firebase so forgot-password (sendPasswordResetEmail) works
+    if (this.firebaseService.isConfigured()) {
+      const firebaseUser = await this.firebaseService.createUserWithEmailPassword(email, password);
+      if (firebaseUser?.uid) {
+        await this.usersService.linkFirebaseUid(user.id, firebaseUser.uid);
+        const updated = await this.usersService.findByEmail(email);
+        if (updated) return this.login(updated);
+      }
+    }
     return this.login(user);
   }
 

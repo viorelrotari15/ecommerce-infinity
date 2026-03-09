@@ -7,11 +7,7 @@ import { Button } from '@/components/ui/button';
 import { getApiBase } from '@/lib/api/client';
 import { notifyAuthStateChanged } from '@/lib/auth';
 import { useT, translationKeys } from '@/lib/utils/translations';
-import {
-  isFirebaseConfigured,
-  signInWithFirebaseGoogle,
-  signInWithFirebaseFacebook,
-} from '@/lib/firebase';
+import { firebaseAuth } from '@/lib/firebase';
 
 export function SocialLoginButtons() {
   const t = useT();
@@ -19,7 +15,7 @@ export function SocialLoginButtons() {
   const queryClient = useQueryClient();
   const [loading, setLoading] = useState<'google' | 'facebook' | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const firebaseReady = isFirebaseConfigured();
+  const firebaseReady = firebaseAuth.isConfigured();
 
   const handleFirebaseSuccess = async (idToken: string) => {
     setError(null);
@@ -54,7 +50,7 @@ export function SocialLoginButtons() {
     setLoading('google');
     setError(null);
     try {
-      const idToken = await signInWithFirebaseGoogle();
+      const idToken = await firebaseAuth.signInWithGoogle();
       if (idToken) await handleFirebaseSuccess(idToken);
       else setError(t(translationKeys.auth.loginFailed, 'Sign-in failed'));
     } catch (e: any) {
@@ -72,7 +68,7 @@ export function SocialLoginButtons() {
     setLoading('facebook');
     setError(null);
     try {
-      const idToken = await signInWithFirebaseFacebook();
+      const idToken = await firebaseAuth.signInWithFacebook();
       if (idToken) await handleFirebaseSuccess(idToken);
       else setError(t(translationKeys.auth.loginFailed, 'Sign-in failed'));
     } catch (e: any) {
