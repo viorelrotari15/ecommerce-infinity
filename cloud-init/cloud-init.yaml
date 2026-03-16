@@ -1,0 +1,48 @@
+#cloud-config
+# Ecommerce Infinity – Cloud-init to bootstrap server and run setup-server.sh
+# Use: pass this as user-data when creating an Ubuntu VM (AWS, GCP, Azure, OpenStack, etc.)
+# Replace REPO_URL/REPO_BRANCH with your repo; for private repo see docs below.
+
+package_update: true
+package_upgrade: true
+
+# Optional: set repo and branch (defaults used if not set)
+# For private repo: use write_files to write /opt/ecommerce-bootstrap.env with
+# REPO_URL=..., REPO_SSH_KEY=... and clone with git instead.
+write_files:
+  - path: /opt/ecommerce-bootstrap.env
+    permissions: '0644'
+    content: |
+      REPO_URL=https://github.com/your-org/ecommerce-infinity.git
+      REPO_BRANCH=main
+      INSTALL_DIR=/opt/ecommerce-infinity
+
+runcmd:
+  # Load env and install git/curl, clone repo, run bootstrap (bootstrap installs Docker, creates .env)
+  - |
+    set -e
+    . /opt/ecommerce-bootstrap.env 2>/dev/null || true
+    REPO_URL="${REPO_URL:-https://github.com/your-org/ecommerce-infinity.git}"
+    REPO_BRANCH="${REPO_BRANCH:-main}"
+    INSTALL_DIR="${INSTALL_DIR:-/opt/ecommerce-infinity}"
+    echo "[cloud-init] Cloning $REPO_URL (branch $REPO_BRANCH) to $INSTALL_DIR ..."
+    apt-get update -qq && apt-get install -y git curl
+    mkdir -p "$(dirname "$INSTALL_DIR")"
+    if [ ! -d "$INSTALL_DIR/.git" ]; then
+      git clone -b "$REPO_BRANCH" "$REPO_URL" "$INSTALL_DIR" || true
+    else
+      (cd "$INSTALL_DIR" && git fetch && git checkout "$REPO_BRANCH" && git pull --rebase) || true
+    fi
+    if [ -f "$INSTALL_DIR/scripts/cloud-init-bootstrap.sh" ]; then
+      chmod +x "$INSTALL_DIR/scripts/cloud-init-bootstrap.sh"
+      INSTALL_DIR="$INSTALL_DIR" CLONE_REPO=false "$INSTALL_DIR/scripts/cloud-init-bootstrap.sh"
+    else
+      echo "[cloud-init] Bootstrap script not found; run setup manually: cd $INSTALL_DIR && ./scripts/setup-server.sh"
+    fi
+  - |
+    if [ -x /opt/ecommerce-infinity/scripts/setup-server.sh ]; then
+      echo "[cloud-init] To finish setup, run: cd /opt/ecommerce-infinity && ./scripts/setup-server.sh"
+      echo "[cloud-init] Bootstrap log: /var/log/ecommerce-bootstrap.log"
+    fi
+
+final_message: "Ecommerce Infinity bootstrap finished. SSH in and run: cd /opt/ecommerce-infinity && ./scripts/setup-server.sh"
