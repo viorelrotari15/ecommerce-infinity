@@ -6,6 +6,139 @@ This guide gets your staging app **public on the internet** with a single URL (H
 
 ---
 
+## Example: Cloudflare Tunnel with your domain (e.g. mistico.de)
+
+If you have your own domain (e.g. **mistico.de**) and want the app at `https://mistico.de` (or `https://shop.mistico.de`):
+
+1. **Add the domain to Cloudflare**
+   - Sign up or log in at [dash.cloudflare.com](https://dash.cloudflare.com).
+   - Click **Add a site** and enter **mistico.de**.
+   - Cloudflare will show the nameservers you must set at your domain registrar (where you bought mistico.de). Replace the current NS records with Cloudflare’s (e.g. `xxx.ns.cloudflare.com`). Propagation can take up to 24–48 hours (often minutes).
+   - In Cloudflare, **DNS** → add an A/AAAA or CNAME for the hostname you’ll use (e.g. `mistico.de` or `shop.mistico.de`). You can leave it as “proxy off” or “proxied”; the tunnel will override this in the next step.
+
+2. **On the server: start the app and install cloudflared**
+   - From project root:  
+     `docker compose -f docker-compose.prod.yml -f docker-compose.tunnel.yml up -d`
+   - Install cloudflared (see [Step 2](#step-2--install-cloudflared-on-the-server) below), or use `./scripts/setup-server.sh` → option 5.
+
+3. **Log in and create a named tunnel**
+   ```bash
+   cloudflared tunnel login
+   ```
+   Open the URL in a browser, sign in to Cloudflare, and **select the zone “mistico.de”**. This authorizes cloudflared for that domain.
+
+   ```bash
+   cloudflared tunnel create ecommerce-mistico
+   ```
+   Note the **Tunnel ID** (e.g. `abcd1234-5678-90ab-cdef-1234567890ab`).
+
+4. **Config and DNS route**
+   - Create config (replace `TUNNEL_ID` and `ubuntu` with your tunnel ID and username):
+   ```bash
+   mkdir -p ~/.cloudflared
+   nano ~/.cloudflared/config.yml
+   ```
+   Paste (use `mistico.de` or `shop.mistico.de` as you prefer):
+   ```yaml
+   tunnel: TUNNEL_ID
+   credentials-file: /home/ubuntu/.cloudflared/TUNNEL_ID.json
+
+   ingress:
+     - hostname: mistico.de
+       service: http://localhost:80
+     - hostname: www.mistico.de
+       service: http://localhost:80
+     - service: http_status:404
+   ```
+   - Create the DNS record for the tunnel:
+   ```bash
+   cloudflared tunnel route dns ecommerce-mistico mistico.de
+   cloudflared tunnel route dns ecommerce-mistico www.mistico.de
+   ```
+   (Omit `www.mistico.de` if you only want the root domain.)
+
+5. **Run the tunnel as a service**
+   ```bash
+   sudo cloudflared service install --config ~/.cloudflared/config.yml
+   sudo systemctl start cloudflared
+   sudo systemctl enable cloudflared
+   ```
+
+6. **Set the public URL in `.env`** (no trailing slash)
+   ```env
+   NEXT_PUBLIC_APP_URL=https://mistico.de
+   NEXT_PUBLIC_API_URL=https://mistico.de/api
+   NEXT_PUBLIC_CDN_URL=https://mistico.de
+   MINIO_PUBLIC_URL=https://mistico.de
+   ```
+   Then restart the frontend:
+   ```bash
+   docker compose -f docker-compose.prod.yml -f docker-compose.tunnel.yml restart frontend
+   ```
+   If you use a subdomain (e.g. `shop.mistico.de`), use that in `hostname` in config, in `tunnel route dns`, and in `.env` instead of `mistico.de`.
+
+7. **Optional:** In [Firebase Console](https://console.firebase.google.com) → your project → **Authentication** → **Settings** → **Authorized domains**, add **mistico.de** and **www.mistico.de** so Google/Facebook login works on your domain.
+
+After that, the app is available at **https://mistico.de** (and **https://www.mistico.de** if you added it). No port forwarding or SSL certificate on the server; Cloudflare provides HTTPS.
+
+### mistico.de – Your Cloudflare nameservers
+
+These are the nameservers Cloudflare assigned for **mistico.de**:
+
+| Type | Value |
+|------|--------|
+| NS | `georgia.ns.cloudflare.com` |
+| NS | `ignacio.ns.cloudflare.com` |
+
+**What to do:** Log in at the **registrar where you bought mistico.de** (e.g. IONOS, Strato, GoDaddy, Namecheap). Find the **DNS** or **Nameservers** settings for mistico.de and replace the current nameservers with the two above. Save. DNS can take 5–60 minutes to update (sometimes up to 24–48 hours). After that, Cloudflare will control DNS for mistico.de and your tunnel hostnames (mistico.de, www.mistico.de) will resolve correctly.
+
+---
+
+## Access temporarily with free domain (no custom domain yet)
+
+If you **don’t have access to your domain yet** (e.g. mistico.de nameservers not updated), you can use a **free Quick Tunnel** URL (`https://something.trycloudflare.com`) to reach your app right away. No domain or Cloudflare account needed.
+
+**On the server** (from project root, e.g. `/opt/ecommerce-infinity`):
+
+1. **Start the app and install cloudflared** (if not already done):
+   ```bash
+   docker compose -f docker-compose.prod.yml -f docker-compose.tunnel.yml up -d
+   ```
+   Install cloudflared: see [Step 2](#step-2--install-cloudflared-on-the-server) below, or run `./scripts/setup-server.sh` → option **5) Install cloudflared**.
+
+2. **Start the Quick Tunnel:**
+   ```bash
+   cloudflared tunnel --url http://localhost:80
+   ```
+   In the output you’ll see something like:
+   ```text
+   Your quick Tunnel has been created! Visit it at:
+   https://random-words-here.trycloudflare.com
+   ```
+   **Copy that URL** (e.g. `https://random-words-here.trycloudflare.com`).
+
+3. **Set that URL in `.env`** (no trailing slash). Edit `.env` and set:
+   ```env
+   NEXT_PUBLIC_APP_URL=https://random-words-here.trycloudflare.com
+   NEXT_PUBLIC_API_URL=https://random-words-here.trycloudflare.com/api
+   NEXT_PUBLIC_CDN_URL=https://random-words-here.trycloudflare.com
+   MINIO_PUBLIC_URL=https://random-words-here.trycloudflare.com
+   ```
+   Or use the setup menu: `./scripts/setup-server.sh` → **7) Set tunnel URL in .env** and paste the URL.
+
+4. **Restart the frontend:**
+   ```bash
+   docker compose -f docker-compose.prod.yml -f docker-compose.tunnel.yml restart frontend
+   ```
+
+5. **Open the URL** in your browser. Your app is now reachable over HTTPS at the free `*.trycloudflare.com` address.
+
+**Keep the tunnel running:** Leave the terminal with `cloudflared tunnel --url http://localhost:80` open. If you close it, the URL stops working. To run it in the background, see [Step 4 – Run Quick Tunnel in the background](#step-4--run-quick-tunnel-in-the-background-optional).
+
+**When your domain (mistico.de) is ready:** Switch to a [Named Tunnel with mistico.de](#example-cloudflare-tunnel-with-your-domain-eg-misticode). Update `.env` to use `https://mistico.de` and restart the frontend.
+
+---
+
 ## Overview
 
 1. **App stack**: Nginx listens on port 80 and proxies `/` to the frontend and `/api/` to the backend (tunnel-friendly config).
@@ -252,6 +385,137 @@ systemctl --user enable --now cloudflared-quick.service
 ```bash
 journalctl --user -u cloudflared-quick.service -f
 ```
+
+---
+
+## If you can’t access mistico.de yet
+
+Check these on the server:
+
+| Check | Command / action |
+|-------|-------------------|
+| **1. Domain at Cloudflare** | In [Cloudflare Dashboard](https://dash.cloudflare.com) → **Websites** → is **mistico.de** listed? If not, add the site and use the nameservers Cloudflare gives you at your **registrar** (where you bought mistico.de). |
+| **2. Nameservers** | At the registrar (where you bought mistico.de), set the domain’s **nameservers** to Cloudflare’s (e.g. `xxx.ns.cloudflare.com`). Save and wait 5–60 minutes (up to 24–48 h in rare cases). |
+| **3. Tunnel running** | On the server: `sudo systemctl status cloudflared`. If not active: `sudo systemctl start cloudflared` and `sudo systemctl enable cloudflared`. |
+| **4. App stack up** | `cd /opt/ecommerce-infinity` (or your project path), then `docker compose -f docker-compose.prod.yml -f docker-compose.tunnel.yml ps`. All services should be “Up”. If not: `docker compose -f docker-compose.prod.yml -f docker-compose.tunnel.yml up -d`. |
+| **5. .env has your URL** | In project root: `grep NEXT_PUBLIC_APP_URL .env` should show `https://mistico.de` (no trailing slash). Then: `docker compose -f docker-compose.prod.yml -f docker-compose.tunnel.yml restart frontend`. |
+
+After that, open **https://mistico.de** in a browser (try incognito or another device if it was cached).
+
+---
+
+## Step-by-step: finish setup (mistico.de)
+
+Do this **on the server** (SSH) after **https://mistico.de** loads. Run everything from the project root, e.g. `/opt/ecommerce-infinity`.
+
+---
+
+### Step 1 – Open the setup menu
+
+```bash
+cd /opt/ecommerce-infinity
+./scripts/setup-server.sh
+```
+
+Keep this terminal open; you’ll use the menu for the next steps.
+
+---
+
+### Step 2 – Create admin user
+
+- In the menu, choose **16) Create admin user**.
+- Enter: **email**, **password**, first name, last name.
+- You’ll use this to log in at `https://mistico.de` (admin area).
+
+---
+
+### Step 3 – Configure Stripe (payments)
+
+1. In the menu, choose **17) Configure Stripe**.
+2. Get keys from [Stripe Dashboard → API keys](https://dashboard.stripe.com/apikeys):  
+   - **Publishable key** (pk_test_… or pk_live_…).  
+   - **Secret key** (sk_test_… or sk_live_…).
+3. When asked, paste each key.
+4. **Webhook:** In [Stripe → Webhooks](https://dashboard.stripe.com/webhooks), click **Add endpoint**.  
+   - URL: `https://mistico.de/api/payments/stripe/webhook`  
+   - Events: e.g. `checkout.session.completed`, `payment_intent.succeeded` (or “Listen to all events”).  
+   - Copy the **Signing secret** (whsec_…) and paste it when the menu asks for “Stripe Webhook Secret”.
+5. Set **currency** when asked (e.g. EUR).
+
+---
+
+### Step 4 – Add mistico.de to Firebase (Google/Facebook login)
+
+1. In a browser, open [Firebase Console](https://console.firebase.google.com) → your project.
+2. Go to **Authentication** → **Settings** (or **Sign-in method** tab) → **Authorized domains**.
+3. Click **Add domain** and add:
+   - **mistico.de**
+   - **www.mistico.de**
+4. Save.
+
+---
+
+### Step 5 – Setup Firebase on the server (service account)
+
+1. In Firebase Console: **Project settings** (gear) → **Service accounts** → **Generate new private key**.
+2. Download the JSON. You’ll need: **project_id**, **private_key_id**, **private_key**, **client_email**, **client_id** (and optionally auth_uri, token_uri, etc.).
+3. In the setup menu, choose **19) Setup Firebase (backend: service account)**.
+4. Enter each value when asked (or paste the private key line by line; when done, type **END** and Enter).
+5. Restart backend when the script asks.
+
+---
+
+### Step 6 – Configure Resend (emails)
+
+1. Get an API key at [Resend → API Keys](https://resend.com/api-keys).
+2. In the menu, choose **20) Configure Resend**.
+3. Enter: **API key** (re_…), **from email** (e.g. `noreply@mistico.de` or `onboarding@resend.dev` for testing), **from name**, and optionally **admin email** for order notifications.
+
+---
+
+### Step 7 – Set currency (if not done in Stripe)
+
+- In the menu, choose **18) Configure currency**.
+- Enter the code (e.g. **EUR**, **USD**).
+
+---
+
+### Step 8 – Restart app so all changes apply
+
+Exit the menu (option **0**) and run:
+
+```bash
+docker compose -f docker-compose.prod.yml -f docker-compose.tunnel.yml up -d --build backend frontend
+```
+
+---
+
+### Step 9 – Optional: Grafana (only if you use monitoring)
+
+- If you run the monitoring stack and want Grafana at **https://mistico.de/grafana**, choose **14) Configure Grafana** in the menu and set the base URL to `https://mistico.de`.
+
+---
+
+### Step 10 – Optional: Cloudflare SSL
+
+- In [Cloudflare Dashboard](https://dash.cloudflare.com) → **mistico.de** → **SSL/TLS** → set encryption mode to **Full** or **Full (strict)**.
+
+---
+
+### Checklist (quick reference)
+
+| # | Task | Where / how |
+|---|------|-------------|
+| 1 | Open setup menu | `./scripts/setup-server.sh` |
+| 2 | Create admin user | Menu **16** |
+| 3 | Stripe keys + webhook `https://mistico.de/api/payments/stripe/webhook` | Menu **17** + Stripe Dashboard |
+| 4 | Firebase: add mistico.de + www.mistico.de to Authorized domains | Firebase Console |
+| 5 | Firebase: service account on server | Menu **19** + Firebase JSON |
+| 6 | Resend (emails) | Menu **20** |
+| 7 | Currency | Menu **18** |
+| 8 | Restart backend + frontend | `docker compose ... up -d --build backend frontend` |
+| 9 | (Optional) Grafana URL | Menu **14** |
+| 10 | (Optional) Cloudflare SSL = Full | Cloudflare Dashboard |
 
 ---
 
