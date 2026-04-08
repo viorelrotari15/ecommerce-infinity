@@ -130,16 +130,29 @@ export class EmailService {
     };
   }
 
+  /** True for http://localhost:* and 127.0.0.1 — prefer a real public URL for emails when available. */
+  private isLoopbackUrl(url: string): boolean {
+    try {
+      const u = new URL(url.startsWith('http') ? url : `https://${url}`);
+      return u.hostname === 'localhost' || u.hostname === '127.0.0.1';
+    } catch {
+      return false;
+    }
+  }
+
   private getBranding() {
     const name = this.branding?.name ?? this.configService.get<string>('BRAND_NAME') ?? 'Ecommerce Infinity';
-    // Env wins over branding.json so prod emails use the real public URL (footer + absolute logo src).
-    const siteFromEnv =
-      this.configService.get<string>('FRONTEND_URL')?.trim() ||
-      this.configService.get<string>('BRAND_WEBSITE')?.trim() ||
-      this.configService.get<string>('NEXT_PUBLIC_APP_URL')?.trim() ||
-      '';
+
+    const np = this.configService.get<string>('NEXT_PUBLIC_APP_URL')?.trim() || '';
+    const fr = this.configService.get<string>('FRONTEND_URL')?.trim() || '';
+    const bw = this.configService.get<string>('BRAND_WEBSITE')?.trim() || '';
+    const envCandidates = [np, fr, bw].filter(Boolean);
     const siteFromFile = this.branding?.siteUrl?.trim() || '';
-    const siteUrl = (siteFromEnv || siteFromFile).replace(/\/$/, '');
+    const allCandidates = [...envCandidates, siteFromFile].filter(Boolean);
+    const siteUrl = (allCandidates.find((s) => !this.isLoopbackUrl(s)) || allCandidates[0] || '').replace(
+      /\/$/,
+      '',
+    );
 
     const logoPath = this.branding?.logo?.primary ?? '';
     const logoOverride = this.configService.get<string>('BRAND_LOGO_URL')?.trim();
@@ -151,7 +164,7 @@ export class EmailService {
 
     const palette = this.branding?.palette ?? {};
     const primaryColor = palette.primary ?? this.configService.get<string>('BRAND_PRIMARY_COLOR') ?? '#111827';
-    const website = siteUrl || this.configService.get<string>('BRAND_WEBSITE')?.trim() || '';
+    const website = siteUrl || bw || '';
     const supportEmail = this.configService.get<string>('BRAND_SUPPORT_EMAIL') || '';
 
     return {
@@ -219,14 +232,16 @@ export class EmailService {
 
   private buildEmailLayout(title: string, content: string) {
     const brand = this.getBranding();
-    const logo = brand.logoUrl
-      ? `<img src="${brand.logoUrl}" alt="${brand.name}" style="max-height: 40px; margin-bottom: 16px;" />`
-      : `<div style="font-size: 20px; font-weight: 700; color: ${brand.primaryColor}; margin-bottom: 16px;">${brand.name}</div>`;
+    // Many clients (e.g. Gmail) block or break <img> for SVG; use styled text for .svg URLs.
+    const logo =
+      brand.logoUrl && !/\.svg(\?|$)/i.test(brand.logoUrl)
+        ? `<img src="${escapeHtml(brand.logoUrl)}" alt="${escapeHtml(brand.name)}" style="max-height: 40px; margin-bottom: 16px;" />`
+        : `<div style="font-size: 20px; font-weight: 700; color: ${brand.primaryColor}; margin-bottom: 16px;">${escapeHtml(brand.name)}</div>`;
 
     const footer = `
       <div style="margin-top: 32px; font-size: 12px; color: ${brand.mutedForeground};">
-        ${brand.website ? `<div>Website: <a href="${brand.website}" style="color: ${brand.primaryColor};">${brand.website}</a></div>` : ''}
-        ${brand.supportEmail ? `<div>Support: ${brand.supportEmail}</div>` : ''}
+        ${brand.website ? `<div>Website: <a href="${escapeHtml(brand.website)}" style="color: ${brand.primaryColor};">${escapeHtml(brand.website)}</a></div>` : ''}
+        ${brand.supportEmail ? `<div>Support: ${escapeHtml(brand.supportEmail)}</div>` : ''}
       </div>
     `;
 
