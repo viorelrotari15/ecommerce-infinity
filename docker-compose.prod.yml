@@ -43,6 +43,9 @@ services:
       NEXT_PUBLIC_CDN_URL: ${NEXT_PUBLIC_CDN_URL}
       # Redis Configuration
       REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+      # Public storefront URL for transactional emails (footer link, logo img src). Defaults to NEXT_PUBLIC_APP_URL.
+      FRONTEND_URL: ${FRONTEND_URL:-${NEXT_PUBLIC_APP_URL:-}}
+      NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-}
       # App currency (display, emails, Stripe)
       APP_CURRENCY: ${APP_CURRENCY:-EUR}
       # Stripe (set via server menu 17 or .env)

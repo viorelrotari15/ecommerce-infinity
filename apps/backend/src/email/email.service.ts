@@ -132,16 +132,26 @@ export class EmailService {
 
   private getBranding() {
     const name = this.branding?.name ?? this.configService.get<string>('BRAND_NAME') ?? 'Ecommerce Infinity';
-    const siteUrl =
-      this.branding?.siteUrl ??
-      this.configService.get<string>('FRONTEND_URL') ??
-      this.configService.get<string>('BRAND_WEBSITE') ??
+    // Env wins over branding.json so prod emails use the real public URL (footer + absolute logo src).
+    const siteFromEnv =
+      this.configService.get<string>('FRONTEND_URL')?.trim() ||
+      this.configService.get<string>('BRAND_WEBSITE')?.trim() ||
+      this.configService.get<string>('NEXT_PUBLIC_APP_URL')?.trim() ||
       '';
+    const siteFromFile = this.branding?.siteUrl?.trim() || '';
+    const siteUrl = (siteFromEnv || siteFromFile).replace(/\/$/, '');
+
     const logoPath = this.branding?.logo?.primary ?? '';
-    const logoUrl = logoPath && siteUrl ? `${siteUrl.replace(/\/$/, '')}${logoPath.startsWith('/') ? logoPath : `/${logoPath}`}` : (this.configService.get<string>('BRAND_LOGO_URL') || '');
+    const logoOverride = this.configService.get<string>('BRAND_LOGO_URL')?.trim();
+    const logoUrl =
+      logoOverride ||
+      (logoPath && siteUrl
+        ? `${siteUrl}${logoPath.startsWith('/') ? logoPath : `/${logoPath}`}`
+        : '');
+
     const palette = this.branding?.palette ?? {};
     const primaryColor = palette.primary ?? this.configService.get<string>('BRAND_PRIMARY_COLOR') ?? '#111827';
-    const website = siteUrl || this.configService.get<string>('BRAND_WEBSITE') || '';
+    const website = siteUrl || this.configService.get<string>('BRAND_WEBSITE')?.trim() || '';
     const supportEmail = this.configService.get<string>('BRAND_SUPPORT_EMAIL') || '';
 
     return {
